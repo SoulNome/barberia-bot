@@ -1,6 +1,7 @@
 from app.models import Cita, Cliente
 from app import db
 from datetime import datetime, date
+import re
 
 
 # ------------------------------------------------
@@ -18,9 +19,36 @@ def normalizar_fecha(fecha):
 def normalizar_hora(hora):
 
     if isinstance(hora, str):
+
+        hora = hora.strip().lower()
+
+        # aceptar formato 13:30:00
+        if len(hora) == 8:
+            hora = hora[:5]
+
+        # aceptar formato 1pm
+        match = re.match(r"(\d{1,2})\s*pm", hora)
+        if match:
+            h = int(match.group(1))
+            return datetime.strptime(f"{h+12}:00", "%H:%M").time()
+
+        # aceptar formato 1am
+        match = re.match(r"(\d{1,2})\s*am", hora)
+        if match:
+            h = int(match.group(1))
+            return datetime.strptime(f"{h}:00", "%H:%M").time()
+
         return datetime.strptime(hora, "%H:%M").time()
 
     return hora
+
+
+def formatear_hora(hora):
+
+    if isinstance(hora, str):
+        hora = normalizar_hora(hora)
+
+    return hora.strftime("%H:%M")
 
 
 def obtener_o_crear_cliente(nombre, telefono):
@@ -54,7 +82,7 @@ def crear_cita(nombre, telefono, barbero_id, fecha, hora):
         cliente = obtener_o_crear_cliente(nombre, telefono)
 
         # ------------------------------------------------
-        # VERIFICAR SI EL CLIENTE YA TIENE CITA
+        # VERIFICAR SI CLIENTE YA TIENE CITA
         # ------------------------------------------------
 
         cita_cliente = Cita.query.filter(
@@ -65,19 +93,18 @@ def crear_cita(nombre, telefono, barbero_id, fecha, hora):
         if cita_cliente:
 
             return False, f"""
-Ya tienes una cita registrada:
+❌ Ya tienes una cita registrada:
 
 📅 {cita_cliente.fecha}
-⏰ {cita_cliente.hora}
+⏰ {formatear_hora(cita_cliente.hora)}
 
 Si deseas cancelarla escribe:
 
-cancelar {cita_cliente.fecha} {cita_cliente.hora}
+cancelar {cita_cliente.fecha} {formatear_hora(cita_cliente.hora)}
 """
 
-
         # ------------------------------------------------
-        # VERIFICAR SI EL HORARIO YA ESTÁ OCUPADO
+        # VERIFICAR SI HORARIO OCUPADO
         # ------------------------------------------------
 
         cita_existente = Cita.query.filter_by(
@@ -87,8 +114,7 @@ cancelar {cita_cliente.fecha} {cita_cliente.hora}
         ).first()
 
         if cita_existente:
-            return False, "Ese horario ya está ocupado."
-
+            return False, "❌ Ese horario ya está ocupado."
 
         # ------------------------------------------------
         # CREAR CITA
@@ -127,7 +153,7 @@ def cancelar_cita(telefono, fecha, hora):
         cliente = Cliente.query.filter_by(telefono=telefono).first()
 
         if not cliente:
-            return False, "No encontramos un cliente con ese número."
+            return False, "❌ No encontramos un cliente con ese número."
 
         cita = Cita.query.filter_by(
             cliente_id=cliente.id,
@@ -136,7 +162,7 @@ def cancelar_cita(telefono, fecha, hora):
         ).first()
 
         if not cita:
-            return False, "No encontramos esa cita."
+            return False, "❌ No encontramos esa cita."
 
         db.session.delete(cita)
         db.session.commit()

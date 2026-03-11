@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>BarberIA Panel</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:#111;
+color:white;
+padding:40px;
+}
+
+h1{
+color:#00d084;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:20px;
+}
+
+th,td{
+padding:12px;
+border-bottom:1px solid #333;
+}
+
+th{
+background:#222;
+}
+
+.card{
+background:#222;
+padding:20px;
+margin-bottom:20px;
+border-radius:8px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>💈 BarberIA Panel</h1>
+
+<div class="card">
+
+<h2>Citas de hoy: {{ fecha }}</h2>
+
+</div>
+
+<table>
+
+<tr>
+<th>Hora</th>
+<th>Cliente</th>
+<th>Barbero</th>
+</tr>
+
+{% for cita, cliente, barbero in citas %}
+
+<tr>
+
+<td>{{ cita.hora.strftime("%H:%M") }}</td>
+<td>{{ cliente }}</td>
+<td>{{ barbero }}</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</body>
+</html>
