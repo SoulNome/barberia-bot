@@ -6,9 +6,10 @@ from app.services.nlp_service import interpretar_mensaje
 
 bot_bp = Blueprint("bot", __name__)
 
-user_states = {}
-
 API_URL = "http://localhost:5000"
+
+# estado conversacional
+user_states = {}
 
 
 @bot_bp.route("/bot", methods=["POST"])
@@ -23,7 +24,7 @@ def bot():
     r = requests.get(f"{API_URL}/barberos/")
     barberos = r.json()["barberos"]
 
-    # NLP
+    # interpretar mensaje con NLP
     nlp = interpretar_mensaje(mensaje, barberos)
 
     accion = nlp["accion"]
@@ -33,18 +34,25 @@ def bot():
 
     estado = user_states.get(telefono, "inicio")
 
+    print("MENSAJE:", mensaje)
+    print("ACCION:", accion)
+    print("FECHA:", fecha)
+    print("HORA:", hora)
+    print("BARBERO:", barbero)
+
     # -------------------------
     # SALUDO
     # -------------------------
-    if mensaje in ["hola", "hi", "menu"]:
+
+    if mensaje in ["hola", "menu", "hi"]:
 
         resp.message(
             "Hola 👋 soy *BarberIA* 💈\n\n"
-            "Puedes escribir cosas como:\n\n"
-            "• quiero una cita mañana\n"
+            "Puedes escribir:\n\n"
+            "• quiero una cita\n"
             "• ver barberos\n"
             "• horarios mañana\n"
-            "• cancelar mi cita"
+            "• cancelar cita"
         )
 
         user_states[telefono] = "inicio"
@@ -52,8 +60,9 @@ def bot():
         return str(resp)
 
     # -------------------------
-    # AGENDAR DIRECTO CON IA
+    # AGENDAR DIRECTO (IA)
     # -------------------------
+
     if accion == "agendar" and fecha and hora and barbero:
 
         barbero_id = next(
@@ -73,7 +82,7 @@ def bot():
         )
 
         resp.message(
-            f"✅ Cita agendada 💈\n\n"
+            f"✅ Cita agendada\n\n"
             f"📅 {fecha}\n"
             f"⏰ {hora}\n"
             f"💈 {barbero.title()}"
@@ -82,16 +91,17 @@ def bot():
         return str(resp)
 
     # -------------------------
-    # VER BARBEROS
+    # INICIAR AGENDAMIENTO
     # -------------------------
-    if accion == "barberos":
 
-        texto = "💈 *Nuestros barberos:*\n\n"
+    if accion == "agendar":
+
+        texto = "Perfecto 💈 Vamos a agendar tu cita.\n\n"
+
+        texto += "¿Con qué barbero?\n\n"
 
         for b in barberos:
             texto += f"{b['id']}️⃣ {b['nombre']}\n"
-
-        texto += "\nEscribe el número o nombre del barbero."
 
         user_states[telefono] = "esperando_barbero"
 
@@ -100,8 +110,24 @@ def bot():
         return str(resp)
 
     # -------------------------
+    # VER BARBEROS
+    # -------------------------
+
+    if accion == "barberos":
+
+        texto = "💈 Nuestros barberos:\n\n"
+
+        for b in barberos:
+            texto += f"{b['id']}️⃣ {b['nombre']}\n"
+
+        resp.message(texto)
+
+        return str(resp)
+
+    # -------------------------
     # SELECCIONAR BARBERO
     # -------------------------
+
     if estado == "esperando_barbero":
 
         barbero_id = mensaje
@@ -120,27 +146,9 @@ def bot():
         return str(resp)
 
     # -------------------------
-    # AGENDAR CON FECHA
+    # SELECCIONAR FECHA
     # -------------------------
-    if accion == "agendar" and fecha:
 
-        texto = "💈 ¿Con qué barbero?\n\n"
-
-        for b in barberos:
-            texto += f"{b['id']}️⃣ {b['nombre']}\n"
-
-        user_states[telefono] = {
-            "estado": "esperando_barbero",
-            "fecha": fecha
-        }
-
-        resp.message(texto)
-
-        return str(resp)
-
-    # -------------------------
-    # FECHA
-    # -------------------------
     if isinstance(estado, dict) and estado.get("estado") == "esperando_fecha":
 
         barbero_id = estado["barbero_id"]
@@ -159,7 +167,7 @@ def bot():
 
         horarios = data["horarios"] if isinstance(data, dict) else data
 
-        texto = "⏰ *Horarios disponibles:*\n\n"
+        texto = "⏰ Horarios disponibles:\n\n"
 
         for i, h in enumerate(horarios):
             texto += f"{i+1}️⃣ {h}\n"
@@ -180,12 +188,12 @@ def bot():
     # -------------------------
     # SELECCIONAR HORA
     # -------------------------
+
     if isinstance(estado, dict) and estado.get("estado") == "esperando_hora":
 
         try:
 
             index = int(mensaje) - 1
-
             hora = estado["horarios"][index]
 
             barbero_id = estado["barbero_id"]
@@ -207,8 +215,9 @@ def bot():
         return str(resp)
 
     # -------------------------
-    # CREAR CITA
+    # CONFIRMAR CITA
     # -------------------------
+
     if isinstance(estado, dict) and estado.get("estado") == "esperando_nombre":
 
         nombre = mensaje
@@ -231,7 +240,7 @@ def bot():
         user_states[telefono] = "inicio"
 
         resp.message(
-            f"✅ *Cita confirmada*\n\n"
+            f"✅ Cita confirmada\n\n"
             f"📅 {fecha}\n"
             f"⏰ {hora}\n\n"
             "Gracias por usar BarberIA 💈"
@@ -242,13 +251,12 @@ def bot():
     # -------------------------
     # CANCELAR
     # -------------------------
+
     if accion == "cancelar":
 
-        user_states[telefono] = "cancelar_fecha"
-
         resp.message(
-            "¿Qué fecha tiene la cita que quieres cancelar?\n"
-            "Ejemplo: mañana o 2026-03-10"
+            "Para cancelar una cita escribe:\n\n"
+            "cancelar 2026-03-10 15:00"
         )
 
         return str(resp)
@@ -256,13 +264,15 @@ def bot():
     # -------------------------
     # DEFAULT
     # -------------------------
+
     resp.message(
         "No entendí tu mensaje 🤔\n\n"
         "Puedes decir:\n"
         "• hola\n"
-        "• ver barberos\n"
         "• quiero una cita\n"
+        "• ver barberos\n"
         "• cancelar cita"
     )
 
     return str(resp)
+    
