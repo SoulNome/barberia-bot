@@ -2,6 +2,7 @@ from flask import Flask
 from config import Config
 from app.extensions import db
 
+
 def create_app():
 
     app = Flask(__name__)
@@ -19,6 +20,9 @@ def create_app():
     app.register_blueprint(disponibilidad_bp, url_prefix="/agenda")
     app.register_blueprint(barberos_bp, url_prefix="/barberos")
     app.register_blueprint(bot_bp)
-    iniciar_scheduler()
+
+    # iniciar scheduler con contexto
+    with app.app_context():
+        iniciar_scheduler()
 
     return app

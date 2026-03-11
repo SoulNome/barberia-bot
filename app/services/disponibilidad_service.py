@@ -1,38 +1,116 @@
-from app.models import Cita
 from datetime import datetime, time, timedelta
+from app.models import Cita
 
+
+# ------------------------------------------------
+# FESTIVOS
+# ------------------------------------------------
+
+FESTIVOS = [
+    "2026-01-01",
+    "2026-12-25",
+]
+
+
+# ------------------------------------------------
+# OBTENER HORARIOS DISPONIBLES
+# ------------------------------------------------
 
 def obtener_horarios_disponibles(barbero_id, fecha):
 
-    if isinstance(fecha, str):
-        fecha = datetime.strptime(fecha, "%Y-%m-%d").date()
+    try:
 
-    inicio = time(9, 0)
-    fin = time(18, 0)
+        # normalizar fecha
+        if isinstance(fecha, str):
+            fecha_obj = datetime.strptime(fecha, "%Y-%m-%d")
+        else:
+            fecha_obj = datetime.combine(fecha, time())
 
-    duracion = timedelta(minutes=30)
+        hoy = datetime.now()
 
-    citas = Cita.query.filter_by(
-        barbero_id=barbero_id,
-        fecha=fecha
-    ).all()
+        dia_semana = fecha_obj.weekday()
+        # lunes=0 ... domingo=6
 
-    horas_ocupadas = {cita.hora for cita in citas}
+        fecha_str = fecha_obj.strftime("%Y-%m-%d")
 
-    horarios = []
+        # ------------------------------------------------
+        # FESTIVOS
+        # ------------------------------------------------
 
-    hora_actual = datetime.combine(fecha, inicio)
-    fin_datetime = datetime.combine(fecha, fin)
+        if fecha_str in FESTIVOS:
+            return []
 
-    ahora = datetime.now()
+        # ------------------------------------------------
+        # DOMINGO CERRADO
+        # ------------------------------------------------
 
-    while hora_actual < fin_datetime:
+        if dia_semana == 6:
+            return []
 
-        hora = hora_actual.time()
+        # ------------------------------------------------
+        # HORARIO BASE
+        # ------------------------------------------------
 
-        if hora not in horas_ocupadas and hora_actual > ahora:
-            horarios.append(hora.strftime("%H:%M"))
+        inicio = datetime.combine(fecha_obj.date(), time(9, 0))
+        fin = datetime.combine(fecha_obj.date(), time(18, 0))
 
-        hora_actual += duracion
+        slots = []
 
-    return horarios
+        actual = inicio
+
+        while actual < fin:
+
+            slots.append(actual.time())
+
+            actual += timedelta(minutes=30)
+
+        # ------------------------------------------------
+        # BLOQUEO ALMUERZO
+        # ------------------------------------------------
+
+        if dia_semana in [0, 1, 2]:  # lunes martes miércoles
+
+            slots = [
+                s for s in slots
+                if not (time(12, 30) <= s < time(16, 0))
+            ]
+
+        # ------------------------------------------------
+        # BLOQUEAR HORAS PASADAS SI ES HOY
+        # ------------------------------------------------
+
+        if fecha_obj.date() == hoy.date():
+
+            slots = [
+                s for s in slots
+                if datetime.combine(fecha_obj.date(), s) > hoy
+            ]
+
+        # ------------------------------------------------
+        # OBTENER CITAS DEL BARBERO
+        # ------------------------------------------------
+
+        citas = Cita.query.filter_by(
+            barbero_id=barbero_id,
+            fecha=fecha_obj.date()
+        ).all()
+
+        ocupadas = [c.hora for c in citas]
+
+        # ------------------------------------------------
+        # FILTRAR DISPONIBLES
+        # ------------------------------------------------
+
+        disponibles = [
+            s.strftime("%H:%M")
+            for s in slots
+            if s not in ocupadas
+        ]
+
+        return disponibles
+
+    except Exception as e:
+
+        print("Error obteniendo horarios:", e)
+
+        return []

@@ -1,63 +1,185 @@
 from app.models import Cita, Cliente
 from app import db
-from datetime import datetime
+from datetime import datetime, date
 
 
-def crear_cita(nombre, telefono, barbero_id, fecha, hora):
+# ------------------------------------------------
+# UTILIDADES
+# ------------------------------------------------
 
-    # Buscar cliente por teléfono
+def normalizar_fecha(fecha):
+
+    if isinstance(fecha, str):
+        return datetime.strptime(fecha, "%Y-%m-%d").date()
+
+    return fecha
+
+
+def normalizar_hora(hora):
+
+    if isinstance(hora, str):
+        return datetime.strptime(hora, "%H:%M").time()
+
+    return hora
+
+
+def obtener_o_crear_cliente(nombre, telefono):
+
     cliente = Cliente.query.filter_by(telefono=telefono).first()
 
-    # Si no existe, crearlo automáticamente
     if not cliente:
+
         cliente = Cliente(
             nombre=nombre,
             telefono=telefono
         )
+
         db.session.add(cliente)
         db.session.commit()
 
-    # Verificar si el horario ya está ocupado
-    cita_existente = Cita.query.filter_by(
-        barbero_id=barbero_id,
-        fecha=fecha,
-        hora=hora
-    ).first()
+    return cliente
 
-    if cita_existente:
-        return False, "Ese horario ya está ocupado"
 
-    # Crear la cita
-    nueva_cita = Cita(
-        cliente_id=cliente.id,
-        barbero_id=barbero_id,
-        fecha=fecha,
-        hora=hora
-    )
+# ------------------------------------------------
+# CREAR CITA
+# ------------------------------------------------
 
-    db.session.add(nueva_cita)
-    db.session.commit()
+def crear_cita(nombre, telefono, barbero_id, fecha, hora):
 
-    return True, "Cita creada correctamente"
+    try:
+
+        fecha = normalizar_fecha(fecha)
+        hora = normalizar_hora(hora)
+
+        cliente = obtener_o_crear_cliente(nombre, telefono)
+
+        # ------------------------------------------------
+        # VERIFICAR SI EL CLIENTE YA TIENE CITA
+        # ------------------------------------------------
+
+        cita_cliente = Cita.query.filter(
+            Cita.cliente_id == cliente.id,
+            Cita.fecha >= date.today()
+        ).first()
+
+        if cita_cliente:
+
+            return False, f"""
+Ya tienes una cita registrada:
+
+📅 {cita_cliente.fecha}
+⏰ {cita_cliente.hora}
+
+Si deseas cancelarla escribe:
+
+cancelar {cita_cliente.fecha} {cita_cliente.hora}
+"""
+
+
+        # ------------------------------------------------
+        # VERIFICAR SI EL HORARIO YA ESTÁ OCUPADO
+        # ------------------------------------------------
+
+        cita_existente = Cita.query.filter_by(
+            barbero_id=barbero_id,
+            fecha=fecha,
+            hora=hora
+        ).first()
+
+        if cita_existente:
+            return False, "Ese horario ya está ocupado."
+
+
+        # ------------------------------------------------
+        # CREAR CITA
+        # ------------------------------------------------
+
+        nueva_cita = Cita(
+            cliente_id=cliente.id,
+            barbero_id=barbero_id,
+            fecha=fecha,
+            hora=hora
+        )
+
+        db.session.add(nueva_cita)
+        db.session.commit()
+
+        return True, "Cita creada correctamente"
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        return False, f"Error creando cita: {str(e)}"
+
+
+# ------------------------------------------------
+# CANCELAR CITA
+# ------------------------------------------------
+
 def cancelar_cita(telefono, fecha, hora):
 
-    from app.models import Cliente, Cita
+    try:
+
+        fecha = normalizar_fecha(fecha)
+        hora = normalizar_hora(hora)
+
+        cliente = Cliente.query.filter_by(telefono=telefono).first()
+
+        if not cliente:
+            return False, "No encontramos un cliente con ese número."
+
+        cita = Cita.query.filter_by(
+            cliente_id=cliente.id,
+            fecha=fecha,
+            hora=hora
+        ).first()
+
+        if not cita:
+            return False, "No encontramos esa cita."
+
+        db.session.delete(cita)
+        db.session.commit()
+
+        return True, "✅ Tu cita fue cancelada correctamente."
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        return False, f"Error cancelando cita: {str(e)}"
+
+
+# ------------------------------------------------
+# VER PRÓXIMA CITA
+# ------------------------------------------------
+
+def obtener_cita_cliente(telefono):
 
     cliente = Cliente.query.filter_by(telefono=telefono).first()
 
     if not cliente:
-        return False, "Cliente no encontrado"
+        return None
 
-    cita = Cita.query.filter_by(
-        cliente_id=cliente.id,
+    cita = Cita.query.filter(
+        Cita.cliente_id == cliente.id,
+        Cita.fecha >= date.today()
+    ).order_by(Cita.fecha.asc()).first()
+
+    return cita
+
+
+# ------------------------------------------------
+# VERIFICAR SI EXISTE CITA
+# ------------------------------------------------
+
+def cita_existente(barbero_id, fecha, hora):
+
+    fecha = normalizar_fecha(fecha)
+    hora = normalizar_hora(hora)
+
+    return Cita.query.filter_by(
+        barbero_id=barbero_id,
         fecha=fecha,
         hora=hora
     ).first()
-
-    if not cita:
-        return False, "No existe esa cita"
-
-    db.session.delete(cita)
-    db.session.commit()
-
-    return True, "Cita cancelada"
