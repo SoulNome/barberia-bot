@@ -33,8 +33,8 @@ def obtener_citas_de_manana():
         lista.append({
             "telefono": cliente.telefono,
             "nombre": cliente.nombre,
-            "fecha": cita.fecha,
-            "hora": cita.hora
+            "fecha": cita.fecha.strftime("%Y-%m-%d"),
+            "hora": cita.hora.strftime("%H:%M")
         })
 
     return lista
@@ -44,40 +44,47 @@ def obtener_citas_de_manana():
 # ENVIAR RECORDATORIOS
 # ------------------------------------------------
 
-def enviar_recordatorios():
+def enviar_recordatorios(app):
 
-    print("Buscando citas para enviar recordatorios...")
+    with app.app_context():
 
-    citas = obtener_citas_de_manana()
+        print("📅 Buscando citas para enviar recordatorios...")
 
-    for cita in citas:
+        citas = obtener_citas_de_manana()
 
-        enviar_recordatorio(
-            cita["telefono"],
-            cita["nombre"],
-            cita["fecha"],
-            cita["hora"]
-        )
+        enviados = 0
 
-    print(f"Recordatorios enviados: {len(citas)}")
+        for cita in citas:
+
+            ok = enviar_recordatorio(
+                cita["telefono"],
+                cita["nombre"],
+                cita["fecha"],
+                cita["hora"]
+            )
+
+            if ok:
+                enviados += 1
+
+        print(f"📲 Recordatorios enviados: {enviados}")
 
 
 # ------------------------------------------------
 # INICIAR SCHEDULER
 # ------------------------------------------------
 
-def iniciar_scheduler():
+def iniciar_scheduler(app):
 
     scheduler = BackgroundScheduler()
 
-    # todos los días a las 18:00
     scheduler.add_job(
         enviar_recordatorios,
         "cron",
         hour=18,
-        minute=0
+        minute=0,
+        args=[app]
     )
 
     scheduler.start()
 
-    print("Scheduler de recordatorios iniciado")
+    print("⏰ Scheduler de recordatorios iniciado")

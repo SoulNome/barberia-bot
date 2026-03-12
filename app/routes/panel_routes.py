@@ -27,7 +27,7 @@ PRECIOS = {
 
 def obtener_horarios_dia(dia_semana):
 
-    if dia_semana in [0,1,2]:
+    if dia_semana in [0, 1, 2]:
         return [
             (time(10,0), time(12,0)),
             (time(16,0), time(20,0))
@@ -78,7 +78,7 @@ def panel():
     barberos_dict = {b.id: b.nombre for b in Barbero.query.all()}
 
     # ------------------------------------------------
-    # CALCULAR INGRESOS
+    # INGRESOS DEL DIA
     # ------------------------------------------------
 
     ingresos_hoy = 0
@@ -87,17 +87,39 @@ def panel():
         if cita.servicio in PRECIOS:
             ingresos_hoy += PRECIOS[cita.servicio]
 
+    # ------------------------------------------------
+    # SERVICIO MAS VENDIDO
+    # ------------------------------------------------
+
+    conteo_servicios = {}
+
+    for cita in citas:
+
+        servicio = cita.servicio
+
+        if servicio:
+            conteo_servicios[servicio] = conteo_servicios.get(servicio, 0) + 1
+
+    servicio_top = None
+
+    if conteo_servicios:
+        servicio_top = max(conteo_servicios, key=conteo_servicios.get)
+
     agenda = []
 
     dia_semana = hoy.weekday()
 
     bloques = obtener_horarios_dia(dia_semana)
 
+    total_slots = 0
+
     for inicio, fin in bloques:
 
         actual = datetime.combine(hoy, inicio)
 
         while actual.time() < fin:
+
+            total_slots += 1
 
             hora = actual.time()
 
@@ -126,11 +148,22 @@ def panel():
 
             actual += timedelta(minutes=30)
 
+    # ------------------------------------------------
+    # OCUPACION DEL DIA
+    # ------------------------------------------------
+
+    ocupacion = 0
+
+    if total_slots > 0:
+        ocupacion = int((citas_hoy / total_slots) * 100)
+
     return render_template(
         "panel.html",
         agenda=agenda,
         citas_hoy=citas_hoy,
         clientes=clientes,
         barberos=barberos,
-        ingresos_hoy=ingresos_hoy
+        ingresos_hoy=ingresos_hoy,
+        servicio_top=servicio_top,
+        ocupacion=ocupacion
     )

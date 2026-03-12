@@ -16,15 +16,15 @@ def create_app():
     from app.routes.bot_routes import bot_bp
     from app.services.scheduler_service import iniciar_scheduler
     from app.routes.panel_routes import panel_bp
+    
 
     app.register_blueprint(agenda_bp, url_prefix="/agenda")
     app.register_blueprint(disponibilidad_bp, url_prefix="/agenda")
     app.register_blueprint(barberos_bp, url_prefix="/barberos")
     app.register_blueprint(bot_bp)
     app.register_blueprint(panel_bp)
+    iniciar_scheduler
 
-    # iniciar scheduler con contexto
-    with app.app_context():
-        iniciar_scheduler()
+    
 
     return app
