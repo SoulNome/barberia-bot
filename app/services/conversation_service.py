@@ -78,78 +78,138 @@ def manejar_mensaje(telefono, mensaje, barberos):
     cliente = obtener_cliente_por_telefono(telefono_limpio)
     nombre_cliente = cliente.nombre if cliente else ""
 
-    nlp = interpretar_mensaje(mensaje, barberos)
-
-    accion = nlp.get("accion")
-    fecha = nlp.get("fecha")
-
     # ------------------------------------------------
-    # VOLVER AL MENU
+    # VOLVER AL MENU — siempre tiene prioridad máxima
     # ------------------------------------------------
 
     if mensaje in ["hola", "menu", "volver", "inicio", "0"]:
-
         user_states[telefono] = {"estado": "inicio"}
-
         return menu_principal(nombre_cliente)
-    
-    # ------------------------------------------------
-    # CANCELAR CITA DIRECTO
-    # ------------------------------------------------
-
-    if mensaje.startswith("cancelar"):
-
-        cita = obtener_cita_cliente(telefono_limpio)
-
-        if not cita:
-            return "❌ No tienes citas registradas."
-
-        fecha = cita.fecha
-        hora = cita.hora.strftime("%H:%M")
-
-        ok, msg = cancelar_cita(
-            telefono_limpio,
-            fecha,
-            hora
-        )
-
-        user_states[telefono] = {"estado": "inicio"}
-
-        return f"""
-    ✅ Cita cancelada correctamente
-
-    📅 {fecha}
-    ⏰ {hora}
-
-    Escribe *hola* para volver al menú.
-    """
 
     # ------------------------------------------------
-    # MENU NUMERICO SOLO EN INICIO
+    # MENU NUMERICO — solo en estado inicio, ANTES del NLP
+    # para evitar que el NLP sobreescriba la selección
     # ------------------------------------------------
+
+    accion = None  # FIX: inicializar accion antes del NLP
 
     if estado == "inicio":
 
         if mensaje == "1":
             accion = "agendar"
-
         elif mensaje == "2":
             accion = "barberos"
-
         elif mensaje == "3":
             accion = "horarios"
-
         elif mensaje == "4":
             accion = "cancelar_menu"
-
         elif mensaje == "5":
             accion = "ver_cita"
-
         elif mensaje == "6":
             accion = "ayuda"
-
         elif mensaje == "7":
             accion = "precios"
+
+    # Solo llamar NLP si el menú numérico no resolvió la acción
+    # FIX: evitar que NLP sobreescriba selección numérica del menú
+    if accion is None:
+        nlp = interpretar_mensaje(mensaje, barberos)
+        accion = nlp.get("accion")
+        fecha = nlp.get("fecha")
+    else:
+        fecha = None
+
+    # ------------------------------------------------
+    # CANCELAR CITA — palabra clave directa
+    # FIX: también capturar accion "cancelar_menu" aquí
+    # ------------------------------------------------
+
+    if mensaje.startswith("cancelar") or accion in ("cancelar_menu", "cancelar"):
+
+        cita = obtener_cita_cliente(telefono_limpio)
+
+        if not cita:
+            user_states[telefono] = {"estado": "inicio"}
+            return "❌ No tienes citas registradas.\n\nEscribe *hola* para volver al menú."
+
+        fecha_cita = cita.fecha
+        hora_cita = cita.hora.strftime("%H:%M")
+
+        # FIX: preguntar confirmación antes de cancelar
+        user_states[telefono] = {
+            "estado": "confirmando_cancelacion",
+            "fecha": fecha_cita,
+            "hora": hora_cita
+        }
+
+        return f"""
+❗ *¿Seguro que quieres cancelar tu cita?*
+
+📅 {fecha_cita}
+⏰ {hora_cita}
+
+1️⃣ Sí, cancelar
+2️⃣ No, mantener cita
+"""
+
+    # ------------------------------------------------
+    # CONFIRMANDO CANCELACION
+    # ------------------------------------------------
+
+    if estado == "confirmando_cancelacion":
+
+        if mensaje == "1":
+
+            ok, msg = cancelar_cita(
+                telefono_limpio,
+                estado_data["fecha"],
+                estado_data["hora"]
+            )
+
+            user_states[telefono] = {"estado": "inicio"}
+
+            if not ok:
+                return f"❌ No se pudo cancelar: {msg}\n\nEscribe *hola* para volver al menú."
+
+            return f"""
+✅ *Cita cancelada correctamente*
+
+📅 {estado_data["fecha"]}
+⏰ {estado_data["hora"]}
+
+Escribe *hola* para volver al menú.
+"""
+
+        elif mensaje == "2":
+            user_states[telefono] = {"estado": "inicio"}
+            return "👍 Tu cita se mantiene.\n\nEscribe *hola* para volver al menú."
+
+        else:
+            return "Escribe *1* para cancelar o *2* para mantener tu cita."
+
+    # ------------------------------------------------
+    # VER MI CITA
+    # ------------------------------------------------
+
+    if accion == "ver_cita":
+
+        cita = obtener_cita_cliente(telefono_limpio)
+
+        if not cita:
+            return "❌ No tienes citas registradas.\n\nEscribe *hola* para volver al menú."
+
+        hora_cita = cita.hora.strftime("%H:%M")
+
+        return f"""
+📋 *Tu cita*
+
+💈 Barbero: {getattr(cita, 'barbero_nombre', 'N/A')}
+💇 Servicio: {getattr(cita, 'servicio', 'N/A')}
+📅 Fecha: {cita.fecha}
+⏰ Hora: {hora_cita}
+
+Escribe *cancelar* si deseas cancelarla.
+"""
 
     # ------------------------------------------------
     # VER PRECIOS
@@ -160,9 +220,7 @@ def manejar_mensaje(telefono, mensaje, barberos):
         texto = "💈 *Servicios BarberIA*\n\n"
 
         for i, s in SERVICIOS.items():
-
             precio = f"${s['precio']:,}".replace(",", ".")
-
             texto += f"{i}️⃣ {s['nombre']} — {precio}\n"
 
         texto += "\nEscribe *1* para agendar."
@@ -191,7 +249,6 @@ def manejar_mensaje(telefono, mensaje, barberos):
     if accion == "horarios":
 
         barbero = barberos[0]
-
         horarios = obtener_horarios_disponibles(barbero["id"], "hoy")
 
         if not horarios:
@@ -200,26 +257,24 @@ def manejar_mensaje(telefono, mensaje, barberos):
         texto = "📅 *Horarios disponibles hoy*\n\n"
 
         for h in horarios:
-
             if not h["disponible"]:
                 continue
-
             texto += f"🟢 {h['hora']}\n"
 
         return texto
 
     # ------------------------------------------------
     # AGENDAR
+    # FIX: solo resetear el flujo si estamos en inicio,
+    # no interrumpir si ya hay un flujo en progreso
     # ------------------------------------------------
 
-    if accion == "agendar":
+    if accion == "agendar" and estado == "inicio":
 
         texto = "💈 *Selecciona un servicio*\n\n"
 
         for i, s in SERVICIOS.items():
-
             precio = f"${s['precio']:,}".replace(",", ".")
-
             texto += f"{i}️⃣ {s['nombre']} — {precio}\n"
 
         user_states[telefono] = {"estado": "esperando_servicio"}
@@ -238,16 +293,11 @@ def manejar_mensaje(telefono, mensaje, barberos):
         servicio_id = int(mensaje)
 
         if servicio_id not in SERVICIOS:
-            return "❌ Servicio inválido."
+            return f"❌ Servicio inválido. Elige entre 1 y {len(SERVICIOS)}."
 
         servicio = SERVICIOS[servicio_id]
 
-        texto = f"""
-💈 *{servicio['nombre']} seleccionado*
-
-Ahora elige un barbero:
-
-"""
+        texto = f"💈 *{servicio['nombre']} seleccionado*\n\nAhora elige un barbero:\n\n"
 
         for b in barberos:
             texto += f"{b['menu_id']}️⃣ {b['nombre']}\n"
@@ -268,28 +318,21 @@ Ahora elige un barbero:
         barbero = None
 
         if mensaje.isdigit():
-
             opcion = int(mensaje)
-
             barbero = next(
                 (b for b in barberos if b["menu_id"] == opcion),
                 None
             )
-
         else:
-
             barbero = next(
                 (b for b in barberos if b["nombre"].lower() == mensaje),
                 None
             )
 
         if not barbero:
-
-            texto = "❌ No encontré ese barbero.\n\n"
-
+            texto = "❌ No encontré ese barbero. Elige una opción:\n\n"
             for b in barberos:
                 texto += f"{b['menu_id']}️⃣ {b['nombre']}\n"
-
             return texto
 
         user_states[telefono] = {
@@ -311,31 +354,32 @@ Ahora elige un barbero:
 
     # ------------------------------------------------
     # ESPERANDO FECHA
+    # FIX: manejo robusto cuando NLP no parsea la fecha
     # ------------------------------------------------
 
     if estado == "esperando_fecha":
 
         barbero_id = estado_data["barbero_id"]
 
+        # Usar fecha del NLP si existe, si no usar el mensaje crudo
         fecha_final = fecha if fecha else mensaje
 
         try:
-
             horarios = obtener_horarios_disponibles(barbero_id, fecha_final)
+        except Exception:
+            return "❌ No entendí la fecha. Intenta con:\n• *hoy*\n• *mañana*\n• *2026-03-20*"
 
-        except:
-
-            return "❌ No entendí la fecha.\nEjemplo: mañana"
+        if not horarios:
+            return "❌ No se pudieron obtener horarios. Intenta de nuevo."
 
         horarios_disponibles = [h for h in horarios if h["disponible"]]
 
         if not horarios_disponibles:
-            return "❌ No hay horarios disponibles ese día."
+            return f"❌ No hay horarios disponibles para *{fecha_final}*.\n\nPrueba con otra fecha."
 
-        texto = f"📅 *Horarios disponibles {fecha_final}*\n\n"
+        texto = f"📅 *Horarios disponibles — {fecha_final}*\n\n"
 
         for i, h in enumerate(horarios_disponibles):
-
             texto += f"{i+1}️⃣ {h['hora']} 🟢\n"
 
         texto += "\nElige el número del horario."
@@ -361,11 +405,10 @@ Ahora elige un barbero:
             return "❌ Escribe el número del horario."
 
         index = int(mensaje) - 1
-
         horarios = estado_data["horarios"]
 
         if index < 0 or index >= len(horarios):
-            return "❌ Ese número no es válido."
+            return f"❌ Ese número no es válido. Elige entre 1 y {len(horarios)}."
 
         hora = horarios[index]["hora"]
 
@@ -380,7 +423,7 @@ Ahora elige un barbero:
 
         return f"""
 💈 Barbero: {estado_data["barbero_nombre"]}
-💇 Servicio: {estado_data.get("servicio","Corte")}
+💇 Servicio: {estado_data.get("servicio", "Corte")}
 
 📅 Fecha: {estado_data["fecha"]}
 ⏰ Hora: {hora}
@@ -390,7 +433,7 @@ Ahora elige un barbero:
 """
 
     # ------------------------------------------------
-    # CONFIRMAR
+    # CONFIRMAR CITA
     # ------------------------------------------------
 
     if estado == "esperando_confirmacion":
@@ -409,7 +452,7 @@ Ahora elige un barbero:
             user_states[telefono] = {"estado": "inicio"}
 
             if not ok:
-                return msg
+                return f"❌ No se pudo crear la cita: {msg}"
 
             return f"""
 ✅ *Cita confirmada*
@@ -435,9 +478,26 @@ Te esperamos 💈
             return "Perfecto 👍\nDime otra fecha."
 
         else:
+            return "Escribe *1* para confirmar o *2* para cambiar."
 
-            return "Escribe 1 para confirmar o 2 para cambiar."
+    # ------------------------------------------------
+    # AYUDA
+    # ------------------------------------------------
 
+    if accion == "ayuda":
+        return """
+🆘 *Ayuda BarberIA*
+
+Puedes escribirme de forma natural o usar el menú:
+
+• *hola* — Ver menú principal
+• *1* — Agendar cita
+• *cancelar* — Cancelar tu cita
+• *0* — Volver al menú en cualquier momento
+"""
+
+    # ------------------------------------------------
+    # FALLBACK
     # ------------------------------------------------
 
     return "❌ No entendí tu mensaje.\nEscribe *hola* para ver el menú."
