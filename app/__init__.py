@@ -23,7 +23,7 @@ def create_app():
     app.register_blueprint(barberos_bp, url_prefix="/barberos")
     app.register_blueprint(bot_bp)
     app.register_blueprint(panel_bp)
-    iniciar_scheduler
+    iniciar_scheduler()
 
     
 
