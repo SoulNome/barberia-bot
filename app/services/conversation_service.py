@@ -92,6 +92,37 @@ def manejar_mensaje(telefono, mensaje, barberos):
         user_states[telefono] = {"estado": "inicio"}
 
         return menu_principal(nombre_cliente)
+    
+    # ------------------------------------------------
+    # CANCELAR CITA DIRECTO
+    # ------------------------------------------------
+
+    if mensaje.startswith("cancelar"):
+
+        cita = obtener_cita_cliente(telefono_limpio)
+
+        if not cita:
+            return "❌ No tienes citas registradas."
+
+        fecha = cita.fecha
+        hora = cita.hora.strftime("%H:%M")
+
+        ok, msg = cancelar_cita(
+            telefono_limpio,
+            fecha,
+            hora
+        )
+
+        user_states[telefono] = {"estado": "inicio"}
+
+        return f"""
+    ✅ Cita cancelada correctamente
+
+    📅 {fecha}
+    ⏰ {hora}
+
+    Escribe *hola* para volver al menú.
+    """
 
     # ------------------------------------------------
     # MENU NUMERICO SOLO EN INICIO
