@@ -51,6 +51,7 @@ def manejar_mensaje(telefono, mensaje, barberos):
     cliente = obtener_cliente_por_telefono(telefono_limpio)
     nombre_cliente = cliente.nombre if cliente else ""
 
+    # NLP
     nlp = interpretar_mensaje(mensaje, barberos)
 
     accion = nlp.get("accion")
@@ -106,7 +107,7 @@ def manejar_mensaje(telefono, mensaje, barberos):
             return "❌ Formato incorrecto.\nEjemplo:\ncancelar 2026-03-20 15:00"
 
     # ------------------------------------------------
-    # MENU NUMERICO
+    # MENU NUMERICO (PRIORIDAD)
     # ------------------------------------------------
 
     if mensaje == "1":
@@ -119,7 +120,7 @@ def manejar_mensaje(telefono, mensaje, barberos):
         accion = "horarios"
 
     elif mensaje == "4":
-        accion = "cancelar"
+        accion = "cancelar_menu"
 
     elif mensaje == "5":
         accion = "ver_cita"
@@ -129,6 +130,56 @@ def manejar_mensaje(telefono, mensaje, barberos):
 
     elif mensaje == "7":
         accion = "precios"
+
+    # ------------------------------------------------
+    # VER HORARIOS
+    # ------------------------------------------------
+
+    if accion == "horarios":
+
+        if not barberos:
+            return "❌ No hay barberos disponibles."
+
+        barbero = barberos[0]
+
+        horarios = obtener_horarios_disponibles(barbero["id"], "hoy")
+
+        if not horarios:
+            return "❌ No hay horarios disponibles hoy."
+
+        texto = "📅 *Horarios disponibles hoy*\n\n"
+
+        for h in horarios:
+
+            icono = "🟢" if h["disponible"] else "🔴"
+
+            texto += f"{h['hora']} {icono}\n"
+
+        return texto
+
+    # ------------------------------------------------
+    # CANCELAR DESDE MENU
+    # ------------------------------------------------
+
+    if accion == "cancelar_menu":
+
+        cita = obtener_cita_cliente(telefono_limpio)
+
+        if not cita:
+            return "❌ No tienes citas registradas."
+
+        hora = cita.hora.strftime("%H:%M")
+
+        return f"""
+📅 *Tu cita actual*
+
+Fecha: {cita.fecha}
+Hora: {hora}
+
+Para cancelarla escribe:
+
+cancelar
+"""
 
     # ------------------------------------------------
     # VER PRECIOS
@@ -282,19 +333,16 @@ Puedes escribir:
     if isinstance(estado, dict) and estado.get("estado") == "esperando_hora":
 
         if not mensaje.isdigit():
-
             return "❌ Escribe el número del horario."
 
         index = int(mensaje) - 1
 
         if index < 0 or index >= len(estado["horarios"]):
-
             return "❌ Ese número no es válido."
 
         horario = estado["horarios"][index]
 
         if not horario["disponible"]:
-
             return "❌ Ese horario ya está ocupado."
 
         hora_seleccionada = horario["hora"]

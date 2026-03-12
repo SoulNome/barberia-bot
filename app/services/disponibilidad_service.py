@@ -7,7 +7,6 @@ from app.models import Cita
 # ------------------------------------------------
 
 INTERVALO_MINUTOS = 30
-
 DOMINGO = 6
 
 
@@ -79,6 +78,10 @@ FESTIVOS = [
 
 def normalizar_fecha(fecha):
 
+    """
+    Convierte cualquier formato a datetime
+    """
+
     if isinstance(fecha, str):
 
         try:
@@ -90,17 +93,23 @@ def normalizar_fecha(fecha):
     if isinstance(fecha, datetime):
         return fecha
 
-    return datetime.combine(fecha, time())
+    try:
+        return datetime.combine(fecha, time())
+    except:
+        return None
 
 
 # ------------------------------------------------
-# GENERAR SLOTS
+# GENERAR SLOTS DE HORARIO
 # ------------------------------------------------
 
 def generar_slots(inicio, fin):
 
-    slots = []
+    """
+    Genera slots cada INTERVALO_MINUTOS
+    """
 
+    slots = []
     actual = inicio
 
     while actual < fin:
@@ -120,6 +129,10 @@ def obtener_horarios_disponibles(barbero_id, fecha):
 
     try:
 
+        # ------------------------------------------------
+        # NORMALIZAR FECHA
+        # ------------------------------------------------
+
         fecha_obj = normalizar_fecha(fecha)
 
         if not fecha_obj:
@@ -133,6 +146,7 @@ def obtener_horarios_disponibles(barbero_id, fecha):
 
         fecha_str = fecha_obj.strftime("%Y-%m-%d")
 
+
         # ------------------------------------------------
         # FESTIVOS
         # ------------------------------------------------
@@ -140,12 +154,14 @@ def obtener_horarios_disponibles(barbero_id, fecha):
         if fecha_str in FESTIVOS:
             return []
 
+
         # ------------------------------------------------
         # DOMINGO CERRADO
         # ------------------------------------------------
 
         if dia_semana == DOMINGO:
             return []
+
 
         # ------------------------------------------------
         # OBTENER BLOQUES DEL DÍA
@@ -156,7 +172,9 @@ def obtener_horarios_disponibles(barbero_id, fecha):
         if not bloques:
             return []
 
+
         slots = []
+
 
         # ------------------------------------------------
         # GENERAR SLOTS DE LOS BLOQUES
@@ -164,17 +182,16 @@ def obtener_horarios_disponibles(barbero_id, fecha):
 
         for inicio_str, fin_str in bloques:
 
-            inicio = datetime.combine(
-                fecha_date,
-                datetime.strptime(inicio_str, "%H:%M").time()
-            )
+            inicio_time = datetime.strptime(inicio_str, "%H:%M").time()
+            fin_time = datetime.strptime(fin_str, "%H:%M").time()
 
-            fin = datetime.combine(
-                fecha_date,
-                datetime.strptime(fin_str, "%H:%M").time()
-            )
+            inicio = datetime.combine(fecha_date, inicio_time)
+            fin = datetime.combine(fecha_date, fin_time)
 
-            slots.extend(generar_slots(inicio, fin))
+            slots_bloque = generar_slots(inicio, fin)
+
+            slots.extend(slots_bloque)
+
 
         # ------------------------------------------------
         # BLOQUEAR HORAS PASADAS
@@ -187,8 +204,9 @@ def obtener_horarios_disponibles(barbero_id, fecha):
                 if datetime.combine(fecha_date, s) > hoy
             ]
 
+
         # ------------------------------------------------
-        # OBTENER CITAS
+        # OBTENER CITAS OCUPADAS
         # ------------------------------------------------
 
         citas = Cita.query.filter_by(
@@ -198,8 +216,9 @@ def obtener_horarios_disponibles(barbero_id, fecha):
 
         ocupadas = {c.hora for c in citas}
 
+
         # ------------------------------------------------
-        # GENERAR RESPUESTA
+        # GENERAR RESPUESTA FINAL
         # ------------------------------------------------
 
         horarios = []
@@ -213,7 +232,9 @@ def obtener_horarios_disponibles(barbero_id, fecha):
                 "disponible": disponible
             })
 
+
         return horarios
+
 
     except Exception as e:
 
