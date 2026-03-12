@@ -1,12 +1,12 @@
-from flask import Blueprint, request, render_template
+import json
+import time as time_module
+from flask import Blueprint, request, render_template, Response, stream_with_context
 from app.models import Cita, Cliente, Barbero
 from datetime import date, datetime, time, timedelta
 import os
 
 panel_bp = Blueprint("panel", __name__)
-
 PANEL_KEY = os.getenv("PANEL_KEY")
-
 
 # ------------------------------------------------
 # PRECIOS SERVICIOS
@@ -20,150 +20,136 @@ PRECIOS = {
     "Pigmentación cejas": 10000
 }
 
-
 # ------------------------------------------------
 # HORARIOS POR DIA
 # ------------------------------------------------
 
 def obtener_horarios_dia(dia_semana):
-
     if dia_semana in [0, 1, 2]:
         return [
-            (time(10,0), time(12,0)),
-            (time(16,0), time(20,0))
+            (time(10, 0), time(12, 0)),
+            (time(16, 0), time(20, 0))
         ]
-
     if dia_semana == 3:
         return [
-            (time(10,0), time(12,30)),
-            (time(15,0), time(22,0))
+            (time(10, 0), time(12, 30)),
+            (time(15, 0), time(22, 0))
         ]
-
     if dia_semana == 4:
         return [
-            (time(9,0), time(13,30)),
-            (time(14,30), time(22,0))
+            (time(9, 0), time(13, 30)),
+            (time(14, 30), time(22, 0))
         ]
-
     if dia_semana == 5:
         return [
-            (time(9,0), time(13,0)),
-            (time(15,0), time(21,0))
+            (time(9, 0), time(13, 0)),
+            (time(15, 0), time(21, 0))
         ]
-
     return []
 
-
 # ------------------------------------------------
-# PANEL
+# HELPER — construir datos del panel
 # ------------------------------------------------
 
-@panel_bp.route("/panel")
-def panel():
-
-    key = request.args.get("key")
-
-    if key != PANEL_KEY:
-        return "No autorizado"
-
+def _build_panel_data():
     hoy = date.today()
-
     citas = Cita.query.filter_by(fecha=hoy).all()
-
     citas_hoy = len(citas)
     clientes = Cliente.query.count()
-    barberos = Barbero.query.count()
+    barberos_count = Barbero.query.count()
 
     clientes_dict = {c.id: c.nombre for c in Cliente.query.all()}
     barberos_dict = {b.id: b.nombre for b in Barbero.query.all()}
 
-    # ------------------------------------------------
-    # INGRESOS DEL DIA
-    # ------------------------------------------------
+    # Ingresos
+    ingresos_hoy = sum(PRECIOS.get(c.servicio, 0) for c in citas)
 
-    ingresos_hoy = 0
-
+    # Servicio top
+    conteo = {}
     for cita in citas:
-        if cita.servicio in PRECIOS:
-            ingresos_hoy += PRECIOS[cita.servicio]
+        if cita.servicio:
+            conteo[cita.servicio] = conteo.get(cita.servicio, 0) + 1
+    servicio_top = max(conteo, key=conteo.get) if conteo else None
 
-    # ------------------------------------------------
-    # SERVICIO MAS VENDIDO
-    # ------------------------------------------------
-
-    conteo_servicios = {}
-
-    for cita in citas:
-
-        servicio = cita.servicio
-
-        if servicio:
-            conteo_servicios[servicio] = conteo_servicios.get(servicio, 0) + 1
-
-    servicio_top = None
-
-    if conteo_servicios:
-        servicio_top = max(conteo_servicios, key=conteo_servicios.get)
-
+    # Agenda
     agenda = []
-
     dia_semana = hoy.weekday()
-
     bloques = obtener_horarios_dia(dia_semana)
-
     total_slots = 0
 
     for inicio, fin in bloques:
-
         actual = datetime.combine(hoy, inicio)
-
         while actual.time() < fin:
-
             total_slots += 1
-
             hora = actual.time()
-
             cita = next((c for c in citas if c.hora == hora), None)
-
             if cita:
-
-                cliente_nombre = clientes_dict.get(cita.cliente_id)
-                barbero_nombre = barberos_dict.get(cita.barbero_id)
-
                 agenda.append({
                     "hora": hora.strftime("%H:%M"),
-                    "cliente": cliente_nombre,
-                    "barbero": barbero_nombre,
+                    "cliente": clientes_dict.get(cita.cliente_id),
+                    "barbero": barberos_dict.get(cita.barbero_id),
                     "servicio": cita.servicio
                 })
-
             else:
-
                 agenda.append({
                     "hora": hora.strftime("%H:%M"),
                     "cliente": None,
                     "barbero": None,
                     "servicio": None
                 })
-
             actual += timedelta(minutes=30)
 
-    # ------------------------------------------------
-    # OCUPACION DEL DIA
-    # ------------------------------------------------
+    ocupacion = int((citas_hoy / total_slots) * 100) if total_slots > 0 else 0
 
-    ocupacion = 0
+    return {
+        "citas_hoy": citas_hoy,
+        "clientes": clientes,
+        "barberos": barberos_count,
+        "ingresos_hoy": ingresos_hoy,
+        "servicio_top": servicio_top,
+        "ocupacion": ocupacion,
+        "agenda": agenda
+    }
 
-    if total_slots > 0:
-        ocupacion = int((citas_hoy / total_slots) * 100)
+# ------------------------------------------------
+# PANEL — carga inicial
+# ------------------------------------------------
 
-    return render_template(
-        "panel.html",
-        agenda=agenda,
-        citas_hoy=citas_hoy,
-        clientes=clientes,
-        barberos=barberos,
-        ingresos_hoy=ingresos_hoy,
-        servicio_top=servicio_top,
-        ocupacion=ocupacion
+@panel_bp.route("/panel")
+def panel():
+    key = request.args.get("key")
+    if key != PANEL_KEY:
+        return "No autorizado"
+
+    data = _build_panel_data()
+
+    return render_template("panel.html", **data)
+
+# ------------------------------------------------
+# PANEL STREAM — SSE tiempo real
+# ------------------------------------------------
+
+@panel_bp.route("/panel-stream")
+def panel_stream():
+    key = request.args.get("key")
+    if key != PANEL_KEY:
+        return "No autorizado", 401
+
+    def generar():
+        while True:
+            try:
+                payload = _build_panel_data()
+                yield f"event: update\ndata: {json.dumps(payload)}\n\n"
+            except Exception as e:
+                yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
+
+            time_module.sleep(5)
+
+    return Response(
+        stream_with_context(generar()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no"
+        }
     )
