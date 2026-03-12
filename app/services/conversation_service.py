@@ -5,18 +5,12 @@ from app.services.clientes_service import obtener_cliente_por_telefono
 
 user_states = {}
 
-# ------------------------------------------------
-# SERVICIOS
-# ------------------------------------------------
-
 SERVICIOS = {
-
     1: {"nombre": "Corte niños", "precio": 15000},
     2: {"nombre": "Corte normal", "precio": 20000},
     3: {"nombre": "Corte + barba + tinte", "precio": 25000},
     4: {"nombre": "Corte + barba + tinte + alisadora", "precio": 30000},
     5: {"nombre": "Pigmentación cejas", "precio": 10000}
-
 }
 
 
@@ -52,54 +46,52 @@ def manejar_mensaje(telefono, mensaje, barberos):
     nombre_cliente = cliente.nombre if cliente else ""
 
     nlp = interpretar_mensaje(mensaje, barberos)
-
     accion = nlp.get("accion")
     fecha = nlp.get("fecha")
 
-    # ------------------------------------------------
+    # -------------------------
     # VOLVER AL MENU
-    # ------------------------------------------------
+    # -------------------------
 
     if mensaje in ["hola", "menu", "volver", "inicio", "0"]:
-
         user_states[telefono] = "inicio"
-
         return menu_principal(nombre_cliente)
 
-    # ------------------------------------------------
-    # MENU NUMERICO
-    # ------------------------------------------------
+    # -------------------------
+    # MENU NUMERICO (SOLO EN INICIO)
+    # -------------------------
 
-    if mensaje == "1":
-        accion = "agendar"
+    if estado == "inicio":
 
-    elif mensaje == "2":
-        accion = "barberos"
+        if mensaje == "1":
+            accion = "agendar"
 
-    elif mensaje == "3":
-        accion = "horarios"
+        elif mensaje == "2":
+            accion = "barberos"
 
-    elif mensaje == "4":
-        accion = "cancelar_menu"
+        elif mensaje == "3":
+            accion = "horarios"
 
-    elif mensaje == "5":
-        accion = "ver_cita"
+        elif mensaje == "4":
+            accion = "cancelar_menu"
 
-    elif mensaje == "6":
-        accion = "ayuda"
+        elif mensaje == "5":
+            accion = "ver_cita"
 
-    elif mensaje == "7":
-        accion = "precios"
+        elif mensaje == "6":
+            accion = "ayuda"
 
-    # ------------------------------------------------
+        elif mensaje == "7":
+            accion = "precios"
+
+    # -------------------------
     # VER BARBEROS
-    # ------------------------------------------------
+    # -------------------------
 
     if accion == "barberos":
 
         texto = "💈 *Nuestros barberos*\n\n"
 
-        # CAMBIO 1 (numeración visual)
         for i, b in enumerate(barberos, start=1):
             texto += f"{i}️⃣ {b['nombre']}\n"
 
@@ -107,9 +99,9 @@ def manejar_mensaje(telefono, mensaje, barberos):
 
         return texto
 
-    # ------------------------------------------------
+    # -------------------------
     # AGENDAR
-    # ------------------------------------------------
+    # -------------------------
 
     if accion == "agendar":
 
@@ -125,9 +117,9 @@ def manejar_mensaje(telefono, mensaje, barberos):
 
         return texto
 
-    # ------------------------------------------------
-    # ESTADO: ESPERANDO SERVICIO
-    # ------------------------------------------------
+    # -------------------------
+    # ESPERANDO SERVICIO
+    # -------------------------
 
     if estado == "esperando_servicio":
 
@@ -148,7 +140,6 @@ Ahora elige un barbero:
 
 """
 
-        # CAMBIO 2
         for i, b in enumerate(barberos, start=1):
             texto += f"{i}️⃣ {b['nombre']}\n"
 
@@ -160,19 +151,17 @@ Ahora elige un barbero:
 
         return texto
 
-    # ------------------------------------------------
-    # ESTADO: ESPERANDO BARBERO
-    # ------------------------------------------------
+    # -------------------------
+    # ESPERANDO BARBERO
+    # -------------------------
 
     if isinstance(estado, dict) and estado.get("estado") == "esperando_barbero":
-
-        lista_barberos = estado["barberos"]
 
         if not mensaje.isdigit():
             return "❌ Escribe el número del barbero."
 
-        # CAMBIO 3
         indice = int(mensaje) - 1
+        lista_barberos = estado["barberos"]
 
         if indice < 0 or indice >= len(lista_barberos):
             return "❌ Ese barbero no existe."
@@ -197,14 +186,13 @@ Puedes escribir:
 • 2026-03-12
 """
 
-    # ------------------------------------------------
-    # RESTO DEL CÓDIGO (SIN CAMBIOS)
-    # ------------------------------------------------
+    # -------------------------
+    # ESPERANDO FECHA
+    # -------------------------
 
     if isinstance(estado, dict) and estado.get("estado") == "esperando_fecha":
 
         barbero_id = estado["barbero_id"]
-
         fecha_final = fecha if fecha else mensaje
 
         try:
@@ -213,14 +201,12 @@ Puedes escribir:
             return "❌ No entendí la fecha."
 
         if not horarios:
-            return "❌ No hay horarios disponibles ese día."
+            return "❌ No hay horarios disponibles."
 
         texto = f"📅 *Horarios disponibles {fecha_final}*\n\n"
 
         for i, h in enumerate(horarios):
-
             icono = "🟢" if h["disponible"] else "🔴"
-
             texto += f"{i+1}️⃣ {h['hora']} {icono}\n"
 
         texto += "\nElige el número del horario."
@@ -234,6 +220,10 @@ Puedes escribir:
         }
 
         return texto
+
+    # -------------------------
+    # ESPERANDO HORA
+    # -------------------------
 
     if isinstance(estado, dict) and estado.get("estado") == "esperando_hora":
 
@@ -250,13 +240,13 @@ Puedes escribir:
         if not horario["disponible"]:
             return "❌ Ese horario ya está ocupado."
 
-        hora_seleccionada = horario["hora"]
+        hora = horario["hora"]
 
         user_states[telefono] = {
             "estado": "esperando_confirmacion",
             "barbero_id": estado["barbero_id"],
             "fecha": estado["fecha"],
-            "hora": hora_seleccionada,
+            "hora": hora,
             "servicio": estado.get("servicio")
         }
 
@@ -264,10 +254,55 @@ Puedes escribir:
 💈 Servicio: {estado.get("servicio","Corte")}
 
 📅 Fecha: {estado['fecha']}
-⏰ Hora: {hora_seleccionada}
+⏰ Hora: {hora}
 
 1️⃣ Confirmar cita
 2️⃣ Elegir otro horario
 """
+
+    # -------------------------
+    # CONFIRMAR CITA
+    # -------------------------
+
+    if isinstance(estado, dict) and estado.get("estado") == "esperando_confirmacion":
+
+        if mensaje == "1":
+
+            ok, mensaje_cita = crear_cita(
+                nombre=nombre_cliente if nombre_cliente else "Cliente",
+                telefono=telefono_limpio,
+                barbero_id=estado["barbero_id"],
+                fecha=estado["fecha"],
+                hora=estado["hora"],
+                servicio=estado.get("servicio")
+            )
+
+            user_states[telefono] = "inicio"
+
+            if not ok:
+                return mensaje_cita
+
+            return f"""
+✅ *Cita confirmada*
+
+💈 Servicio: {estado.get("servicio","Corte")}
+📅 Fecha: {estado['fecha']}
+⏰ Hora: {estado['hora']}
+
+Te esperamos 💈
+"""
+
+        elif mensaje == "2":
+
+            user_states[telefono] = {
+                "estado": "esperando_fecha",
+                "barbero_id": estado["barbero_id"],
+                "servicio": estado.get("servicio")
+            }
+
+            return "Perfecto 👍\nDime otra fecha."
+
+        else:
+            return "Escribe 1 para confirmar o 2 para cambiar."
 
     return "❌ No entendí tu mensaje.\nEscribe *hola* para ver el menú."
