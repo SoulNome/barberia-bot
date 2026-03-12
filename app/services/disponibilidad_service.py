@@ -3,20 +3,64 @@ from app.models import Cita
 
 
 # ------------------------------------------------
-# CONFIGURACIÓN DE NEGOCIO
+# CONFIGURACIÓN GENERAL
 # ------------------------------------------------
-
-HORA_APERTURA = time(9, 0)
-HORA_CIERRE = time(18, 0)
 
 INTERVALO_MINUTOS = 30
 
-HORARIO_ALMUERZO_INICIO = time(12, 30)
-HORARIO_ALMUERZO_FIN = time(16, 0)
-
-DIAS_ALMUERZO = [0, 1, 2]  # lunes martes miércoles
-
 DOMINGO = 6
+
+
+# ------------------------------------------------
+# HORARIOS POR DÍA
+# ------------------------------------------------
+# 0 lunes
+# 1 martes
+# 2 miércoles
+# 3 jueves
+# 4 viernes
+# 5 sábado
+# 6 domingo
+
+HORARIOS = {
+
+    # lunes
+    0: [
+        ("10:00", "12:00"),
+        ("16:00", "20:00")
+    ],
+
+    # martes
+    1: [
+        ("10:00", "12:00"),
+        ("16:00", "20:00")
+    ],
+
+    # miércoles
+    2: [
+        ("10:00", "12:00"),
+        ("16:00", "20:00")
+    ],
+
+    # jueves
+    3: [
+        ("10:00", "12:30"),
+        ("15:00", "22:00")
+    ],
+
+    # viernes
+    4: [
+        ("09:00", "13:30"),
+        ("14:30", "22:00")
+    ],
+
+    # sábado
+    5: [
+        ("09:00", "13:00"),
+        ("15:00", "21:00")
+    ]
+
+}
 
 
 # ------------------------------------------------
@@ -47,6 +91,25 @@ def normalizar_fecha(fecha):
         return fecha
 
     return datetime.combine(fecha, time())
+
+
+# ------------------------------------------------
+# GENERAR SLOTS
+# ------------------------------------------------
+
+def generar_slots(inicio, fin):
+
+    slots = []
+
+    actual = inicio
+
+    while actual < fin:
+
+        slots.append(actual.time())
+
+        actual += timedelta(minutes=INTERVALO_MINUTOS)
+
+    return slots
 
 
 # ------------------------------------------------
@@ -85,32 +148,33 @@ def obtener_horarios_disponibles(barbero_id, fecha):
             return []
 
         # ------------------------------------------------
-        # GENERAR HORARIOS
+        # OBTENER BLOQUES DEL DÍA
         # ------------------------------------------------
 
-        inicio = datetime.combine(fecha_date, HORA_APERTURA)
-        fin = datetime.combine(fecha_date, HORA_CIERRE)
+        bloques = HORARIOS.get(dia_semana)
+
+        if not bloques:
+            return []
 
         slots = []
 
-        actual = inicio
-
-        while actual < fin:
-
-            slots.append(actual.time())
-
-            actual += timedelta(minutes=INTERVALO_MINUTOS)
-
         # ------------------------------------------------
-        # BLOQUEO ALMUERZO
+        # GENERAR SLOTS DE LOS BLOQUES
         # ------------------------------------------------
 
-        if dia_semana in DIAS_ALMUERZO:
+        for inicio_str, fin_str in bloques:
 
-            slots = [
-                s for s in slots
-                if not (HORARIO_ALMUERZO_INICIO <= s < HORARIO_ALMUERZO_FIN)
-            ]
+            inicio = datetime.combine(
+                fecha_date,
+                datetime.strptime(inicio_str, "%H:%M").time()
+            )
+
+            fin = datetime.combine(
+                fecha_date,
+                datetime.strptime(fin_str, "%H:%M").time()
+            )
+
+            slots.extend(generar_slots(inicio, fin))
 
         # ------------------------------------------------
         # BLOQUEAR HORAS PASADAS

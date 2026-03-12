@@ -8,6 +8,56 @@ panel_bp = Blueprint("panel", __name__)
 PANEL_KEY = os.getenv("PANEL_KEY")
 
 
+# ------------------------------------------------
+# PRECIOS SERVICIOS
+# ------------------------------------------------
+
+PRECIOS = {
+    "Corte niños": 15000,
+    "Corte normal": 20000,
+    "Corte + barba + tinte": 25000,
+    "Corte + barba + tinte + alisadora": 30000,
+    "Pigmentación cejas": 10000
+}
+
+
+# ------------------------------------------------
+# HORARIOS POR DIA
+# ------------------------------------------------
+
+def obtener_horarios_dia(dia_semana):
+
+    if dia_semana in [0,1,2]:
+        return [
+            (time(10,0), time(12,0)),
+            (time(16,0), time(20,0))
+        ]
+
+    if dia_semana == 3:
+        return [
+            (time(10,0), time(12,30)),
+            (time(15,0), time(22,0))
+        ]
+
+    if dia_semana == 4:
+        return [
+            (time(9,0), time(13,30)),
+            (time(14,30), time(22,0))
+        ]
+
+    if dia_semana == 5:
+        return [
+            (time(9,0), time(13,0)),
+            (time(15,0), time(21,0))
+        ]
+
+    return []
+
+
+# ------------------------------------------------
+# PANEL
+# ------------------------------------------------
+
 @panel_bp.route("/panel")
 def panel():
 
@@ -24,44 +74,63 @@ def panel():
     clientes = Cliente.query.count()
     barberos = Barbero.query.count()
 
-    apertura = time(9,0)
-    cierre = time(18,0)
+    clientes_dict = {c.id: c.nombre for c in Cliente.query.all()}
+    barberos_dict = {b.id: b.nombre for b in Barbero.query.all()}
+
+    # ------------------------------------------------
+    # CALCULAR INGRESOS
+    # ------------------------------------------------
+
+    ingresos_hoy = 0
+
+    for cita in citas:
+        if cita.servicio in PRECIOS:
+            ingresos_hoy += PRECIOS[cita.servicio]
 
     agenda = []
 
-    actual = datetime.combine(hoy, apertura)
+    dia_semana = hoy.weekday()
 
-    while actual.time() < cierre:
+    bloques = obtener_horarios_dia(dia_semana)
 
-        hora = actual.time()
+    for inicio, fin in bloques:
 
-        cita = next((c for c in citas if c.hora == hora), None)
+        actual = datetime.combine(hoy, inicio)
 
-        if cita:
+        while actual.time() < fin:
 
-            cliente = Cliente.query.get(cita.cliente_id)
-            barbero = Barbero.query.get(cita.barbero_id)
+            hora = actual.time()
 
-            agenda.append((
-                hora.strftime("%H:%M"),
-                cliente.nombre,
-                barbero.nombre
-            ))
+            cita = next((c for c in citas if c.hora == hora), None)
 
-        else:
+            if cita:
 
-            agenda.append((
-                hora.strftime("%H:%M"),
-                None,
-                None
-            ))
+                cliente_nombre = clientes_dict.get(cita.cliente_id)
+                barbero_nombre = barberos_dict.get(cita.barbero_id)
 
-        actual += timedelta(minutes=30)
+                agenda.append({
+                    "hora": hora.strftime("%H:%M"),
+                    "cliente": cliente_nombre,
+                    "barbero": barbero_nombre,
+                    "servicio": cita.servicio
+                })
+
+            else:
+
+                agenda.append({
+                    "hora": hora.strftime("%H:%M"),
+                    "cliente": None,
+                    "barbero": None,
+                    "servicio": None
+                })
+
+            actual += timedelta(minutes=30)
 
     return render_template(
         "panel.html",
         agenda=agenda,
         citas_hoy=citas_hoy,
         clientes=clientes,
-        barberos=barberos
+        barberos=barberos,
+        ingresos_hoy=ingresos_hoy
     )

@@ -5,6 +5,20 @@ from app.services.clientes_service import obtener_cliente_por_telefono
 
 user_states = {}
 
+# ------------------------------------------------
+# SERVICIOS
+# ------------------------------------------------
+
+SERVICIOS = {
+
+    1: {"nombre": "Corte niños", "precio": 15000},
+    2: {"nombre": "Corte normal", "precio": 20000},
+    3: {"nombre": "Corte + barba + tinte", "precio": 25000},
+    4: {"nombre": "Corte + barba + tinte + alisadora", "precio": 30000},
+    5: {"nombre": "Pigmentación cejas", "precio": 10000}
+
+}
+
 
 def menu_principal(nombre=""):
 
@@ -21,6 +35,7 @@ def menu_principal(nombre=""):
 4️⃣ Cancelar cita
 5️⃣ Ver mi cita
 6️⃣ Ayuda
+7️⃣ Ver precios
 
 0️⃣ Volver al menú
 """
@@ -112,11 +127,67 @@ def manejar_mensaje(telefono, mensaje, barberos):
     elif mensaje == "6":
         accion = "ayuda"
 
+    elif mensaje == "7":
+        accion = "precios"
+
+    # ------------------------------------------------
+    # VER PRECIOS
+    # ------------------------------------------------
+
+    if accion == "precios":
+
+        texto = "💈 *Servicios BarberIA*\n\n"
+
+        for i, s in SERVICIOS.items():
+
+            precio = f"${s['precio']:,}".replace(",", ".")
+
+            texto += f"{i}️⃣ {s['nombre']} — {precio}\n"
+
+        texto += "\nEscribe *1* para agendar."
+
+        return texto
+
+    # ------------------------------------------------
+    # ESTADO: ESPERANDO SERVICIO
+    # ------------------------------------------------
+
+    if estado == "esperando_servicio":
+
+        if not mensaje.isdigit():
+            return "❌ Escribe el número del servicio."
+
+        servicio_id = int(mensaje)
+
+        if servicio_id not in SERVICIOS:
+            return "❌ Servicio inválido."
+
+        servicio = SERVICIOS[servicio_id]
+
+        texto = f"""
+💈 *{servicio['nombre']} seleccionado*
+
+Ahora elige un barbero:
+
+"""
+
+        for b in barberos:
+            texto += f"{b['id']}️⃣ {b['nombre']}\n"
+
+        user_states[telefono] = {
+            "estado": "esperando_barbero",
+            "servicio": servicio["nombre"]
+        }
+
+        return texto
+
     # ------------------------------------------------
     # ESTADO: ESPERANDO BARBERO
     # ------------------------------------------------
 
-    if estado == "esperando_barbero":
+    if estado == "esperando_barbero" or (
+        isinstance(estado, dict) and estado.get("estado") == "esperando_barbero"
+    ):
 
         barbero = None
 
@@ -147,7 +218,8 @@ def manejar_mensaje(telefono, mensaje, barberos):
 
         user_states[telefono] = {
             "estado": "esperando_fecha",
-            "barbero_id": barbero["id"]
+            "barbero_id": barbero["id"],
+            "servicio": estado.get("servicio") if isinstance(estado, dict) else None
         }
 
         return f"""
@@ -197,7 +269,8 @@ Puedes escribir:
             "estado": "esperando_hora",
             "barbero_id": barbero_id,
             "fecha": fecha_final,
-            "horarios": horarios
+            "horarios": horarios,
+            "servicio": estado.get("servicio")
         }
 
         return texto
@@ -230,10 +303,13 @@ Puedes escribir:
             "estado": "esperando_confirmacion",
             "barbero_id": estado["barbero_id"],
             "fecha": estado["fecha"],
-            "hora": hora_seleccionada
+            "hora": hora_seleccionada,
+            "servicio": estado.get("servicio")
         }
 
         return f"""
+💈 Servicio: {estado.get("servicio","Corte")}
+
 📅 Fecha: {estado['fecha']}
 ⏰ Hora: {hora_seleccionada}
 
@@ -254,7 +330,8 @@ Puedes escribir:
                 telefono=telefono_limpio,
                 barbero_id=estado["barbero_id"],
                 fecha=estado["fecha"],
-                hora=estado["hora"]
+                hora=estado["hora"],
+                servicio=estado.get("servicio")
             )
 
             user_states[telefono] = "inicio"
@@ -265,6 +342,7 @@ Puedes escribir:
             return f"""
 ✅ *Cita confirmada*
 
+💈 Servicio: {estado.get("servicio","Corte")}
 📅 Fecha: {estado['fecha']}
 ⏰ Hora: {estado['hora']}
 
@@ -275,7 +353,8 @@ Te esperamos 💈
 
             user_states[telefono] = {
                 "estado": "esperando_fecha",
-                "barbero_id": estado["barbero_id"]
+                "barbero_id": estado["barbero_id"],
+                "servicio": estado.get("servicio")
             }
 
             return "Perfecto 👍\nDime otra fecha."
@@ -305,14 +384,15 @@ Te esperamos 💈
 
     if accion == "agendar":
 
-        texto = "💈 *Vamos a agendar tu cita*\n\n"
+        texto = "💈 *Selecciona un servicio*\n\n"
 
-        texto += "Selecciona un barbero:\n\n"
+        for i, s in SERVICIOS.items():
 
-        for b in barberos:
-            texto += f"{b['id']}️⃣ {b['nombre']}\n"
+            precio = f"${s['precio']:,}".replace(",", ".")
 
-        user_states[telefono] = "esperando_barbero"
+            texto += f"{i}️⃣ {s['nombre']} — {precio}\n"
+
+        user_states[telefono] = "esperando_servicio"
 
         return texto
 
@@ -354,6 +434,8 @@ cancelar
 3 ver horarios
 4 cancelar cita
 5 ver mi cita
+6 ayuda
+7 ver precios
 """
 
     return "❌ No entendí tu mensaje.\nEscribe *hola* para ver el menú."

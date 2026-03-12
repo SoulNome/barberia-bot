@@ -27,8 +27,9 @@ margin-bottom:40px;
 }
 
 .logo{
-font-size:28px;
+font-size:30px;
 font-weight:600;
+letter-spacing:1px;
 }
 
 .cards{
@@ -44,6 +45,25 @@ border-radius:16px;
 padding:30px;
 text-align:center;
 border:1px solid rgba(255,255,255,0.05);
+transition:0.2s;
+}
+
+.card:hover{
+transform:translateY(-4px);
+}
+
+.card p{
+opacity:0.7;
+margin-bottom:10px;
+}
+
+.card h2{
+font-size:32px;
+margin:0;
+}
+
+h2{
+margin-bottom:20px;
 }
 
 table{
@@ -58,6 +78,7 @@ th{
 background:#1e293b;
 padding:16px;
 text-align:left;
+font-weight:500;
 }
 
 td{
@@ -65,18 +86,41 @@ padding:16px;
 border-top:1px solid rgba(255,255,255,0.05);
 }
 
+tr:hover{
+background:rgba(255,255,255,0.03);
+}
+
 .badge-libre{
 background:#22c55e20;
 color:#22c55e;
-padding:4px 10px;
+padding:6px 12px;
 border-radius:8px;
+font-size:14px;
 }
 
 .badge-ocupado{
 background:#ef444420;
 color:#ef4444;
-padding:4px 10px;
+padding:6px 12px;
 border-radius:8px;
+font-size:14px;
+}
+
+.badge-servicio{
+background:#6366f120;
+color:#6366f1;
+padding:6px 12px;
+border-radius:8px;
+font-size:13px;
+}
+
+.hora{
+font-weight:600;
+opacity:0.9;
+}
+
+.disponible{
+opacity:0.5;
 }
 
 </style>
@@ -88,7 +132,7 @@ border-radius:8px;
 <div class="container">
 
 <div class="header">
-<div class="logo">💈 BarberIA</div>
+<div class="logo">💈 BarberIA Panel</div>
 </div>
 
 <div class="cards">
@@ -99,58 +143,65 @@ border-radius:8px;
 </div>
 
 <div class="card">
-<p>Clientes</p>
+<p>Clientes registrados</p>
 <h2>{{ clientes }}</h2>
 </div>
 
 <div class="card">
-<p>Barberos</p>
+<p>Barberos activos</p>
 <h2>{{ barberos }}</h2>
 </div>
 
 </div>
 
-<h2>Agenda de hoy</h2>
+<h2>📅 Agenda de hoy</h2>
 
 <table>
 
 <tr>
 <th>Hora</th>
 <th>Cliente</th>
+<th>Servicio</th>
 <th>Barbero</th>
 <th>Estado</th>
 </tr>
 
-{% for hora, cliente, barbero in agenda %}
+{% for fila in agenda %}
 
 <tr>
 
-<td>{{ hora }}</td>
+<td class="hora">{{ fila.hora }}</td>
 
 <td>
-{% if cliente %}
-{{ cliente }}
+{% if fila.cliente %}
+👤 {{ fila.cliente }}
+{% else %}
+<span class="disponible">Disponible</span>
+{% endif %}
+</td>
+
+<td>
+{% if fila.servicio %}
+<span class="badge-servicio">{{ fila.servicio }}</span>
 {% else %}
 -
 {% endif %}
 </td>
 
 <td>
-{% if barbero %}
-{{ barbero }}
+{% if fila.barbero %}
+💈 {{ fila.barbero }}
 {% else %}
 -
 {% endif %}
 </td>
 
 <td>
-
-{% if cliente %}
+{% if fila.cliente %}
 <span class="badge-ocupado">Ocupado</span>
 {% else %}
 <span class="badge-libre">Libre</span>
 {% endif %}
-
 </td>
 
 </tr>

@@ -1,6 +1,7 @@
 from app.extensions import db
 from datetime import datetime
 
+
 class Cita(db.Model):
 
     __tablename__ = "citas"
@@ -14,6 +15,8 @@ class Cita(db.Model):
     fecha = db.Column(db.Date)
 
     hora = db.Column(db.Time)
+
+    servicio = db.Column(db.String(100))  # NUEVO CAMPO
 
     estado = db.Column(db.String(20), default="confirmada")
 

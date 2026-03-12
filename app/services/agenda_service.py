@@ -30,12 +30,16 @@ def normalizar_hora(hora):
         match = re.match(r"(\d{1,2})\s*pm", hora)
         if match:
             h = int(match.group(1))
-            return datetime.strptime(f"{h+12}:00", "%H:%M").time()
+            if h != 12:
+                h += 12
+            return datetime.strptime(f"{h}:00", "%H:%M").time()
 
         # aceptar formato 1am
         match = re.match(r"(\d{1,2})\s*am", hora)
         if match:
             h = int(match.group(1))
+            if h == 12:
+                h = 0
             return datetime.strptime(f"{h}:00", "%H:%M").time()
 
         return datetime.strptime(hora, "%H:%M").time()
@@ -72,7 +76,7 @@ def obtener_o_crear_cliente(nombre, telefono):
 # CREAR CITA
 # ------------------------------------------------
 
-def crear_cita(nombre, telefono, barbero_id, fecha, hora):
+def crear_cita(nombre, telefono, barbero_id, fecha, hora, servicio=None):
 
     try:
 
@@ -124,7 +128,8 @@ cancelar {cita_cliente.fecha} {formatear_hora(cita_cliente.hora)}
             cliente_id=cliente.id,
             barbero_id=barbero_id,
             fecha=fecha,
-            hora=hora
+            hora=hora,
+            servicio=servicio
         )
 
         db.session.add(nueva_cita)
