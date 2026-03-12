@@ -1,14 +1,10 @@
 from flask import Blueprint, request
 from twilio.twiml.messaging_response import MessagingResponse
-import requests
-import os
 
 from app.services.conversation_service import manejar_mensaje
+from app.services.barbero_service import obtener_barberos
 
 bot_bp = Blueprint("bot", __name__)
-
-API_URL = os.environ.get("API_URL", "http://localhost:5000")
-
 
 @bot_bp.route("/bot", methods=["POST"])
 def bot():
@@ -18,8 +14,7 @@ def bot():
 
     resp = MessagingResponse()
 
-    r = requests.get(f"{API_URL}/barberos/")
-    barberos = r.json()["barberos"]
+    barberos = obtener_barberos()
 
     respuesta = manejar_mensaje(telefono, mensaje, barberos)
 
