@@ -3,6 +3,23 @@ from app.models import Cita
 
 
 # ------------------------------------------------
+# CONFIGURACIÓN DE NEGOCIO
+# ------------------------------------------------
+
+HORA_APERTURA = time(9, 0)
+HORA_CIERRE = time(18, 0)
+
+INTERVALO_MINUTOS = 30
+
+HORARIO_ALMUERZO_INICIO = time(12, 30)
+HORARIO_ALMUERZO_FIN = time(16, 0)
+
+DIAS_ALMUERZO = [0, 1, 2]  # lunes martes miércoles
+
+DOMINGO = 6
+
+
+# ------------------------------------------------
 # FESTIVOS
 # ------------------------------------------------
 
@@ -13,6 +30,26 @@ FESTIVOS = [
 
 
 # ------------------------------------------------
+# NORMALIZAR FECHA
+# ------------------------------------------------
+
+def normalizar_fecha(fecha):
+
+    if isinstance(fecha, str):
+
+        try:
+            return datetime.strptime(fecha, "%Y-%m-%d")
+
+        except:
+            return None
+
+    if isinstance(fecha, datetime):
+        return fecha
+
+    return datetime.combine(fecha, time())
+
+
+# ------------------------------------------------
 # OBTENER HORARIOS DISPONIBLES
 # ------------------------------------------------
 
@@ -20,16 +57,16 @@ def obtener_horarios_disponibles(barbero_id, fecha):
 
     try:
 
-        # normalizar fecha
-        if isinstance(fecha, str):
-            fecha_obj = datetime.strptime(fecha, "%Y-%m-%d")
-        else:
-            fecha_obj = datetime.combine(fecha, time())
+        fecha_obj = normalizar_fecha(fecha)
+
+        if not fecha_obj:
+            return []
+
+        fecha_date = fecha_obj.date()
 
         hoy = datetime.now()
 
         dia_semana = fecha_obj.weekday()
-        # lunes=0 ... domingo=6
 
         fecha_str = fecha_obj.strftime("%Y-%m-%d")
 
@@ -44,15 +81,15 @@ def obtener_horarios_disponibles(barbero_id, fecha):
         # DOMINGO CERRADO
         # ------------------------------------------------
 
-        if dia_semana == 6:
+        if dia_semana == DOMINGO:
             return []
 
         # ------------------------------------------------
-        # HORARIO BASE
+        # GENERAR HORARIOS
         # ------------------------------------------------
 
-        inicio = datetime.combine(fecha_obj.date(), time(9, 0))
-        fin = datetime.combine(fecha_obj.date(), time(18, 0))
+        inicio = datetime.combine(fecha_date, HORA_APERTURA)
+        fin = datetime.combine(fecha_date, HORA_CIERRE)
 
         slots = []
 
@@ -62,55 +99,60 @@ def obtener_horarios_disponibles(barbero_id, fecha):
 
             slots.append(actual.time())
 
-            actual += timedelta(minutes=30)
+            actual += timedelta(minutes=INTERVALO_MINUTOS)
 
         # ------------------------------------------------
         # BLOQUEO ALMUERZO
         # ------------------------------------------------
 
-        if dia_semana in [0, 1, 2]:  # lunes martes miércoles
+        if dia_semana in DIAS_ALMUERZO:
 
             slots = [
                 s for s in slots
-                if not (time(12, 30) <= s < time(16, 0))
+                if not (HORARIO_ALMUERZO_INICIO <= s < HORARIO_ALMUERZO_FIN)
             ]
 
         # ------------------------------------------------
-        # BLOQUEAR HORAS PASADAS SI ES HOY
+        # BLOQUEAR HORAS PASADAS
         # ------------------------------------------------
 
-        if fecha_obj.date() == hoy.date():
+        if fecha_date == hoy.date():
 
             slots = [
                 s for s in slots
-                if datetime.combine(fecha_obj.date(), s) > hoy
+                if datetime.combine(fecha_date, s) > hoy
             ]
 
         # ------------------------------------------------
-        # OBTENER CITAS DEL BARBERO
+        # OBTENER CITAS
         # ------------------------------------------------
 
         citas = Cita.query.filter_by(
             barbero_id=barbero_id,
-            fecha=fecha_obj.date()
+            fecha=fecha_date
         ).all()
 
-        ocupadas = [c.hora for c in citas]
+        ocupadas = {c.hora for c in citas}
 
         # ------------------------------------------------
-        # FILTRAR DISPONIBLES
+        # GENERAR RESPUESTA
         # ------------------------------------------------
 
-        disponibles = [
-            s.strftime("%H:%M")
-            for s in slots
-            if s not in ocupadas
-        ]
+        horarios = []
 
-        return disponibles
+        for slot in slots:
+
+            disponible = slot not in ocupadas
+
+            horarios.append({
+                "hora": slot.strftime("%H:%M"),
+                "disponible": disponible
+            })
+
+        return horarios
 
     except Exception as e:
 
-        print("Error obteniendo horarios:", e)
+        print("⚠ Error obteniendo horarios:", e)
 
         return []

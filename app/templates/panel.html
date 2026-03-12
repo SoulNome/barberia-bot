@@ -7,35 +7,75 @@
 <style>
 
 body{
-font-family:Arial;
-background:#111;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
+background: radial-gradient(circle at top,#0f172a,#020617);
+margin:0;
 color:white;
-padding:40px;
 }
 
-h1{
-color:#00d084;
+.container{
+width:1100px;
+margin:auto;
+padding-top:50px;
+}
+
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:40px;
+}
+
+.logo{
+font-size:28px;
+font-weight:600;
+}
+
+.cards{
+display:flex;
+gap:25px;
+margin-bottom:40px;
+}
+
+.card{
+flex:1;
+background:rgba(30,41,59,0.6);
+border-radius:16px;
+padding:30px;
+text-align:center;
+border:1px solid rgba(255,255,255,0.05);
 }
 
 table{
 width:100%;
 border-collapse:collapse;
-margin-top:20px;
-}
-
-th,td{
-padding:12px;
-border-bottom:1px solid #333;
+background:rgba(30,41,59,0.6);
+border-radius:16px;
+overflow:hidden;
 }
 
 th{
-background:#222;
+background:#1e293b;
+padding:16px;
+text-align:left;
 }
 
-.card{
-background:#222;
-padding:20px;
-margin-bottom:20px;
+td{
+padding:16px;
+border-top:1px solid rgba(255,255,255,0.05);
+}
+
+.badge-libre{
+background:#22c55e20;
+color:#22c55e;
+padding:4px 10px;
+border-radius:8px;
+}
+
+.badge-ocupado{
+background:#ef444420;
+color:#ef4444;
+padding:4px 10px;
 border-radius:8px;
 }
 
@@ -45,13 +85,32 @@ border-radius:8px;
 
 <body>
 
-<h1>💈 BarberIA Panel</h1>
+<div class="container">
+
+<div class="header">
+<div class="logo">💈 BarberIA</div>
+</div>
+
+<div class="cards">
 
 <div class="card">
+<p>Citas hoy</p>
+<h2>{{ citas_hoy }}</h2>
+</div>
 
-<h2>Citas de hoy: {{ fecha }}</h2>
+<div class="card">
+<p>Clientes</p>
+<h2>{{ clientes }}</h2>
+</div>
+
+<div class="card">
+<p>Barberos</p>
+<h2>{{ barberos }}</h2>
+</div>
 
 </div>
+
+<h2>Agenda de hoy</h2>
 
 <table>
 
@@ -59,21 +118,48 @@ border-radius:8px;
 <th>Hora</th>
 <th>Cliente</th>
 <th>Barbero</th>
+<th>Estado</th>
 </tr>
 
-{% for cita, cliente, barbero in citas %}
+{% for hora, cliente, barbero in agenda %}
 
 <tr>
 
-<td>{{ cita.hora.strftime("%H:%M") }}</td>
-<td>{{ cliente }}</td>
-<td>{{ barbero }}</td>
+<td>{{ hora }}</td>
+
+<td>
+{% if cliente %}
+{{ cliente }}
+{% else %}
+-
+{% endif %}
+</td>
+
+<td>
+{% if barbero %}
+{{ barbero }}
+{% else %}
+-
+{% endif %}
+</td>
+
+<td>
+
+{% if cliente %}
+<span class="badge-ocupado">Ocupado</span>
+{% else %}
+<span class="badge-libre">Libre</span>
+{% endif %}
+
+</td>
 
 </tr>
 
 {% endfor %}
 
 </table>
+
+</div>
 
 </body>
 </html>

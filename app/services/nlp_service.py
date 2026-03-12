@@ -5,17 +5,37 @@ from datetime import datetime
 
 
 # ------------------------------------------------
+# NORMALIZAR TEXTO
+# ------------------------------------------------
+
+def limpiar_texto(texto):
+
+    texto = texto.lower().strip()
+
+    reemplazos = {
+        "mañna": "mañana",
+        "manana": "mañana",
+        "corte de pelo": "corte",
+        "turnos": "turno",
+        "reservar": "agendar"
+    }
+
+    for k, v in reemplazos.items():
+        texto = texto.replace(k, v)
+
+    return texto
+
+
+# ------------------------------------------------
 # DETECTAR ACCION
 # ------------------------------------------------
 
 def detectar_accion(texto):
 
-    texto = texto.lower()
-
     if any(p in texto for p in ["cita", "agendar", "reservar", "turno", "corte"]):
         return "agendar"
 
-    if any(p in texto for p in ["cancelar", "eliminar"]):
+    if any(p in texto for p in ["cancelar", "eliminar", "quitar"]):
         return "cancelar"
 
     if any(p in texto for p in ["barbero", "barberos"]):
@@ -26,6 +46,9 @@ def detectar_accion(texto):
 
     if any(p in texto for p in ["mi cita", "ver cita", "tengo cita"]):
         return "ver_cita"
+
+    if any(p in texto for p in ["ayuda", "help"]):
+        return "ayuda"
 
     return None
 
@@ -42,8 +65,8 @@ def detectar_hora(texto):
     if match:
         return match.group()
 
-    # formato 3pm / 4am
-    match = re.search(r'\b(\d{1,2})(am|pm)\b', texto)
+    # formato 3pm
+    match = re.search(r'\b(\d{1,2})\s*(am|pm)\b', texto)
 
     if match:
 
@@ -58,6 +81,16 @@ def detectar_hora(texto):
 
         return f"{hora:02d}:00"
 
+    # formato solo numero (3)
+    match = re.search(r'\b(\d{1,2})\b', texto)
+
+    if match:
+
+        hora = int(match.group(1))
+
+        if 0 <= hora <= 23:
+            return f"{hora:02d}:00"
+
     return None
 
 
@@ -67,11 +100,14 @@ def detectar_hora(texto):
 
 def detectar_barbero(texto, barberos):
 
+    if not barberos:
+        return None
+
     nombres = [b["nombre"].lower() for b in barberos]
 
     match = process.extractOne(texto, nombres)
 
-    if match and match[1] > 70:
+    if match and match[1] > 65:
         return match[0]
 
     return None
@@ -103,7 +139,7 @@ def detectar_fecha(texto):
 
 def interpretar_mensaje(texto, barberos):
 
-    texto = texto.lower()
+    texto = limpiar_texto(texto)
 
     accion = detectar_accion(texto)
 

@@ -6,6 +6,26 @@ from app.services.clientes_service import obtener_cliente_por_telefono
 user_states = {}
 
 
+def menu_principal(nombre=""):
+
+    saludo = f"Hola {nombre} 👋" if nombre else "Hola 👋"
+
+    return f"""
+💈 *BarberIA*
+
+{saludo}
+
+1️⃣ Agendar cita
+2️⃣ Ver barberos
+3️⃣ Ver horarios
+4️⃣ Cancelar cita
+5️⃣ Ver mi cita
+6️⃣ Ayuda
+
+0️⃣ Volver al menú
+"""
+
+
 def manejar_mensaje(telefono, mensaje, barberos):
 
     mensaje = mensaje.strip().lower()
@@ -20,10 +40,19 @@ def manejar_mensaje(telefono, mensaje, barberos):
 
     accion = nlp.get("accion")
     fecha = nlp.get("fecha")
-    hora = nlp.get("hora")
 
     # ------------------------------------------------
-    # CANCELAR DIRECTO (MEJORADO)
+    # VOLVER AL MENU
+    # ------------------------------------------------
+
+    if mensaje in ["hola", "menu", "volver", "inicio", "0"]:
+
+        user_states[telefono] = "inicio"
+
+        return menu_principal(nombre_cliente)
+
+    # ------------------------------------------------
+    # CANCELAR DIRECTO
     # ------------------------------------------------
 
     if mensaje.startswith("cancelar"):
@@ -38,7 +67,7 @@ def manejar_mensaje(telefono, mensaje, barberos):
                 hora = partes[2]
 
             else:
-                # cancelar última cita automáticamente
+
                 cita = obtener_cita_cliente(telefono_limpio)
 
                 if not cita:
@@ -55,65 +84,11 @@ def manejar_mensaje(telefono, mensaje, barberos):
 
             user_states[telefono] = "inicio"
 
-            return f"""
-{msg}
-
-Escribe *hola* para volver al menú.
-"""
+            return f"{msg}\n\nEscribe *hola* para volver al menú."
 
         except:
 
-            return "Formato incorrecto.\nEjemplo:\ncancelar 2026-03-20 15:00"
-
-    # ------------------------------------------------
-    # VOLVER AL MENU
-    # ------------------------------------------------
-
-    if mensaje in ["0", "menu", "volver", "inicio"]:
-
-        user_states[telefono] = "inicio"
-
-        saludo = f"Hola {nombre_cliente} 👋" if nombre_cliente else "Hola 👋"
-
-        return f"""
-💈 {saludo}
-
-Bienvenido a BarberIA
-
-1️⃣ Agendar cita
-2️⃣ Ver barberos
-3️⃣ Ver horarios
-4️⃣ Cancelar cita
-5️⃣ Ver mi cita
-6️⃣ Ayuda
-
-Escribe solo el número.
-"""
-
-    # ------------------------------------------------
-    # SALUDO
-    # ------------------------------------------------
-
-    if mensaje in ["hola", "hi"]:
-
-        user_states[telefono] = "inicio"
-
-        saludo = f"Hola {nombre_cliente} 👋" if nombre_cliente else "Hola 👋"
-
-        return f"""
-💈 {saludo}
-
-Bienvenido a BarberIA
-
-1️⃣ Agendar cita
-2️⃣ Ver barberos
-3️⃣ Ver horarios
-4️⃣ Cancelar cita
-5️⃣ Ver mi cita
-6️⃣ Ayuda
-
-Escribe solo el número.
-"""
+            return "❌ Formato incorrecto.\nEjemplo:\ncancelar 2026-03-20 15:00"
 
     # ------------------------------------------------
     # MENU NUMERICO
@@ -138,7 +113,7 @@ Escribe solo el número.
         accion = "ayuda"
 
     # ------------------------------------------------
-    # ESTADOS
+    # ESTADO: ESPERANDO BARBERO
     # ------------------------------------------------
 
     if estado == "esperando_barbero":
@@ -168,8 +143,6 @@ Escribe solo el número.
             for b in barberos:
                 texto += f"{b['id']}️⃣ {b['nombre']}\n"
 
-            texto += "\nEscribe el número."
-
             return texto
 
         user_states[telefono] = {
@@ -178,11 +151,9 @@ Escribe solo el número.
         }
 
         return f"""
-💈 Perfecto
+💈 *{barbero['nombre']} seleccionado*
 
-Seleccionaste a *{barbero['nombre']}*
-
-¿Para qué fecha quieres la cita?
+¿Para qué fecha quieres tu cita?
 
 Puedes escribir:
 
@@ -192,7 +163,7 @@ Puedes escribir:
 """
 
     # ------------------------------------------------
-    # ESPERANDO FECHA
+    # ESTADO: ESPERANDO FECHA
     # ------------------------------------------------
 
     if isinstance(estado, dict) and estado.get("estado") == "esperando_fecha":
@@ -207,26 +178,20 @@ Puedes escribir:
 
         except:
 
-            return """
-❌ No entendí la fecha.
-
-Puedes escribir:
-
-• hoy
-• mañana
-• 2026-03-12
-"""
+            return "❌ No entendí la fecha.\nEjemplo: mañana"
 
         if not horarios:
-
             return "❌ No hay horarios disponibles ese día."
 
-        texto = f"📅 Horarios disponibles para {fecha_final}\n\n"
+        texto = f"📅 *Horarios disponibles {fecha_final}*\n\n"
 
         for i, h in enumerate(horarios):
-            texto += f"{i+1}️⃣ {h}\n"
 
-        texto += "\nEscribe el número del horario."
+            icono = "🟢" if h["disponible"] else "🔴"
+
+            texto += f"{i+1}️⃣ {h['hora']} {icono}\n"
+
+        texto += "\nElige el número del horario."
 
         user_states[telefono] = {
             "estado": "esperando_hora",
@@ -238,44 +203,86 @@ Puedes escribir:
         return texto
 
     # ------------------------------------------------
-    # SELECCIONAR HORA
+    # ESTADO: ESPERANDO HORA
     # ------------------------------------------------
 
     if isinstance(estado, dict) and estado.get("estado") == "esperando_hora":
 
-        try:
-
-            index = int(mensaje) - 1
-            hora_seleccionada = estado["horarios"][index]
-
-        except:
+        if not mensaje.isdigit():
 
             return "❌ Escribe el número del horario."
 
-        barbero_id = estado["barbero_id"]
-        fecha = estado["fecha"]
+        index = int(mensaje) - 1
 
-        ok, mensaje_cita = crear_cita(
-            nombre=nombre_cliente if nombre_cliente else "Cliente",
-            telefono=telefono_limpio,
-            barbero_id=barbero_id,
-            fecha=fecha,
-            hora=hora_seleccionada
-        )
+        if index < 0 or index >= len(estado["horarios"]):
 
-        user_states[telefono] = "inicio"
+            return "❌ Ese número no es válido."
 
-        if not ok:
-            return f"❌ {mensaje_cita}"
+        horario = estado["horarios"][index]
+
+        if not horario["disponible"]:
+
+            return "❌ Ese horario ya está ocupado."
+
+        hora_seleccionada = horario["hora"]
+
+        user_states[telefono] = {
+            "estado": "esperando_confirmacion",
+            "barbero_id": estado["barbero_id"],
+            "fecha": estado["fecha"],
+            "hora": hora_seleccionada
+        }
 
         return f"""
+📅 Fecha: {estado['fecha']}
+⏰ Hora: {hora_seleccionada}
+
+1️⃣ Confirmar cita
+2️⃣ Elegir otro horario
+"""
+
+    # ------------------------------------------------
+    # CONFIRMAR CITA
+    # ------------------------------------------------
+
+    if isinstance(estado, dict) and estado.get("estado") == "esperando_confirmacion":
+
+        if mensaje == "1":
+
+            ok, mensaje_cita = crear_cita(
+                nombre=nombre_cliente if nombre_cliente else "Cliente",
+                telefono=telefono_limpio,
+                barbero_id=estado["barbero_id"],
+                fecha=estado["fecha"],
+                hora=estado["hora"]
+            )
+
+            user_states[telefono] = "inicio"
+
+            if not ok:
+                return mensaje_cita
+
+            return f"""
 ✅ *Cita confirmada*
 
-📅 Fecha: {fecha}
-⏰ Hora: {hora_seleccionada}
+📅 Fecha: {estado['fecha']}
+⏰ Hora: {estado['hora']}
 
 Te esperamos 💈
 """
+
+        elif mensaje == "2":
+
+            user_states[telefono] = {
+                "estado": "esperando_fecha",
+                "barbero_id": estado["barbero_id"]
+            }
+
+            return "Perfecto 👍\nDime otra fecha."
+
+        else:
+
+            return "Escribe 1 para confirmar o 2 para cambiar."
 
     # ------------------------------------------------
     # VER BARBEROS
@@ -283,7 +290,7 @@ Te esperamos 💈
 
     if accion == "barberos":
 
-        texto = "💈 Nuestros barberos\n\n"
+        texto = "💈 *Nuestros barberos*\n\n"
 
         for b in barberos:
             texto += f"{b['id']}️⃣ {b['nombre']}\n"
@@ -293,31 +300,14 @@ Te esperamos 💈
         return texto
 
     # ------------------------------------------------
-    # INICIAR AGENDAMIENTO
+    # AGENDAR
     # ------------------------------------------------
 
     if accion == "agendar":
 
-        texto = "💈 Vamos a agendar tu cita.\n\n"
+        texto = "💈 *Vamos a agendar tu cita*\n\n"
 
         texto += "Selecciona un barbero:\n\n"
-
-        for b in barberos:
-            texto += f"{b['id']}️⃣ {b['nombre']}\n"
-
-        texto += "\nEscribe el número."
-
-        user_states[telefono] = "esperando_barbero"
-
-        return texto
-
-    # ------------------------------------------------
-    # VER HORARIOS
-    # ------------------------------------------------
-
-    if accion == "horarios":
-
-        texto = "¿De qué barbero quieres ver horarios?\n\n"
 
         for b in barberos:
             texto += f"{b['id']}️⃣ {b['nombre']}\n"
@@ -335,34 +325,19 @@ Te esperamos 💈
         cita = obtener_cita_cliente(telefono_limpio)
 
         if not cita:
-            return "No tienes citas registradas."
+            return "❌ No tienes citas registradas."
 
         hora = cita.hora.strftime("%H:%M")
 
         return f"""
-📅 Tu próxima cita
+📅 *Tu próxima cita*
 
 Fecha: {cita.fecha}
 Hora: {hora}
 
-Si deseas cancelarla escribe:
+Para cancelarla escribe:
 
-cancelar {cita.fecha} {hora}
-"""
-
-    # ------------------------------------------------
-    # CANCELAR MENU
-    # ------------------------------------------------
-
-    if accion == "cancelar":
-
-        return """
-Para cancelar tu cita escribe:
-
-cancelar AAAA-MM-DD HH:MM
-
-Ejemplo:
-cancelar 2026-03-20 15:00
+cancelar
 """
 
     # ------------------------------------------------
@@ -374,19 +349,11 @@ cancelar 2026-03-20 15:00
         return """
 💡 Puedes escribir:
 
-hola
 1 agendar cita
 2 ver barberos
 3 ver horarios
 4 cancelar cita
+5 ver mi cita
 """
 
-    # ------------------------------------------------
-    # DEFAULT
-    # ------------------------------------------------
-
-    return """
-❌ No entendí tu mensaje.
-
-Escribe *hola* para ver el menú.
-"""
+    return "❌ No entendí tu mensaje.\nEscribe *hola* para ver el menú."
