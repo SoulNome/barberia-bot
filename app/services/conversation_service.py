@@ -94,29 +94,31 @@ def manejar_mensaje(telefono, mensaje, barberos):
         return menu_principal(nombre_cliente)
 
     # ------------------------------------------------
-    # MENU NUMERICO
+    # MENU NUMERICO SOLO EN INICIO
     # ------------------------------------------------
 
-    if mensaje == "1":
-        accion = "agendar"
+    if estado == "inicio":
 
-    elif mensaje == "2":
-        accion = "barberos"
+        if mensaje == "1":
+            accion = "agendar"
 
-    elif mensaje == "3":
-        accion = "horarios"
+        elif mensaje == "2":
+            accion = "barberos"
 
-    elif mensaje == "4":
-        accion = "cancelar_menu"
+        elif mensaje == "3":
+            accion = "horarios"
 
-    elif mensaje == "5":
-        accion = "ver_cita"
+        elif mensaje == "4":
+            accion = "cancelar_menu"
 
-    elif mensaje == "6":
-        accion = "ayuda"
+        elif mensaje == "5":
+            accion = "ver_cita"
 
-    elif mensaje == "7":
-        accion = "precios"
+        elif mensaje == "6":
+            accion = "ayuda"
+
+        elif mensaje == "7":
+            accion = "precios"
 
     # ------------------------------------------------
     # VER PRECIOS
@@ -404,47 +406,6 @@ Te esperamos 💈
         else:
 
             return "Escribe 1 para confirmar o 2 para cambiar."
-
-    # ------------------------------------------------
-    # VER CITA
-    # ------------------------------------------------
-
-    if accion == "ver_cita":
-
-        cita = obtener_cita_cliente(telefono_limpio)
-
-        if not cita:
-            return "❌ No tienes citas registradas."
-
-        hora = cita.hora.strftime("%H:%M")
-
-        return f"""
-📅 *Tu próxima cita*
-
-Fecha: {cita.fecha}
-Hora: {hora}
-
-Para cancelarla escribe:
-
-cancelar
-"""
-
-    # ------------------------------------------------
-    # CANCELAR
-    # ------------------------------------------------
-
-    if accion == "cancelar_menu":
-
-        cita = obtener_cita_cliente(telefono_limpio)
-
-        if not cita:
-            return "❌ No tienes citas registradas."
-
-        return """
-❌ Para cancelar tu cita escribe:
-
-cancelar
-"""
 
     # ------------------------------------------------
 
