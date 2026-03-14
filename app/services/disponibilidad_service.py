@@ -78,15 +78,21 @@ FESTIVOS = [
 
 def normalizar_fecha(fecha):
 
-    """
-    Convierte cualquier formato a datetime
-    """
-
     if isinstance(fecha, str):
 
-        try:
-            return datetime.strptime(fecha, "%Y-%m-%d")
+        f = fecha.strip().lower()
 
+        if f == "hoy":
+            return datetime.now()
+
+        if f in ("mañana", "manana"):
+            return datetime.now() + timedelta(days=1)
+
+        if f in ("pasado mañana", "pasado manana"):
+            return datetime.now() + timedelta(days=2)
+
+        try:
+            return datetime.strptime(f, "%Y-%m-%d")
         except:
             return None
 
