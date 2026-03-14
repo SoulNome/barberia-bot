@@ -198,6 +198,7 @@ tr:hover td { background: rgba(255,255,255,0.025); }
 .badge-libre  { background: rgba(52, 211, 153, 0.1);  color: var(--green); border: 1px solid rgba(52,211,153,0.2); }
 .badge-ocupado{ background: rgba(248, 113, 113, 0.1); color: var(--red);   border: 1px solid rgba(248,113,113,0.2); }
 .badge-servicio{ background: rgba(129,140,248,0.1);   color: var(--accent2); border: 1px solid rgba(129,140,248,0.2); font-size:11px; }
+.badge-cumple { background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
 
 /* ── TOAST ── */
 #toast {
@@ -310,7 +311,8 @@ tr.updated td { animation: flash 1s ease-out; }
   <div class="header">
     <div class="logo">💈 BarberIA</div>
     <div style="display:flex;align-items:center;gap:12px;">
-      <button class="btn-nueva" onclick="abrirModal()">+ Nueva cita</button>
+      <button class="btn-nueva" onclick="abrirModal()" style="margin-right:8px">+ Nueva cita</button>
+      <button class="btn-nueva" onclick="abrirModalCliente()" style="background:linear-gradient(135deg,#34d399,#059669)">+ Cliente</button>
       <div class="live-badge">
         <div class="live-dot"></div>
         Panel en vivo
@@ -370,6 +372,7 @@ tr.updated td { animation: flash 1s ease-out; }
           <td>
             {% if fila.cliente %}
               👤 {{ fila.cliente }}
+              {% if fila.cumpleanos %}<span class="badge badge-cumple" style="margin-left:6px">🎂</span>{% endif %}
             {% else %}
               <span class="disponible">Disponible</span>
             {% endif %}
@@ -450,6 +453,44 @@ tr.updated td { animation: flash 1s ease-out; }
   </div>
 </div>
 
+<!-- MODAL NUEVO CLIENTE -->
+<div id="modal-cliente" class="modal-overlay" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>✦ Nuevo cliente</h3>
+      <button onclick="cerrarModalCliente()">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" id="c-nombre" placeholder="Juan">
+      </div>
+      <div class="form-group">
+        <label>Apellido</label>
+        <input type="text" id="c-apellido" placeholder="Pérez">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Teléfono</label>
+      <input type="tel" id="c-telefono" placeholder="+573001234567">
+    </div>
+    <div class="form-group">
+      <label>Fecha de cumpleaños</label>
+      <input type="date" id="c-cumple">
+    </div>
+    <div class="form-group" style="display:flex;align-items:center;gap:10px">
+      <input type="checkbox" id="c-fijo" style="width:auto">
+      <label style="text-transform:none;letter-spacing:0;font-size:14px;margin:0">Cliente fijo</label>
+    </div>
+    <div class="form-group">
+      <label>Horario fijo (si aplica)</label>
+      <input type="text" id="c-horario" placeholder="Lunes 10:00">
+    </div>
+    <button class="btn-submit" onclick="enviarCliente()">Registrar cliente</button>
+    <div id="cliente-msg" class="form-msg"></div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="toast">✦ Panel actualizado</div>
 
@@ -496,7 +537,7 @@ function renderAgenda(agenda) {
     tr.innerHTML = `
       <td class="hora">${fila.hora}</td>
       <td>${fila.cliente
-        ? `👤 ${fila.cliente}`
+        ? `👤 ${fila.cliente}${cumpleBadge(fila)}`
         : `<span class="disponible">Disponible</span>`}
       </td>
       <td>${fila.servicio
@@ -653,6 +694,58 @@ async function enviarCita() {
 document.getElementById("modal-cita").addEventListener("click", function(e) {
   if (e.target === this) cerrarModal();
 });
+
+// ── MODAL NUEVO CLIENTE ──
+function abrirModalCliente() {
+  document.getElementById("modal-cliente").style.display = "flex";
+  document.getElementById("cliente-msg").textContent = "";
+}
+function cerrarModalCliente() {
+  document.getElementById("modal-cliente").style.display = "none";
+}
+document.getElementById("modal-cliente").addEventListener("click", function(e) {
+  if (e.target === this) cerrarModalCliente();
+});
+
+async function enviarCliente() {
+  const msg      = document.getElementById("cliente-msg");
+  const nombre   = document.getElementById("c-nombre").value.trim();
+  const apellido = document.getElementById("c-apellido").value.trim();
+  const telefono = document.getElementById("c-telefono").value.trim();
+  const cumple   = document.getElementById("c-cumple").value;
+  const fijo     = document.getElementById("c-fijo").checked;
+  const horario  = document.getElementById("c-horario").value.trim();
+
+  if (!nombre || !telefono) {
+    msg.className = "form-msg err";
+    msg.textContent = "Nombre y teléfono son obligatorios.";
+    return;
+  }
+  msg.className = "form-msg"; msg.textContent = "Registrando...";
+  try {
+    const r = await fetch(`/crear-cliente?key=${key}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre, apellido, telefono, fecha_cumpleanos: cumple || null, fijo, horario_fijo: horario || null, key })
+    });
+    const data = await r.json();
+    if (data.success) {
+      msg.className = "form-msg ok";
+      msg.textContent = "✓ " + data.mensaje;
+      setTimeout(cerrarModalCliente, 1500);
+    } else {
+      msg.className = "form-msg err";
+      msg.textContent = data.mensaje;
+    }
+  } catch(e) {
+    msg.className = "form-msg err"; msg.textContent = "Error de conexión.";
+  }
+}
+
+// Badge cumpleaños en render dinámico de agenda
+function cumpleBadge(fila) {
+  return fila.cumpleanos ? '<span class="badge badge-cumple" style="margin-left:6px">🎂</span>' : "";
+}
 </script>
 </body>
 </html>

@@ -1,7 +1,8 @@
 import json
 import time as time_module
-from flask import Blueprint, request, render_template, Response, stream_with_context
+from flask import Blueprint, request, render_template, Response, stream_with_context, jsonify
 from app.models import Cita, Cliente, Barbero
+from app.extensions import db
 from datetime import date, datetime, time, timedelta
 import os
 
@@ -52,9 +53,9 @@ def _build_panel_data():
             hora = actual.time()
             cita = next((c for c in citas if c.hora == hora), None)
             if cita:
-                agenda.append({"hora": hora.strftime("%H:%M"), "cliente": clientes_dict.get(cita.cliente_id), "barbero": barberos_dict.get(cita.barbero_id), "servicio": cita.servicio})
+                agenda.append({"hora": hora.strftime("%H:%M"), "cliente": clientes_dict.get(cita.cliente_id), "barbero": barberos_dict.get(cita.barbero_id), "servicio": cita.servicio, "cumpleanos": bool(cita.servicio and "🎂" in cita.servicio)})
             else:
-                agenda.append({"hora": hora.strftime("%H:%M"), "cliente": None, "barbero": None, "servicio": None})
+                agenda.append({"hora": hora.strftime("%H:%M"), "cliente": None, "barbero": None, "servicio": None, "cumpleanos": False})
             actual += timedelta(minutes=30)
     ocupacion = int((citas_hoy / total_slots) * 100) if total_slots > 0 else 0
     return {"citas_hoy": citas_hoy, "clientes": clientes, "barberos": barberos_count, "ingresos_hoy": ingresos_hoy, "servicio_top": servicio_top, "ocupacion": ocupacion, "agenda": agenda}
@@ -92,3 +93,43 @@ def panel_stream():
         mimetype="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
     )
+
+
+@panel_bp.route("/crear-cliente", methods=["POST"])
+def crear_cliente():
+    key = request.args.get("key") or request.json.get("key")
+    if key != PANEL_KEY:
+        return jsonify({"success": False, "mensaje": "No autorizado"}), 401
+
+    data = request.get_json()
+    telefono = (data.get("telefono") or "").strip()
+
+    if not data.get("nombre") or not telefono:
+        return jsonify({"success": False, "mensaje": "Nombre y teléfono son obligatorios"})
+
+    if Cliente.query.filter_by(telefono=telefono).first():
+        return jsonify({"success": False, "mensaje": "Ya existe un cliente con ese teléfono"})
+
+    try:
+        from datetime import datetime as dt
+        fecha_cumple = None
+        raw = (data.get("fecha_cumpleanos") or "").strip()
+        if raw:
+            fecha_cumple = dt.strptime(raw, "%Y-%m-%d").date()
+
+        nombre = f"{data.get('nombre','').strip()} {data.get('apellido','').strip()}".strip()
+
+        cliente = Cliente(
+            nombre           = nombre,
+            telefono         = telefono,
+            fecha_cumpleanos = fecha_cumple,
+            fijo             = bool(data.get("fijo", False)),
+            horario_fijo     = (data.get("horario_fijo") or "").strip() or None,
+        )
+        db.session.add(cliente)
+        db.session.commit()
+        return jsonify({"success": True, "mensaje": f"Cliente {nombre} registrado"})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "mensaje": str(e)})

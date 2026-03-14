@@ -13,4 +13,8 @@ class Cliente(db.Model):
 
     fecha_cumpleanos = db.Column(db.Date, nullable=True)
 
+    fijo = db.Column(db.Boolean, default=False)
+
+    horario_fijo = db.Column(db.String(100), nullable=True)
+
     creado_en = db.Column(db.DateTime, default=datetime.utcnow)

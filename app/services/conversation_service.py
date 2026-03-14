@@ -4,11 +4,23 @@ from app.services.agenda_service import crear_cita, obtener_cita_cliente, cancel
 from app.services.clientes_service import obtener_cliente_por_telefono
 from app.services.state_service import get_state, set_state
 from app.models import Barbero
-from datetime import datetime
+from datetime import datetime, date, timedelta
 
 DIAS_ES   = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
 MESES_ES  = ["enero", "febrero", "marzo", "abril", "mayo", "junio",
              "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+
+def es_semana_cumpleanos(cliente):
+    if not cliente or not cliente.fecha_cumpleanos:
+        return False
+    try:
+        hoy = date.today()
+        cumple = cliente.fecha_cumpleanos.replace(year=hoy.year)
+        lunes  = cumple - timedelta(days=cumple.weekday())
+        return lunes <= hoy <= lunes + timedelta(days=6)
+    except Exception:
+        return False
+
 
 def formatear_fecha(fecha_str):
     try:
@@ -476,14 +488,32 @@ Escribe *cancelar* si deseas cancelarla.
 
         hora = horarios[index]["hora"]
 
+        cumpleanos = es_semana_cumpleanos(cliente)
+
         set_state(telefono, {
             "estado": "esperando_confirmacion",
             "barbero_id": estado_data["barbero_id"],
             "barbero_nombre": estado_data["barbero_nombre"],
             "fecha": estado_data["fecha"],
             "hora": hora,
-            "servicio": estado_data.get("servicio")
+            "servicio": estado_data.get("servicio"),
+            "cumpleanos": cumpleanos
         })
+
+        if cumpleanos:
+            return f"""
+🎂 *¡Esta semana es tu cumpleaños!*
+
+¡Feliz cumpleaños {nombre_cliente or ''}! 🎉
+Tu corte de hoy es *GRATIS* 🎁
+
+💈 Barbero: {estado_data["barbero_nombre"]}
+📅 Fecha: {estado_data["fecha"]}
+⏰ Hora: {hora}
+
+1️⃣ Confirmar cita
+2️⃣ Elegir otro horario
+"""
 
         return f"""
 💈 Barbero: {estado_data["barbero_nombre"]}
@@ -504,19 +534,35 @@ Escribe *cancelar* si deseas cancelarla.
 
         if mensaje == "1":
 
+            cumpleanos     = estado_data.get("cumpleanos", False)
+            servicio_final = "🎂 Cumpleaños" if cumpleanos else estado_data.get("servicio")
+
             ok, msg = crear_cita(
                 nombre=nombre_cliente or estado_data.get("nombre") or "Cliente",
                 telefono=telefono_limpio,
                 barbero_id=estado_data["barbero_id"],
                 fecha=estado_data["fecha"],
                 hora=estado_data["hora"],
-                servicio=estado_data.get("servicio")
+                servicio=servicio_final
             )
 
             set_state(telefono, {"estado": "inicio"})
 
             if not ok:
                 return f"❌ No se pudo crear la cita: {msg}"
+
+            if cumpleanos:
+                return f"""
+✅ *Cita confirmada* 🎂
+
+💈 Barbero: {estado_data["barbero_nombre"]}
+🎁 Corte de cumpleaños GRATIS
+
+📅 Fecha: {estado_data["fecha"]}
+⏰ Hora: {estado_data["hora"]}
+
+¡Te esperamos y feliz cumpleaños! 🎉
+"""
 
             return f"""
 ✅ *Cita confirmada*
