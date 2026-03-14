@@ -3,6 +3,7 @@ from app.services.disponibilidad_service import obtener_horarios_disponibles
 from app.services.agenda_service import crear_cita, obtener_cita_cliente, cancelar_cita
 from app.services.clientes_service import obtener_cliente_por_telefono
 from app.services.state_service import get_state, set_state
+from app.models import Barbero
 
 # ------------------------------------------------
 # SERVICIOS
@@ -198,12 +199,14 @@ Escribe *hola* para volver al menú.
             return "❌ No tienes citas registradas.\n\nEscribe *hola* para volver al menú."
 
         hora_cita = cita.hora.strftime("%H:%M")
+        barbero = Barbero.query.get(cita.barbero_id)
+        barbero_nombre = barbero.nombre if barbero else "N/A"
 
         return f"""
 📋 *Tu cita*
 
-💈 Barbero: {getattr(cita, 'barbero_nombre', 'N/A')}
-💇 Servicio: {getattr(cita, 'servicio', 'N/A')}
+💈 Barbero: {barbero_nombre}
+💇 Servicio: {cita.servicio or "N/A"}
 📅 Fecha: {cita.fecha}
 ⏰ Hora: {hora_cita}
 
