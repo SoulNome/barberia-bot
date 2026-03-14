@@ -95,6 +95,22 @@ def panel_stream():
     )
 
 
+@panel_bp.route("/run-import", methods=["POST"])
+def run_import():
+    key = request.args.get("key")
+    if key != PANEL_KEY:
+        return jsonify({"success": False, "mensaje": "No autorizado"}), 401
+    try:
+        from scripts.importar_clientes import importar
+        import sys, os
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from flask import current_app
+        resultado = importar(app=current_app._get_current_object())
+        return jsonify({"success": True, **resultado})
+    except Exception as e:
+        return jsonify({"success": False, "mensaje": str(e)})
+
+
 @panel_bp.route("/crear-cliente", methods=["POST"])
 def crear_cliente():
     key = request.args.get("key") or request.json.get("key")
