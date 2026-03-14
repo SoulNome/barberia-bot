@@ -1,5 +1,6 @@
 from datetime import datetime, time, timedelta
 from app.models import Cita
+import dateparser
 
 
 # ------------------------------------------------
@@ -94,7 +95,14 @@ def normalizar_fecha(fecha):
         try:
             return datetime.strptime(f, "%Y-%m-%d")
         except:
-            return None
+            pass
+
+        # Fallback: dateparser para "lunes", "próximo viernes", etc.
+        parsed = dateparser.parse(f, languages=["es"], settings={"PREFER_DATES_FROM": "future"})
+        if parsed:
+            return parsed
+
+        return None
 
     if isinstance(fecha, datetime):
         return fecha
