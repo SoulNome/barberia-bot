@@ -74,6 +74,29 @@ def enviar_recordatorio(telefono, nombre, fecha, hora):
 # ENVIAR RECORDATORIOS MASIVOS
 # ------------------------------------------------
 
+def enviar_recordatorio_fijo(telefono, nombre, horario):
+    try:
+        if not telefono:
+            return False
+        mensaje = (
+            f"💈 *BarberIA*\n\n"
+            f"Hola {nombre} 👋\n\n"
+            f"Te recordamos que esta semana tienes tu cita habitual:\n\n"
+            f"⏰ *{horario}*\n\n"
+            f"Si necesitas cambiarla escribe *cambiar cita*.\n\n"
+            f"¡Te esperamos!"
+        )
+        client.messages.create(
+            from_=TWILIO_WHATSAPP,
+            body=mensaje,
+            to=f"whatsapp:{telefono}"
+        )
+        return True
+    except Exception as e:
+        print("⚠ Error enviando recordatorio fijo:", e)
+        return False
+
+
 def enviar_recordatorios(lista_citas):
 
     enviados = 0

@@ -53,9 +53,9 @@ def _build_panel_data():
             hora = actual.time()
             cita = next((c for c in citas if c.hora == hora), None)
             if cita:
-                agenda.append({"hora": hora.strftime("%H:%M"), "cliente": clientes_dict.get(cita.cliente_id), "barbero": barberos_dict.get(cita.barbero_id), "servicio": cita.servicio, "cumpleanos": bool(cita.servicio and "🎂" in cita.servicio)})
+                agenda.append({"hora": hora.strftime("%H:%M"), "cita_id": cita.id, "cliente": clientes_dict.get(cita.cliente_id), "barbero": barberos_dict.get(cita.barbero_id), "servicio": cita.servicio, "cumpleanos": bool(cita.servicio and "🎂" in cita.servicio)})
             else:
-                agenda.append({"hora": hora.strftime("%H:%M"), "cliente": None, "barbero": None, "servicio": None, "cumpleanos": False})
+                agenda.append({"hora": hora.strftime("%H:%M"), "cita_id": None, "cliente": None, "barbero": None, "servicio": None, "cumpleanos": False})
             actual += timedelta(minutes=30)
     ocupacion = int((citas_hoy / total_slots) * 100) if total_slots > 0 else 0
     return {"citas_hoy": citas_hoy, "clientes": clientes, "barberos": barberos_count, "ingresos_hoy": ingresos_hoy, "servicio_top": servicio_top, "ocupacion": ocupacion, "agenda": agenda}
@@ -146,6 +146,28 @@ def crear_cliente():
         db.session.commit()
         return jsonify({"success": True, "mensaje": f"Cliente {nombre} registrado"})
 
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "mensaje": str(e)})
+
+
+@panel_bp.route("/cancelar-cita-panel", methods=["POST"])
+def cancelar_cita_panel():
+    key = request.args.get("key") or (request.get_json() or {}).get("key")
+    if key != PANEL_KEY:
+        return jsonify({"success": False, "mensaje": "No autorizado"}), 401
+    data = request.get_json()
+    cita_id = data.get("cita_id")
+    if not cita_id:
+        return jsonify({"success": False, "mensaje": "cita_id requerido"})
+    from app.models import Cita
+    cita = Cita.query.get(cita_id)
+    if not cita:
+        return jsonify({"success": False, "mensaje": "Cita no encontrada"})
+    try:
+        db.session.delete(cita)
+        db.session.commit()
+        return jsonify({"success": True, "mensaje": "Cita cancelada"})
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "mensaje": str(e)})
