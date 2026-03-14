@@ -261,22 +261,41 @@ Escribe *cancelar* si deseas cancelarla.
     # ------------------------------------------------
 
     if accion == "horarios":
+        set_state(telefono, {"estado": "consultando_horarios"})
+        return "📅 ¿Para qué fecha quieres ver los horarios?\n\nEjemplos: *hoy*, *mañana*, *lunes*"
+
+    # ------------------------------------------------
+    # CONSULTANDO HORARIOS
+    # ------------------------------------------------
+
+    if estado == "consultando_horarios":
 
         barbero = barberos[0]
-        horarios = obtener_horarios_disponibles(barbero["id"], "hoy")
+        fecha_consulta = fecha if fecha else mensaje
 
-        if not horarios or horarios in ("domingo", "festivo"):
-            return "📅 Hoy no hay horarios disponibles."
+        resultado = obtener_horarios_disponibles(barbero["id"], fecha_consulta)
 
-        disponibles = [h for h in horarios if h["disponible"]]
+        set_state(telefono, {"estado": "inicio"})
+
+        if resultado == "domingo":
+            return "📅 Los domingos no trabajamos.\n\nEscribe *hola* para ver el menú."
+
+        if resultado == "festivo":
+            return "📅 Ese día es festivo y no trabajamos.\n\nEscribe *hola* para ver el menú."
+
+        if not resultado or resultado is None:
+            return "❌ No entendí la fecha. Intenta con *hoy*, *mañana* o *lunes*."
+
+        disponibles = [h for h in resultado if h["disponible"]]
+        fecha_bonita = formatear_fecha(fecha_consulta) if "-" in str(fecha_consulta) else fecha_consulta
 
         if not disponibles:
-            return "📅 No quedan turnos libres para hoy."
+            return f"📅 No hay turnos libres para *{fecha_bonita}*.\n\nEscribe *1* para agendar."
 
-        texto = "📅 *Horarios disponibles hoy*\n\n"
-
+        texto = f"📅 *{fecha_bonita}*\n\n"
         for h in disponibles:
             texto += f"🟢 {h['hora']}\n"
+        texto += "\nEscribe *1* para agendar."
 
         return texto
 
