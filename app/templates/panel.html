@@ -573,7 +573,7 @@ async function cargarBarberos() {
   try {
     const r = await fetch("/barberos");
     const data = await r.json();
-    data.forEach(b => {
+    (data.barberos || data).forEach(b => {
       const opt = document.createElement("option");
       opt.value = b.id;
       opt.textContent = b.nombre;

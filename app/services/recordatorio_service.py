@@ -8,7 +8,7 @@ import os
 
 ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
-TWILIO_WHATSAPP = "whatsapp:+14155238886"
+TWILIO_WHATSAPP = os.getenv("TWILIO_WHATSAPP_NUMBER", "whatsapp:+14155238886")
 
 if not ACCOUNT_SID or not AUTH_TOKEN:
     raise Exception("Twilio credentials no configuradas")
