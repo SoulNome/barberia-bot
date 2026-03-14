@@ -230,6 +230,78 @@ tr:hover td { background: rgba(255,255,255,0.025); }
 }
 
 tr.updated td { animation: flash 1s ease-out; }
+
+/* ── BUTTON ── */
+.btn-nueva {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #070d1a;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: opacity 0.2s;
+}
+.btn-nueva:hover { opacity: 0.85; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+}
+.modal {
+  background: #0b1530;
+  border: 1px solid rgba(99,179,237,0.2);
+  border-radius: 20px;
+  padding: 32px;
+  width: 100%; max-width: 440px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+}
+.modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 24px;
+}
+.modal-header h3 {
+  font-family: 'Space Mono', monospace;
+  font-size: 16px; color: var(--accent);
+}
+.modal-header button {
+  background: none; border: none;
+  color: var(--muted); font-size: 18px; cursor: pointer;
+}
+.form-group { margin-bottom: 16px; }
+.form-group label {
+  display: block; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--muted); margin-bottom: 6px; font-weight: 600;
+}
+.form-group input,
+.form-group select {
+  width: 100%; padding: 10px 14px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(99,179,237,0.15);
+  border-radius: 10px; color: var(--text);
+  font-size: 14px; font-family: 'DM Sans', sans-serif;
+  outline: none; transition: border-color 0.2s;
+}
+.form-group input:focus,
+.form-group select:focus { border-color: var(--accent); }
+.form-group select option { background: #0b1530; }
+.btn-submit {
+  width: 100%; padding: 12px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #070d1a; border: none; border-radius: 10px;
+  font-weight: 700; font-size: 14px; cursor: pointer;
+  margin-top: 8px; transition: opacity 0.2s;
+}
+.btn-submit:hover { opacity: 0.85; }
+.form-msg { margin-top: 12px; font-size: 13px; text-align: center; min-height: 20px; }
+.form-msg.ok  { color: var(--green); }
+.form-msg.err { color: var(--red);   }
 </style>
 </head>
 <body>
@@ -237,9 +309,12 @@ tr.updated td { animation: flash 1s ease-out; }
 
   <div class="header">
     <div class="logo">💈 BarberIA</div>
-    <div class="live-badge">
-      <div class="live-dot"></div>
-      Panel en vivo
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="btn-nueva" onclick="abrirModal()">+ Nueva cita</button>
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        Panel en vivo
+      </div>
     </div>
   </div>
 
@@ -326,6 +401,53 @@ tr.updated td { animation: flash 1s ease-out; }
     </table>
   </div>
 
+</div>
+
+<!-- MODAL NUEVA CITA -->
+<div id="modal-cita" class="modal-overlay" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>✦ Nueva cita</h3>
+      <button onclick="cerrarModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Barbero</label>
+      <select id="f-barbero" onchange="cargarHorarios()">
+        <option value="">Selecciona barbero</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Fecha</label>
+      <input type="date" id="f-fecha" onchange="cargarHorarios()">
+    </div>
+    <div class="form-group">
+      <label>Hora</label>
+      <select id="f-hora">
+        <option value="">Selecciona barbero y fecha</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Servicio</label>
+      <select id="f-servicio">
+        <option value="">Sin especificar</option>
+        <option>Corte niños</option>
+        <option>Corte normal</option>
+        <option>Corte + barba + tinte</option>
+        <option>Corte + barba + tinte + alisadora</option>
+        <option>Pigmentación cejas</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Nombre del cliente</label>
+      <input type="text" id="f-nombre" placeholder="Ej: Juan Pérez">
+    </div>
+    <div class="form-group">
+      <label>Teléfono</label>
+      <input type="tel" id="f-telefono" placeholder="+573001234567">
+    </div>
+    <button class="btn-submit" onclick="enviarCita()">Agendar cita</button>
+    <div id="form-msg" class="form-msg"></div>
+  </div>
 </div>
 
 <!-- TOAST -->
@@ -428,6 +550,109 @@ function conectarSSE() {
 }
 
 conectarSSE();
+
+// ── MODAL NUEVA CITA ──
+function abrirModal() {
+  document.getElementById("modal-cita").style.display = "flex";
+  document.getElementById("form-msg").textContent = "";
+  cargarBarberos();
+  // Fecha mínima = hoy
+  const hoy = new Date().toISOString().split("T")[0];
+  document.getElementById("f-fecha").min = hoy;
+  document.getElementById("f-fecha").value = hoy;
+  cargarHorarios();
+}
+
+function cerrarModal() {
+  document.getElementById("modal-cita").style.display = "none";
+}
+
+async function cargarBarberos() {
+  const sel = document.getElementById("f-barbero");
+  if (sel.options.length > 1) return; // ya cargados
+  try {
+    const r = await fetch("/barberos");
+    const data = await r.json();
+    data.forEach(b => {
+      const opt = document.createElement("option");
+      opt.value = b.id;
+      opt.textContent = b.nombre;
+      sel.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+async function cargarHorarios() {
+  const barberoId = document.getElementById("f-barbero").value;
+  const fecha     = document.getElementById("f-fecha").value;
+  const sel       = document.getElementById("f-hora");
+  sel.innerHTML   = '<option value="">Cargando...</option>';
+  if (!barberoId || !fecha) {
+    sel.innerHTML = '<option value="">Selecciona barbero y fecha</option>';
+    return;
+  }
+  try {
+    const r    = await fetch(`/agenda/horarios?barbero_id=${barberoId}&fecha=${fecha}`);
+    const data = await r.json();
+    sel.innerHTML = "";
+    if (!data.horarios || data.horarios.length === 0) {
+      sel.innerHTML = '<option value="">Sin horarios disponibles</option>';
+      return;
+    }
+    data.horarios.forEach(h => {
+      const opt = document.createElement("option");
+      opt.value = h.hora;
+      opt.textContent = h.hora;
+      sel.appendChild(opt);
+    });
+  } catch(e) {
+    sel.innerHTML = '<option value="">Error cargando horarios</option>';
+  }
+}
+
+async function enviarCita() {
+  const msg      = document.getElementById("form-msg");
+  const barbero  = document.getElementById("f-barbero").value;
+  const fecha    = document.getElementById("f-fecha").value;
+  const hora     = document.getElementById("f-hora").value;
+  const servicio = document.getElementById("f-servicio").value;
+  const nombre   = document.getElementById("f-nombre").value.trim();
+  const telefono = document.getElementById("f-telefono").value.trim();
+
+  if (!barbero || !fecha || !hora || !nombre || !telefono) {
+    msg.className = "form-msg err";
+    msg.textContent = "Completa todos los campos obligatorios.";
+    return;
+  }
+
+  msg.className = "form-msg";
+  msg.textContent = "Agendando...";
+
+  try {
+    const r = await fetch("/agenda/crear-cita", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre, telefono, barbero_id: parseInt(barbero), fecha, hora, servicio: servicio || null })
+    });
+    const data = await r.json();
+    if (data.success) {
+      msg.className = "form-msg ok";
+      msg.textContent = "✓ Cita agendada correctamente";
+      setTimeout(cerrarModal, 1500);
+    } else {
+      msg.className = "form-msg err";
+      msg.textContent = data.mensaje || "No se pudo agendar.";
+    }
+  } catch(e) {
+    msg.className = "form-msg err";
+    msg.textContent = "Error de conexión.";
+  }
+}
+
+// Cerrar modal al hacer click fuera
+document.getElementById("modal-cita").addEventListener("click", function(e) {
+  if (e.target === this) cerrarModal();
+});
 </script>
 </body>
 </html>

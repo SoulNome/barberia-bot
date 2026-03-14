@@ -9,8 +9,10 @@ def horarios():
     barbero_id = request.args.get("barbero_id")
     fecha = request.args.get("fecha")
 
-    horarios = obtener_horarios_disponibles(barbero_id, fecha)
+    resultado = obtener_horarios_disponibles(barbero_id, fecha)
 
-    return jsonify({
-        "horarios": horarios
-    })
+    if resultado in ("domingo", "festivo") or resultado is None:
+        return jsonify({"horarios": [], "cerrado": True})
+
+    disponibles = [h for h in resultado if h["disponible"]]
+    return jsonify({"horarios": disponibles})

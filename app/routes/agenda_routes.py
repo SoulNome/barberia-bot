@@ -27,12 +27,15 @@ def crear():
             "mensaje": "Faltan datos"
         }), 400
 
+    servicio = data.get("servicio")
+
     ok, mensaje = crear_cita(
         nombre,
         telefono,
         barbero_id,
         fecha,
-        hora
+        hora,
+        servicio
     )
 
     return jsonify({
