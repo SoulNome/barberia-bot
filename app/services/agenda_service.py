@@ -135,6 +135,21 @@ cancelar {cita_cliente.fecha} {formatear_hora(cita_cliente.hora)}
         db.session.add(nueva_cita)
         db.session.commit()
 
+        try:
+            from app.models import Barbero
+            from app.services.recordatorio_service import notificar_barbero
+            barbero = Barbero.query.get(barbero_id)
+            notificar_barbero(
+                nombre_cliente=nombre,
+                fecha=str(fecha),
+                hora=hora.strftime("%H:%M"),
+                servicio=servicio,
+                barbero_nombre=barbero.nombre if barbero else None,
+                accion="nueva"
+            )
+        except Exception:
+            pass
+
         return True, "Cita creada correctamente"
 
     except Exception as e:

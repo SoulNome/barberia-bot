@@ -583,6 +583,24 @@ body {
 }
 .btn-cancel-yes:hover { background: rgba(248,113,113,0.25); }
 
+/* ─────────────────── DATE NAV ─────────────────── */
+.nav-arrow {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--s1); border: 1px solid var(--border);
+  color: var(--accent); font-size: 18px; text-decoration: none;
+  transition: border-color .2s, background .2s;
+}
+.nav-arrow:hover { border-color: var(--border2); background: rgba(56,189,248,0.08); }
+
+.nav-today {
+  font-size: 12px; font-weight: 600; padding: 5px 12px;
+  background: rgba(56,189,248,0.10); border: 1px solid rgba(56,189,248,0.25);
+  color: var(--accent); border-radius: 8px; text-decoration: none;
+  transition: background .2s;
+}
+.nav-today:hover { background: rgba(56,189,248,0.18); }
+
 /* Slot flash on update */
 @keyframes flash { 0%{background:rgba(56,189,248,0.15)} 100%{background:transparent} }
 .tl-slot.updated .appt-card { animation: flash 1.2s ease-out; }
@@ -645,7 +663,12 @@ body {
     <!-- ── TIMELINE ── -->
     <div>
       <div class="section-hd">
-        <h2>📅 Agenda de hoy <span id="last-update">actualizando…</span></h2>
+        <h2>📅 Agenda <span id="last-update">{{ fecha_label }}</span></h2>
+        <div style="display:flex;align-items:center;gap:8px">
+          <a href="/panel?key={{ key }}&fecha={{ fecha_prev }}" class="nav-arrow">‹</a>
+          {% if not es_hoy %}<a href="/panel?key={{ key }}" class="nav-today">Hoy</a>{% endif %}
+          <a href="/panel?key={{ key }}&fecha={{ fecha_next }}" class="nav-arrow">›</a>
+        </div>
       </div>
       <div class="timeline-wrap">
         <div class="timeline-inner" id="timeline-inner">
@@ -1029,9 +1052,12 @@ function updateStats(data) {
   document.getElementById("last-update").textContent = `actualizado ${new Date().toLocaleTimeString("es-CO")}`;
 }
 
-// ── SSE ──
+// ── SSE (solo cuando es hoy) ──
+const ES_HOY = {{ 'true' if es_hoy else 'false' }};
+const FECHA_ISO = "{{ fecha_iso }}";
+
 function conectarSSE() {
-  const es = new EventSource(`/panel-stream?key=${key}`);
+  const es = new EventSource(`/panel-stream?key=${key}&fecha=${FECHA_ISO}`);
   es.addEventListener("update", e => {
     const data = JSON.parse(e.data);
     updateStats(data);
@@ -1039,7 +1065,12 @@ function conectarSSE() {
   });
   es.onerror = () => { es.close(); setTimeout(conectarSSE, 5000); };
 }
-conectarSSE();
+
+if (ES_HOY) {
+  conectarSSE();
+} else {
+  document.getElementById("last-update").textContent = "{{ fecha_label }} · vista estática";
+}
 
 // ── CANCEL CONFIRM ──
 let pendingCancelId = null;

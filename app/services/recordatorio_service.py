@@ -9,6 +9,7 @@ import os
 ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_WHATSAPP = os.getenv("TWILIO_WHATSAPP_NUMBER", "whatsapp:+14155238886")
+HERMES_PHONE = os.getenv("HERMES_PHONE")
 
 if not ACCOUNT_SID or not AUTH_TOKEN:
     raise Exception("Twilio credentials no configuradas")
@@ -73,6 +74,25 @@ def enviar_recordatorio(telefono, nombre, fecha, hora):
 # ------------------------------------------------
 # ENVIAR RECORDATORIOS MASIVOS
 # ------------------------------------------------
+
+def notificar_barbero(nombre_cliente, fecha, hora, servicio=None, barbero_nombre=None, accion="nueva"):
+    if not HERMES_PHONE:
+        return
+    try:
+        if accion == "nueva":
+            svc = f"\n✂️ {servicio}" if servicio else ""
+            barb = f"\n💈 {barbero_nombre}" if barbero_nombre else ""
+            msg = f"💈 *Nueva cita agendada*\n\n👤 {nombre_cliente}\n📅 {fecha}\n⏰ {hora}{svc}{barb}"
+        else:
+            msg = f"❌ *Cita cancelada*\n\n👤 {nombre_cliente}\n📅 {fecha}\n⏰ {hora}"
+        client.messages.create(
+            from_=TWILIO_WHATSAPP,
+            body=msg,
+            to=f"whatsapp:{HERMES_PHONE}"
+        )
+    except Exception as e:
+        print("⚠ Error notificando barbero:", e)
+
 
 def enviar_recordatorio_fijo(telefono, nombre, horario):
     try:

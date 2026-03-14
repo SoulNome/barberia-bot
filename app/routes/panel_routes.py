@@ -28,8 +28,8 @@ def obtener_horarios_dia(dia_semana):
         return [(time(9,0), time(13,0)), (time(15,0), time(21,0))]
     return []
 
-def _build_panel_data():
-    hoy = date.today()
+def _build_panel_data(fecha=None):
+    hoy = fecha or date.today()
     citas = Cita.query.filter_by(fecha=hoy).all()
     citas_hoy = len(citas)
     clientes = Cliente.query.count()
@@ -58,15 +58,30 @@ def _build_panel_data():
                 agenda.append({"hora": hora.strftime("%H:%M"), "cita_id": None, "cliente": None, "barbero": None, "servicio": None, "cumpleanos": False})
             actual += timedelta(minutes=30)
     ocupacion = int((citas_hoy / total_slots) * 100) if total_slots > 0 else 0
-    return {"citas_hoy": citas_hoy, "clientes": clientes, "barberos": barberos_count, "ingresos_hoy": ingresos_hoy, "servicio_top": servicio_top, "ocupacion": ocupacion, "agenda": agenda}
+    return {"citas_hoy": citas_hoy, "clientes": clientes, "barberos": barberos_count, "ingresos_hoy": ingresos_hoy, "servicio_top": servicio_top, "ocupacion": ocupacion, "agenda": agenda, "fecha_iso": hoy.isoformat()}
 
 @panel_bp.route("/panel")
 def panel():
     key = request.args.get("key")
     if key != PANEL_KEY:
         return "No autorizado"
-    data = _build_panel_data()
-    return render_template("panel.html", **data)
+    fecha_str = request.args.get("fecha", "")
+    try:
+        fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date() if fecha_str else date.today()
+    except ValueError:
+        fecha = date.today()
+    hoy = date.today()
+    es_hoy = fecha == hoy
+    DIAS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"]
+    MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]
+    fecha_label = f"{DIAS[fecha.weekday()]} {fecha.day} {MESES[fecha.month-1]} {fecha.year}"
+    fecha_prev = (fecha - timedelta(days=1)).isoformat()
+    fecha_next = (fecha + timedelta(days=1)).isoformat()
+    data = _build_panel_data(fecha)
+    return render_template("panel.html", **data,
+                           key=key, es_hoy=es_hoy,
+                           fecha_label=fecha_label,
+                           fecha_prev=fecha_prev, fecha_next=fecha_next)
 
 @panel_bp.route("/panel-stream")
 def panel_stream():
@@ -77,11 +92,17 @@ def panel_stream():
     from flask import current_app
     app = current_app._get_current_object()
 
+    fecha_str = request.args.get("fecha", "")
+    try:
+        fecha_sse = datetime.strptime(fecha_str, "%Y-%m-%d").date() if fecha_str else None
+    except ValueError:
+        fecha_sse = None
+
     def generar():
         while True:
             try:
                 with app.app_context():
-                    payload = _build_panel_data()
+                    payload = _build_panel_data(fecha_sse)
                 yield f"event: update\ndata: {json.dumps(payload)}\n\n"
             except Exception as e:
                 yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
@@ -164,9 +185,19 @@ def cancelar_cita_panel():
     cita = Cita.query.get(cita_id)
     if not cita:
         return jsonify({"success": False, "mensaje": "Cita no encontrada"})
+    # Guardar datos antes de borrar para notificar
+    cliente_obj = Cliente.query.get(cita.cliente_id)
+    nombre_cli  = cliente_obj.nombre if cliente_obj else "Desconocido"
+    fecha_str2  = str(cita.fecha)
+    hora_str    = cita.hora.strftime("%H:%M")
     try:
         db.session.delete(cita)
         db.session.commit()
+        try:
+            from app.services.recordatorio_service import notificar_barbero
+            notificar_barbero(nombre_cliente=nombre_cli, fecha=fecha_str2, hora=hora_str, accion="cancelada")
+        except Exception:
+            pass
         return jsonify({"success": True, "mensaje": "Cita cancelada"})
     except Exception as e:
         db.session.rollback()
