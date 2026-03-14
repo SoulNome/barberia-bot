@@ -253,14 +253,17 @@ Escribe *cancelar* si deseas cancelarla.
         barbero = barberos[0]
         horarios = obtener_horarios_disponibles(barbero["id"], "hoy")
 
-        if not horarios:
-            return "❌ No hay horarios disponibles hoy."
+        if not horarios or horarios in ("domingo", "festivo"):
+            return "📅 Hoy no hay horarios disponibles."
+
+        disponibles = [h for h in horarios if h["disponible"]]
+
+        if not disponibles:
+            return "📅 No quedan turnos libres para hoy."
 
         texto = "📅 *Horarios disponibles hoy*\n\n"
 
-        for h in horarios:
-            if not h["disponible"]:
-                continue
+        for h in disponibles:
             texto += f"🟢 {h['hora']}\n"
 
         return texto
@@ -394,18 +397,25 @@ Escribe *cancelar* si deseas cancelarla.
 
         try:
             horarios = obtener_horarios_disponibles(barbero_id, fecha_final)
-        except Exception as e:
-            return f"❌ ERROR DEBUG: {e}"
+        except Exception:
+            return "❌ No entendí la fecha. Intenta con:\n• *hoy*\n• *mañana*\n• *2026-03-20*"
+
+        if horarios is None:
+            return "❌ Hubo un problema consultando los horarios. Intenta de nuevo."
+
+        if horarios == "domingo":
+            return "📅 Los domingos no trabajamos.\n\nPrueba con otra fecha 😊"
+
+        if horarios == "festivo":
+            return "📅 Ese día es festivo y no trabajamos.\n\nPrueba con otra fecha 😊"
 
         if not horarios:
-            from datetime import datetime
-            ahora = datetime.utcnow()
-            return f"❌ DEBUG: horarios=[] barbero_id={barbero_id} fecha={fecha_final} utc={ahora.strftime('%H:%M')}"
+            return f"❌ No hay horarios disponibles para *{fecha_final}*.\n\nPrueba con otra fecha."
 
         horarios_disponibles = [h for h in horarios if h["disponible"]]
 
         if not horarios_disponibles:
-            return f"❌ No hay horarios disponibles para *{fecha_final}*.\n\nPrueba con otra fecha."
+            return f"❌ No hay turnos libres para *{fecha_final}*.\n\nPrueba con otra fecha."
 
         texto = f"📅 *Horarios disponibles — {fecha_final}*\n\n"
 

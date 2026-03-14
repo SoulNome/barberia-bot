@@ -158,15 +158,14 @@ def obtener_horarios_disponibles(barbero_id, fecha):
         # ------------------------------------------------
 
         if fecha_str in FESTIVOS:
-            return []
-
+            return "festivo"
 
         # ------------------------------------------------
         # DOMINGO CERRADO
         # ------------------------------------------------
 
         if dia_semana == DOMINGO:
-            return []
+            return "domingo"
 
 
         # ------------------------------------------------
@@ -244,4 +243,5 @@ def obtener_horarios_disponibles(barbero_id, fecha):
 
     except Exception as e:
 
-        raise RuntimeError(f"[horarios] barbero_id={barbero_id} fecha={fecha} error={e}")
+        print("⚠ Error obteniendo horarios:", e)
+        return None
