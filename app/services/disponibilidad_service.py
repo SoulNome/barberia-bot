@@ -146,7 +146,7 @@ def obtener_horarios_disponibles(barbero_id, fecha):
 
         fecha_date = fecha_obj.date()
 
-        hoy = datetime.now()
+        hoy = datetime.utcnow() - timedelta(hours=5)  # Colombia UTC-5
 
         dia_semana = fecha_obj.weekday()
 
