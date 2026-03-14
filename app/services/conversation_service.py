@@ -270,6 +270,11 @@ Escribe *cancelar* si deseas cancelarla.
 
     if accion == "agendar" and estado == "inicio":
 
+        # Cliente nuevo → pedir nombre antes de continuar
+        if not cliente:
+            set_state(telefono, {"estado": "esperando_nombre"})
+            return "Para agendar tu cita necesito saber tu nombre 😊\n\n¿Cómo te llamas?"
+
         texto = "💈 *Selecciona un servicio*\n\n"
 
         for i, s in SERVICIOS.items():
@@ -277,6 +282,27 @@ Escribe *cancelar* si deseas cancelarla.
             texto += f"{i}️⃣ {s['nombre']} — {precio}\n"
 
         set_state(telefono, {"estado": "esperando_servicio"})
+
+        return texto
+
+    # ------------------------------------------------
+    # ESPERANDO NOMBRE — solo para clientes nuevos
+    # ------------------------------------------------
+
+    if estado == "esperando_nombre":
+
+        nombre = mensaje.strip().title()
+
+        if len(nombre) < 2:
+            return "❌ Escribe tu nombre completo para continuar."
+
+        texto = f"Hola *{nombre}* 👋\n\n💈 *Selecciona un servicio*\n\n"
+
+        for i, s in SERVICIOS.items():
+            precio = f"${s['precio']:,}".replace(",", ".")
+            texto += f"{i}️⃣ {s['nombre']} — {precio}\n"
+
+        set_state(telefono, {"estado": "esperando_servicio", "nombre": nombre})
 
         return texto
 
@@ -440,7 +466,7 @@ Escribe *cancelar* si deseas cancelarla.
         if mensaje == "1":
 
             ok, msg = crear_cita(
-                nombre=nombre_cliente if nombre_cliente else "Cliente",
+                nombre=nombre_cliente or estado_data.get("nombre") or "Cliente",
                 telefono=telefono_limpio,
                 barbero_id=estado_data["barbero_id"],
                 fecha=estado_data["fecha"],
