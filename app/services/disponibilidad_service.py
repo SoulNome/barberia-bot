@@ -244,6 +244,4 @@ def obtener_horarios_disponibles(barbero_id, fecha):
 
     except Exception as e:
 
-        print("⚠ Error obteniendo horarios:", e)
-
-        return []
+        raise RuntimeError(f"[horarios] barbero_id={barbero_id} fecha={fecha} error={e}")

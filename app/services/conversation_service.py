@@ -394,11 +394,13 @@ Escribe *cancelar* si deseas cancelarla.
 
         try:
             horarios = obtener_horarios_disponibles(barbero_id, fecha_final)
-        except Exception:
-            return "❌ No entendí la fecha. Intenta con:\n• *hoy*\n• *mañana*\n• *2026-03-20*"
+        except Exception as e:
+            return f"❌ ERROR DEBUG: {e}"
 
         if not horarios:
-            return "❌ No se pudieron obtener horarios. Intenta de nuevo."
+            from datetime import datetime
+            ahora = datetime.utcnow()
+            return f"❌ DEBUG: horarios=[] barbero_id={barbero_id} fecha={fecha_final} utc={ahora.strftime('%H:%M')}"
 
         horarios_disponibles = [h for h in horarios if h["disponible"]]
 
