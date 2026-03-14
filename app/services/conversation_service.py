@@ -2,8 +2,7 @@ from app.services.nlp_service import interpretar_mensaje
 from app.services.disponibilidad_service import obtener_horarios_disponibles
 from app.services.agenda_service import crear_cita, obtener_cita_cliente, cancelar_cita
 from app.services.clientes_service import obtener_cliente_por_telefono
-
-user_states = {}
+from app.services.state_service import get_state, set_state
 
 # ------------------------------------------------
 # SERVICIOS
@@ -72,7 +71,7 @@ def manejar_mensaje(telefono, mensaje, barberos):
 
     barberos = ordenar_barberos(barberos)
 
-    estado_data = user_states.get(telefono, {"estado": "inicio"})
+    estado_data = get_state(telefono)
     estado = estado_data["estado"]
 
     cliente = obtener_cliente_por_telefono(telefono_limpio)
@@ -83,7 +82,7 @@ def manejar_mensaje(telefono, mensaje, barberos):
     # ------------------------------------------------
 
     if mensaje in ["hola", "menu", "volver", "inicio", "0"]:
-        user_states[telefono] = {"estado": "inicio"}
+        set_state(telefono, {"estado": "inicio"})
         return menu_principal(nombre_cliente)
 
     # ------------------------------------------------
@@ -129,18 +128,18 @@ def manejar_mensaje(telefono, mensaje, barberos):
         cita = obtener_cita_cliente(telefono_limpio)
 
         if not cita:
-            user_states[telefono] = {"estado": "inicio"}
+            set_state(telefono, {"estado": "inicio"})
             return "❌ No tienes citas registradas.\n\nEscribe *hola* para volver al menú."
 
         fecha_cita = cita.fecha
         hora_cita = cita.hora.strftime("%H:%M")
 
         # FIX: preguntar confirmación antes de cancelar
-        user_states[telefono] = {
+        set_state(telefono, {
             "estado": "confirmando_cancelacion",
-            "fecha": fecha_cita,
+            "fecha": str(fecha_cita),
             "hora": hora_cita
-        }
+        })
 
         return f"""
 ❗ *¿Seguro que quieres cancelar tu cita?*
@@ -166,7 +165,7 @@ def manejar_mensaje(telefono, mensaje, barberos):
                 estado_data["hora"]
             )
 
-            user_states[telefono] = {"estado": "inicio"}
+            set_state(telefono, {"estado": "inicio"})
 
             if not ok:
                 return f"❌ No se pudo cancelar: {msg}\n\nEscribe *hola* para volver al menú."
@@ -181,7 +180,7 @@ Escribe *hola* para volver al menú.
 """
 
         elif mensaje == "2":
-            user_states[telefono] = {"estado": "inicio"}
+            set_state(telefono, {"estado": "inicio"})
             return "👍 Tu cita se mantiene.\n\nEscribe *hola* para volver al menú."
 
         else:
@@ -277,7 +276,7 @@ Escribe *cancelar* si deseas cancelarla.
             precio = f"${s['precio']:,}".replace(",", ".")
             texto += f"{i}️⃣ {s['nombre']} — {precio}\n"
 
-        user_states[telefono] = {"estado": "esperando_servicio"}
+        set_state(telefono, {"estado": "esperando_servicio"})
 
         return texto
 
@@ -302,10 +301,10 @@ Escribe *cancelar* si deseas cancelarla.
         for b in barberos:
             texto += f"{b['menu_id']}️⃣ {b['nombre']}\n"
 
-        user_states[telefono] = {
+        set_state(telefono, {
             "estado": "esperando_barbero",
             "servicio": servicio["nombre"]
-        }
+        })
 
         return texto
 
@@ -335,12 +334,12 @@ Escribe *cancelar* si deseas cancelarla.
                 texto += f"{b['menu_id']}️⃣ {b['nombre']}\n"
             return texto
 
-        user_states[telefono] = {
+        set_state(telefono, {
             "estado": "esperando_fecha",
             "barbero_id": barbero["id"],
             "barbero_nombre": barbero["nombre"],
             "servicio": estado_data.get("servicio")
-        }
+        })
 
         return f"""
 💈 *{barbero['nombre']} seleccionado*
@@ -384,14 +383,14 @@ Escribe *cancelar* si deseas cancelarla.
 
         texto += "\nElige el número del horario."
 
-        user_states[telefono] = {
+        set_state(telefono, {
             "estado": "esperando_hora",
             "barbero_id": barbero_id,
             "barbero_nombre": estado_data["barbero_nombre"],
             "fecha": fecha_final,
             "horarios": horarios_disponibles,
             "servicio": estado_data.get("servicio")
-        }
+        })
 
         return texto
 
@@ -412,14 +411,14 @@ Escribe *cancelar* si deseas cancelarla.
 
         hora = horarios[index]["hora"]
 
-        user_states[telefono] = {
+        set_state(telefono, {
             "estado": "esperando_confirmacion",
             "barbero_id": estado_data["barbero_id"],
             "barbero_nombre": estado_data["barbero_nombre"],
             "fecha": estado_data["fecha"],
             "hora": hora,
             "servicio": estado_data.get("servicio")
-        }
+        })
 
         return f"""
 💈 Barbero: {estado_data["barbero_nombre"]}
@@ -449,7 +448,7 @@ Escribe *cancelar* si deseas cancelarla.
                 servicio=estado_data.get("servicio")
             )
 
-            user_states[telefono] = {"estado": "inicio"}
+            set_state(telefono, {"estado": "inicio"})
 
             if not ok:
                 return f"❌ No se pudo crear la cita: {msg}"
@@ -468,12 +467,12 @@ Te esperamos 💈
 
         elif mensaje == "2":
 
-            user_states[telefono] = {
+            set_state(telefono, {
                 "estado": "esperando_fecha",
                 "barbero_id": estado_data["barbero_id"],
                 "barbero_nombre": estado_data["barbero_nombre"],
                 "servicio": estado_data.get("servicio")
-            }
+            })
 
             return "Perfecto 👍\nDime otra fecha."
 
@@ -493,11 +492,11 @@ Puedes escribirme de forma natural o usar el menú:
 • *hola* — Ver menú principal
 • *1* — Agendar cita
 • *cancelar* — Cancelar tu cita
-• *0* — Volver al menú en cualquier momento
+• *0* — Volver al menú en cualquier mometo
 """
 
     # ------------------------------------------------
     # FALLBACK
-    # ------------------------------------------------
+    # ----
 
     return "❌ No entendí tu mensaje.\nEscribe *hola* para ver el menú."
