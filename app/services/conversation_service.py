@@ -4,6 +4,18 @@ from app.services.agenda_service import crear_cita, obtener_cita_cliente, cancel
 from app.services.clientes_service import obtener_cliente_por_telefono
 from app.services.state_service import get_state, set_state
 from app.models import Barbero
+from datetime import datetime
+
+DIAS_ES   = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+MESES_ES  = ["enero", "febrero", "marzo", "abril", "mayo", "junio",
+             "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+
+def formatear_fecha(fecha_str):
+    try:
+        f = datetime.strptime(fecha_str, "%Y-%m-%d")
+        return f"{DIAS_ES[f.weekday()]} {f.day} de {MESES_ES[f.month - 1]}"
+    except:
+        return fecha_str
 
 # ------------------------------------------------
 # SERVICIOS
@@ -373,15 +385,7 @@ Escribe *cancelar* si deseas cancelarla.
             "servicio": estado_data.get("servicio")
         })
 
-        return f"""
-💈 *{barbero['nombre']} seleccionado*
-
-¿Para qué fecha quieres tu cita?
-
-• hoy
-• mañana
-• 2026-03-20
-"""
+        return f"💈 *{barbero['nombre']} seleccionado*\n\n¿Para qué fecha quieres tu cita?\n\nEjemplos: *hoy*, *mañana*, *lunes*, *viernes*"
 
     # ------------------------------------------------
     # ESPERANDO FECHA
@@ -410,17 +414,18 @@ Escribe *cancelar* si deseas cancelarla.
             return "📅 Ese día es festivo y no trabajamos.\n\nPrueba con otra fecha 😊"
 
         if not horarios:
-            return f"❌ No hay horarios disponibles para *{fecha_final}*.\n\nPrueba con otra fecha."
+            return f"❌ No hay horarios disponibles para ese día.\n\nPrueba con otra fecha."
 
-        horarios_disponibles = [h for h in horarios if h["disponible"]]
+        horarios_disponibles = [h for h in horarios if h["disponible"]][:9]
 
         if not horarios_disponibles:
-            return f"❌ No hay turnos libres para *{fecha_final}*.\n\nPrueba con otra fecha."
+            return f"❌ No hay turnos libres para ese día.\n\nPrueba con otra fecha."
 
-        texto = f"📅 *Horarios disponibles — {fecha_final}*\n\n"
+        fecha_bonita = formatear_fecha(fecha_final)
+        texto = f"📅 *{fecha_bonita}*\n\n"
 
         for i, h in enumerate(horarios_disponibles):
-            texto += f"{i+1}️⃣ {h['hora']} 🟢\n"
+            texto += f"{i+1}️⃣ {h['hora']}\n"
 
         texto += "\nElige el número del horario."
 
