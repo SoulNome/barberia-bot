@@ -675,16 +675,16 @@ body {
           <div id="now-line"></div>
           <div id="timeline">
             {% for fila in agenda %}
-            <div class="tl-slot {% if fila.cliente %}booked{% else %}free{% endif %}"
+            <div class="tl-slot {% if fila.cliente or fila.cita_id %}booked{% else %}free{% endif %}"
                  data-hora="{{ fila.hora }}"
                  {% if fila.cita_id %}data-cita-id="{{ fila.cita_id }}"{% endif %}>
               <div class="tl-time">{{ fila.hora }}</div>
               <div class="tl-content">
-                {% if fila.cliente %}
+                {% if fila.cliente or fila.cita_id %}
                   <div class="appt-card {% if fila.cumpleanos %}cumple{% endif %}">
                     <div class="appt-avatar">{% if fila.cumpleanos %}🎂{% else %}✂️{% endif %}</div>
                     <div class="appt-body">
-                      <div class="appt-name">{{ fila.cliente }}</div>
+                      <div class="appt-name">{{ fila.cliente or "Sin nombre" }}</div>
                       <div class="appt-meta">
                         {% if fila.barbero %}<span>💈 {{ fila.barbero }}</span>{% endif %}
                       </div>
@@ -693,7 +693,7 @@ body {
                       <span class="badge-svc">{{ fila.servicio }}</span>
                     {% endif %}
                     <button class="btn-cancel" title="Cancelar cita"
-                            onclick="pedirCancelar({{ fila.cita_id }}, '{{ fila.hora }}', '{{ fila.cliente }}')">✕</button>
+                            onclick="pedirCancelar({{ fila.cita_id }}, '{{ fila.hora }}', '{{ fila.cliente or "Sin nombre" }}')">✕</button>
                   </div>
                 {% else %}
                   <span class="free-label">Disponible</span>
@@ -988,7 +988,7 @@ function renderTimeline(agenda) {
 
   tl.innerHTML = "";
   agenda.forEach(f => {
-    const isBooked  = !!f.cliente;
+    const isBooked  = !!f.cliente || !!f.cita_id;
     const wasBooked = prev[f.hora]?.booked ?? null;
     const changed   = wasBooked !== null && wasBooked !== isBooked;
 
@@ -1006,7 +1006,7 @@ function renderTimeline(agenda) {
           <div class="appt-card${isCumple ? " cumple" : ""}">
             <div class="appt-avatar">${isCumple ? "🎂" : "✂️"}</div>
             <div class="appt-body">
-              <div class="appt-name">${f.cliente}</div>
+              <div class="appt-name">${f.cliente || "Sin nombre"}</div>
               <div class="appt-meta">
                 ${f.barbero ? `<span>💈 ${f.barbero}</span>` : ""}
               </div>

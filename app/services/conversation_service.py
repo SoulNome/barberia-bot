@@ -378,7 +378,8 @@ Escribe *cancelar* si deseas cancelarla.
 
         set_state(telefono, {
             "estado": "esperando_barbero",
-            "servicio": servicio["nombre"]
+            "servicio": servicio["nombre"],
+            "nombre": estado_data.get("nombre")
         })
 
         return texto
@@ -413,7 +414,8 @@ Escribe *cancelar* si deseas cancelarla.
             "estado": "esperando_fecha",
             "barbero_id": barbero["id"],
             "barbero_nombre": barbero["nombre"],
-            "servicio": estado_data.get("servicio")
+            "servicio": estado_data.get("servicio"),
+            "nombre": estado_data.get("nombre")
         })
 
         return f"💈 *{barbero['nombre']} seleccionado*\n\n¿Para qué fecha quieres tu cita?\n\nEjemplos: *hoy*, *mañana*, *lunes*, *viernes*"
@@ -466,7 +468,8 @@ Escribe *cancelar* si deseas cancelarla.
             "barbero_nombre": estado_data["barbero_nombre"],
             "fecha": fecha_final,
             "horarios": horarios_disponibles,
-            "servicio": estado_data.get("servicio")
+            "servicio": estado_data.get("servicio"),
+            "nombre": estado_data.get("nombre")
         })
 
         return texto
@@ -497,7 +500,8 @@ Escribe *cancelar* si deseas cancelarla.
             "fecha": estado_data["fecha"],
             "hora": hora,
             "servicio": estado_data.get("servicio"),
-            "cumpleanos": cumpleanos
+            "cumpleanos": cumpleanos,
+            "nombre": estado_data.get("nombre")
         })
 
         if cumpleanos:
