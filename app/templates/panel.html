@@ -1094,12 +1094,9 @@ function pedirCancelar(citaId, hora, nombre) {
       const data = await r.json();
       if (data.success) {
         showToast("✓ Cita cancelada");
-        // Remover slot del DOM inmediatamente
-        const slot = document.querySelector(`.tl-slot[data-cita-id="${citaId}"]`);
-        if (slot) {
-          slot.className = "tl-slot free";
-          slot.querySelector(".tl-content").innerHTML = '<span class="free-label">Disponible</span>';
-          delete slot.dataset.citaId;
+        if (data.data) {
+          updateStats(data.data);
+          renderTimeline(data.data.agenda);
         }
       } else {
         showToast("⚠ " + (data.mensaje || "Error desconocido"), true);

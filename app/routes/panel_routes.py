@@ -196,7 +196,7 @@ def cancelar_cita_panel():
             notificar_barbero(nombre_cliente=nombre_cli, fecha=fecha_str2, hora=hora_str, accion="cancelada")
         except Exception:
             pass
-        return jsonify({"success": True, "mensaje": "Cita cancelada"})
+        return jsonify({"success": True, "mensaje": "Cita cancelada", "data": _build_panel_data()})
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "mensaje": str(e)})
