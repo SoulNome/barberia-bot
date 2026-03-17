@@ -174,19 +174,17 @@ def crear_cliente():
 
 @panel_bp.route("/cancelar-cita-panel", methods=["POST"])
 def cancelar_cita_panel():
-    key = request.args.get("key") or (request.get_json() or {}).get("key")
-    if key != PANEL_KEY:
+    key = request.args.get("key")
+    if not key or key != PANEL_KEY:
         return jsonify({"success": False, "mensaje": "No autorizado"}), 401
-    data = request.get_json()
+    data = request.get_json(force=True, silent=True) or {}
     cita_id = data.get("cita_id")
     if not cita_id:
         return jsonify({"success": False, "mensaje": "cita_id requerido"})
-    from app.models import Cita
-    cita = Cita.query.get(cita_id)
+    cita = Cita.query.filter_by(id=cita_id).first()
     if not cita:
-        return jsonify({"success": False, "mensaje": "Cita no encontrada"})
-    # Guardar datos antes de borrar para notificar
-    cliente_obj = Cliente.query.get(cita.cliente_id)
+        return jsonify({"success": False, "mensaje": f"Cita {cita_id} no encontrada"})
+    cliente_obj = Cliente.query.filter_by(id=cita.cliente_id).first()
     nombre_cli  = cliente_obj.nombre if cliente_obj else "Desconocido"
     fecha_str2  = str(cita.fecha)
     hora_str    = cita.hora.strftime("%H:%M")

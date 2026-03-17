@@ -1073,39 +1073,45 @@ if (ES_HOY) {
 }
 
 // ── CANCEL CONFIRM ──
-let pendingCancelId = null;
-
 function pedirCancelar(citaId, hora, nombre) {
-  pendingCancelId = citaId;
+  const overlay = document.getElementById("confirm-overlay");
   document.getElementById("confirm-msg").textContent = `¿Cancelar la cita de las ${hora} — ${nombre}?`;
-  document.getElementById("confirm-overlay").style.display = "flex";
-  document.getElementById("confirm-yes").onclick = ejecutarCancelar;
+  overlay.style.display = "flex";
+
+  const btnYes = document.getElementById("confirm-yes");
+  // Clonar para eliminar listeners anteriores
+  const nuevoBtn = btnYes.cloneNode(true);
+  btnYes.parentNode.replaceChild(nuevoBtn, btnYes);
+
+  nuevoBtn.addEventListener("click", async function() {
+    overlay.style.display = "none";
+    try {
+      const r = await fetch(`/cancelar-cita-panel?key=${key}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cita_id: citaId })
+      });
+      const data = await r.json();
+      if (data.success) {
+        showToast("✓ Cita cancelada");
+        // Remover slot del DOM inmediatamente
+        const slot = document.querySelector(`.tl-slot[data-cita-id="${citaId}"]`);
+        if (slot) {
+          slot.className = "tl-slot free";
+          slot.querySelector(".tl-content").innerHTML = '<span class="free-label">Disponible</span>';
+          delete slot.dataset.citaId;
+        }
+      } else {
+        showToast("⚠ " + (data.mensaje || "Error desconocido"), true);
+      }
+    } catch(e) {
+      showToast("Error de conexión: " + e.message, true);
+    }
+  });
 }
 
 function cerrarConfirm() {
-  pendingCancelId = null;
   document.getElementById("confirm-overlay").style.display = "none";
-}
-
-async function ejecutarCancelar() {
-  const id = pendingCancelId;
-  cerrarConfirm();
-  if (!id) return;
-  try {
-    const r = await fetch(`/cancelar-cita-panel?key=${key}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cita_id: id, key })
-    });
-    const data = await r.json();
-    if (data.success) {
-      showToast("✓ Cita cancelada");
-    } else {
-      showToast("⚠ " + (data.mensaje || "Error"), true);
-    }
-  } catch(e) {
-    showToast("Error de conexión", true);
-  }
 }
 
 // ── MODAL NUEVA CITA ──
