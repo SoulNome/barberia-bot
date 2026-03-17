@@ -1088,10 +1088,9 @@ function cerrarConfirm() {
 }
 
 async function ejecutarCancelar() {
-  cerrarConfirm();
-  if (!pendingCancelId && pendingCancelId !== 0) return;
   const id = pendingCancelId;
-  pendingCancelId = null;
+  cerrarConfirm();
+  if (!id) return;
   try {
     const r = await fetch(`/cancelar-cita-panel?key=${key}`, {
       method: "POST",
