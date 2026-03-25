@@ -48,26 +48,34 @@ def bot():
         numero = None
         mensaje = None
 
+        # sender está en la raíz del JSON
+        if "sender" in data:
+            numero = data["sender"].replace("@s.whatsapp.net", "").replace("@c.us", "").replace("@lid", "")
+            print(f"[DEBUG] Sender (raíz) encontrado: {numero}")
+
         if "data" in data:
             msg_data = data["data"]
             print(f"[DEBUG] msg_data keys: {msg_data.keys()}")
 
-            # Intentar extraer del campo 'sender' primero
-            if "sender" in msg_data:
-                numero = msg_data.get("sender", "").replace("@s.whatsapp.net", "").replace("@c.us", "")
-                print(f"[DEBUG] Sender encontrado: {numero}")
-
-            # O del campo 'key.remoteJid'
+            # Fallback: key.remoteJid si no hay sender en raíz
             if not numero and "key" in msg_data:
                 remote_jid = msg_data["key"].get("remoteJid", "")
-                numero = remote_jid.replace("@s.whatsapp.net", "").replace("@c.us", "")
-                print(f"[DEBUG] RemoteJid encontrado: {numero}")
+                if "@s.whatsapp.net" in remote_jid or "@c.us" in remote_jid:
+                    numero = remote_jid.replace("@s.whatsapp.net", "").replace("@c.us", "")
+                    print(f"[DEBUG] RemoteJid encontrado: {numero}")
 
-            # Extraer mensaje
+            # Ignorar mensajes propios
+            if msg_data.get("key", {}).get("fromMe"):
+                print("[DEBUG] Mensaje propio, ignorando")
+                return jsonify({"status": "ignored"}), 200
+
+            # Extraer mensaje — soporta conversation, extendedTextMessage, text, body
             if "message" in msg_data:
                 message_obj = msg_data["message"]
+                extended = message_obj.get("extendedTextMessage", {})
                 mensaje = (
                     message_obj.get("conversation")
+                    or extended.get("text", "")
                     or message_obj.get("text", "")
                     or message_obj.get("body", "")
                 ).strip().lower()
