@@ -1,20 +1,27 @@
-from twilio.rest import Client
 import os
+import requests
+
+EVOLUTION_API_URL      = os.getenv("EVOLUTION_API_URL", "")
+EVOLUTION_API_KEY      = os.getenv("EVOLUTION_API_KEY", "")
+EVOLUTION_INSTANCE     = os.getenv("EVOLUTION_INSTANCE", "")
+HERMES_PHONE           = os.getenv("HERMES_PHONE", "")
 
 
-# ------------------------------------------------
-# CONFIGURACION TWILIO
-# ------------------------------------------------
-
-ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
-AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
-TWILIO_WHATSAPP = os.getenv("TWILIO_WHATSAPP_NUMBER", "whatsapp:+14155238886")
-HERMES_PHONE = os.getenv("HERMES_PHONE")
-
-if not ACCOUNT_SID or not AUTH_TOKEN:
-    raise Exception("Twilio credentials no configuradas")
-
-client = Client(ACCOUNT_SID, AUTH_TOKEN)
+def _enviar_whatsapp(numero, texto):
+    """Envía un mensaje via Evolution API."""
+    if not EVOLUTION_API_URL or not EVOLUTION_INSTANCE:
+        print("⚠ Evolution API no configurada, no se envió mensaje")
+        return False
+    url = f"{EVOLUTION_API_URL}/message/sendText/{EVOLUTION_INSTANCE}"
+    headers = {"apikey": EVOLUTION_API_KEY, "Content-Type": "application/json"}
+    payload = {"number": numero, "text": texto}
+    try:
+        r = requests.post(url, json=payload, headers=headers, timeout=10)
+        r.raise_for_status()
+        return True
+    except Exception as e:
+        print(f"⚠ Error enviando mensaje a {numero}: {e}")
+        return False
 
 
 # ------------------------------------------------
@@ -22,25 +29,16 @@ client = Client(ACCOUNT_SID, AUTH_TOKEN)
 # ------------------------------------------------
 
 def construir_mensaje(nombre, fecha, hora):
-
-    return f"""
-💈 *BarberIA*
-
-Hola {nombre} 👋
-
-Te recordamos tu cita:
-
-📅 Fecha: {fecha}
-⏰ Hora: {hora}
-
-Por favor llega 5 minutos antes.
-
-Si necesitas cancelar escribe:
-
-cancelar
-
-¡Te esperamos!
-"""
+    return (
+        f"💈 *BarberIA*\n\n"
+        f"Hola {nombre} 👋\n\n"
+        f"Te recordamos tu cita:\n\n"
+        f"📅 Fecha: {fecha}\n"
+        f"⏰ Hora: {hora}\n\n"
+        f"Por favor llega 5 minutos antes.\n\n"
+        f"Si necesitas cancelar escribe:\n\ncancelar\n\n"
+        f"¡Te esperamos!"
+    )
 
 
 # ------------------------------------------------
@@ -48,94 +46,59 @@ cancelar
 # ------------------------------------------------
 
 def enviar_recordatorio(telefono, nombre, fecha, hora):
-
-    try:
-
-        if not telefono:
-            return False
-
-        mensaje = construir_mensaje(nombre, fecha, hora)
-
-        client.messages.create(
-            from_=TWILIO_WHATSAPP,
-            body=mensaje,
-            to=f"whatsapp:{telefono}"
-        )
-
-        return True
-
-    except Exception as e:
-
-        print("⚠ Error enviando recordatorio:", e)
-
+    if not telefono:
         return False
+    mensaje = construir_mensaje(nombre, fecha, hora)
+    return _enviar_whatsapp(telefono, mensaje)
+
+
+# ------------------------------------------------
+# NOTIFICAR AL BARBERO
+# ------------------------------------------------
+
+def notificar_barbero(nombre_cliente, fecha, hora, servicio=None, barbero_nombre=None, accion="nueva"):
+    if not HERMES_PHONE:
+        return
+    if accion == "nueva":
+        svc  = f"\n✂️ {servicio}"      if servicio       else ""
+        barb = f"\n💈 {barbero_nombre}" if barbero_nombre else ""
+        msg  = f"💈 *Nueva cita agendada*\n\n👤 {nombre_cliente}\n📅 {fecha}\n⏰ {hora}{svc}{barb}"
+    else:
+        msg = f"❌ *Cita cancelada*\n\n👤 {nombre_cliente}\n📅 {fecha}\n⏰ {hora}"
+    _enviar_whatsapp(HERMES_PHONE, msg)
+
+
+# ------------------------------------------------
+# RECORDATORIO FIJO (SEMANAL)
+# ------------------------------------------------
+
+def enviar_recordatorio_fijo(telefono, nombre, horario):
+    if not telefono:
+        return False
+    mensaje = (
+        f"💈 *BarberIA*\n\n"
+        f"Hola {nombre} 👋\n\n"
+        f"Te recordamos que esta semana tienes tu cita habitual:\n\n"
+        f"⏰ *{horario}*\n\n"
+        f"Si necesitas cambiarla escribe *cambiar cita*.\n\n"
+        f"¡Te esperamos!"
+    )
+    return _enviar_whatsapp(telefono, mensaje)
 
 
 # ------------------------------------------------
 # ENVIAR RECORDATORIOS MASIVOS
 # ------------------------------------------------
 
-def notificar_barbero(nombre_cliente, fecha, hora, servicio=None, barbero_nombre=None, accion="nueva"):
-    if not HERMES_PHONE:
-        return
-    try:
-        if accion == "nueva":
-            svc = f"\n✂️ {servicio}" if servicio else ""
-            barb = f"\n💈 {barbero_nombre}" if barbero_nombre else ""
-            msg = f"💈 *Nueva cita agendada*\n\n👤 {nombre_cliente}\n📅 {fecha}\n⏰ {hora}{svc}{barb}"
-        else:
-            msg = f"❌ *Cita cancelada*\n\n👤 {nombre_cliente}\n📅 {fecha}\n⏰ {hora}"
-        client.messages.create(
-            from_=TWILIO_WHATSAPP,
-            body=msg,
-            to=f"whatsapp:{HERMES_PHONE}"
-        )
-    except Exception as e:
-        print("⚠ Error notificando barbero:", e)
-
-
-def enviar_recordatorio_fijo(telefono, nombre, horario):
-    try:
-        if not telefono:
-            return False
-        mensaje = (
-            f"💈 *BarberIA*\n\n"
-            f"Hola {nombre} 👋\n\n"
-            f"Te recordamos que esta semana tienes tu cita habitual:\n\n"
-            f"⏰ *{horario}*\n\n"
-            f"Si necesitas cambiarla escribe *cambiar cita*.\n\n"
-            f"¡Te esperamos!"
-        )
-        client.messages.create(
-            from_=TWILIO_WHATSAPP,
-            body=mensaje,
-            to=f"whatsapp:{telefono}"
-        )
-        return True
-    except Exception as e:
-        print("⚠ Error enviando recordatorio fijo:", e)
-        return False
-
-
 def enviar_recordatorios(lista_citas):
-
     enviados = 0
-
     for cita in lista_citas:
-
-        telefono = cita.get("telefono")
-        nombre = cita.get("nombre")
-        fecha = cita.get("fecha")
-        hora = cita.get("hora")
-
         ok = enviar_recordatorio(
-            telefono,
-            nombre,
-            fecha,
-            hora
+            cita.get("telefono"),
+            cita.get("nombre"),
+            cita.get("fecha"),
+            cita.get("hora"),
         )
-
         if ok:
             enviados += 1
-
     print(f"📲 Recordatorios enviados: {enviados}")
