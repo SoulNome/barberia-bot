@@ -13,3 +13,8 @@ class Config:
     )
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # Evolution API
+    EVOLUTION_API_URL      = os.getenv("EVOLUTION_API_URL", "")
+    EVOLUTION_API_KEY      = os.getenv("EVOLUTION_API_KEY", "")
+    EVOLUTION_INSTANCE     = os.getenv("EVOLUTION_INSTANCE", "")
