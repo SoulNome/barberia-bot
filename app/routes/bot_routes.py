@@ -23,8 +23,11 @@ def enviar_respuesta(numero, texto):
         "number": numero,
         "text": texto
     }
+    print(f"[DEBUG] Enviando a Evolution: url={url} numero={numero}")
+    print(f"[DEBUG] API_KEY={EVOLUTION_API_KEY[:6]}... INSTANCE={EVOLUTION_INSTANCE}")
     try:
-        requests.post(url, json=payload, headers=headers, timeout=10)
+        r = requests.post(url, json=payload, headers=headers, timeout=10)
+        print(f"[DEBUG] Evolution respondió: {r.status_code} {r.text[:200]}")
     except Exception as e:
         print(f"[ERROR] No se pudo enviar mensaje: {e}")
 
