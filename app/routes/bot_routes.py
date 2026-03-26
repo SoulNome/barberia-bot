@@ -57,9 +57,15 @@ def bot():
                 print("[DEBUG] Mensaje propio, ignorando")
                 return jsonify({"status": "ignored"}), 200
 
-            # Número del cliente = key.remoteJid (puede ser @s.whatsapp.net o @lid)
+            # Número del cliente = key.remoteJid
             if "key" in msg_data:
                 remote_jid = msg_data["key"].get("remoteJid", "")
+
+                # Ignorar grupos y broadcasts
+                if "@g.us" in remote_jid or "@broadcast" in remote_jid:
+                    print(f"[DEBUG] Mensaje de grupo/broadcast, ignorando: {remote_jid}")
+                    return jsonify({"status": "ignored"}), 200
+
                 numero = remote_jid  # pasar JID completo a Evolution
                 print(f"[DEBUG] RemoteJid (destinatario): {numero}")
 
