@@ -21,7 +21,7 @@ def enviar_respuesta(numero, texto):
     }
     payload = {
         "number": numero,
-        "text": texto
+        "textMessage": {"text": texto}
     }
     print(f"[DEBUG] Enviando a Evolution: url={url} numero={numero}")
     print(f"[DEBUG] API_KEY={EVOLUTION_API_KEY[:6]}... INSTANCE={EVOLUTION_INSTANCE}")
