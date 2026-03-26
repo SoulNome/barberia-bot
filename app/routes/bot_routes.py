@@ -7,9 +7,9 @@ from app.services.barbero_service import obtener_barberos
 
 bot_bp = Blueprint("bot", __name__)
 
-EVOLUTION_API_URL = os.getenv("EVOLUTION_API_URL", "")
-EVOLUTION_API_KEY = os.getenv("EVOLUTION_API_KEY", "")
-EVOLUTION_INSTANCE = os.getenv("EVOLUTION_INSTANCE", "")
+EVOLUTION_API_URL  = os.getenv("EVOLUTION_API_URL", "").strip()
+EVOLUTION_API_KEY  = os.getenv("EVOLUTION_API_KEY", "").strip()
+EVOLUTION_INSTANCE = os.getenv("EVOLUTION_INSTANCE", "").strip()
 
 
 def enviar_respuesta(numero, texto):
