@@ -101,7 +101,7 @@ def bot():
 
         # Capturar mapeo @lid → teléfono
         if event == "contacts.upsert":
-            print(f"[CONTACT] Evento contacts.upsert recibido")
+            print(f"[CONTACT] contacts.upsert data: {json.dumps(data, indent=2)}")
             procesar_contacts_upsert(data)
             return jsonify({"status": "ok"}), 200
 
