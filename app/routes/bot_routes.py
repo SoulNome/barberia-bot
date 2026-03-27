@@ -5,7 +5,7 @@ from flask import Blueprint, request, jsonify
 
 from app.extensions import db
 from app.models.contact_map import ContactMap
-from app.services.conversation_service import manejar_mensajeh
+from app.services.conversation_service import manejar_mensaje
 from app.services.barbero_service import obtener_barberos
 
 bot_bp = Blueprint("bot", __name__)
