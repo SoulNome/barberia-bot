@@ -9,6 +9,8 @@ def create_app():
     app.config.from_object(Config)
 
     db.init_app(app)
+    with app.app_context():
+        db.create_all()
 
     from app.routes.agenda_routes import agenda_bp
     from app.routes.disponibilidad_routes import disponibilidad_bp
