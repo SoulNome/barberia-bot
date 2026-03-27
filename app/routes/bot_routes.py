@@ -5,7 +5,7 @@ from flask import Blueprint, request, jsonify
 
 from app.extensions import db
 from app.models.contact_map import ContactMap
-from app.services.conversation_service import manejar_mensaje
+from app.services.conversation_service import manejar_mensajeh
 from app.services.barbero_service import obtener_barberos
 
 bot_bp = Blueprint("bot", __name__)
@@ -150,8 +150,13 @@ def bot():
                 if mensaje:
                     mensaje = mensaje.strip().lower()
 
-        if not numero_jid or not mensaje:
+        if not numero_jid:
             return jsonify({"status": "ignored"}), 200
+
+        if not mensaje:
+            # Mensaje no es texto (audio, imagen, sticker, etc.)
+            enviar_respuesta(numero_jid, "Hola! Solo puedo leer mensajes de texto 😊 Por favor escríbeme tu consulta.")
+            return jsonify({"status": "ok"}), 200
 
         numero_sesion = f"+{numero_jid.split('@')[0]}"
         barberos      = obtener_barberos()
