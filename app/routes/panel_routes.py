@@ -58,6 +58,30 @@ def _build_panel_data(fecha=None):
                 agenda.append({"hora": hora.strftime("%H:%M"), "cita_id": None, "cliente": None, "barbero": None, "servicio": None, "cumpleanos": False})
             actual += timedelta(minutes=30)
     ocupacion = int((citas_hoy / total_slots) * 100) if total_slots > 0 else 0
+    # ── Overlay clientes fijos en slots libres del día ──
+    DIAS_FIJOS = {
+        "lunes": 0, "martes": 1, "miércoles": 2, "miercoles": 2,
+        "jueves": 3, "viernes": 4, "sábado": 5, "sabado": 5, "domingo": 6
+    }
+    for cf in Cliente.query.filter_by(fijo=True).all():
+        if not cf.horario_fijo:
+            continue
+        parts = cf.horario_fijo.strip().lower().split()
+        if len(parts) < 2:
+            continue
+        dia_num = DIAS_FIJOS.get(parts[0].rstrip(','))
+        if dia_num is None or dia_num != dia_semana:
+            continue
+        try:
+            h, m = parts[1].split(":")
+            hora_fija = time(int(h), int(m)).strftime("%H:%M")
+        except Exception:
+            continue
+        for slot in agenda:
+            if slot["hora"] == hora_fija and slot["cita_id"] is None and slot["cliente"] is None:
+                slot["cliente"] = cf.nombre
+                slot["es_fijo"] = True
+                break
     return {"citas_hoy": citas_hoy, "clientes": clientes, "barberos": barberos_count, "ingresos_hoy": ingresos_hoy, "servicio_top": servicio_top, "ocupacion": ocupacion, "agenda": agenda, "fecha_iso": hoy.isoformat()}
 
 @panel_bp.route("/panel")
