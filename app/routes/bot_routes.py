@@ -61,7 +61,7 @@ def enviar_respuesta(jid, texto):
     """Envía un mensaje de texto via Evolution API."""
     numero = resolver_numero(jid)
     url    = f"{EVOLUTION_API_URL}/message/sendText/{EVOLUTION_INSTANCE}"
-    payload = {"number": numero, "textMessage": {"text": texto}}
+    payload = {"number": numero, "text": texto}
     print(f"[DEBUG] Enviando a: {numero}")
     try:
         r = requests.post(url, json=payload, headers=HEADERS, timeout=10)
