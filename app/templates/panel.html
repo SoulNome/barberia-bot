@@ -682,7 +682,7 @@ body {
               <div class="tl-content">
                 {% if fila.cliente or fila.cita_id %}
                   <div class="appt-card {% if fila.cumpleanos %}cumple{% endif %}">
-                    <div class="appt-avatar">{% if fila.cumpleanos %}🎂{% else %}✂️{% endif %}</div>
+                    <div class="appt-avatar">{% if fila.cumpleanos %}🎂{% elif fila.es_fijo %}📌{% else %}✂️{% endif %}</div>
                     <div class="appt-body">
                       <div class="appt-name">{{ fila.cliente or "Sin nombre" }}</div>
                       <div class="appt-meta">
@@ -692,8 +692,8 @@ body {
                     {% if fila.servicio %}
                       <span class="badge-svc">{{ fila.servicio }}</span>
                     {% endif %}
-                    <button class="btn-cancel" title="Cancelar cita"
-                            onclick="pedirCancelar({{ fila.cita_id }}, '{{ fila.hora }}', '{{ fila.cliente or "Sin nombre" }}')">✕</button>
+                    {% if fila.cita_id %}<button class="btn-cancel" title="Cancelar cita"
+                            onclick="pedirCancelar({{ fila.cita_id }}, '{{ fila.hora }}', '{{ fila.cliente or "Sin nombre" }}')">✕</button>{% endif %}
                   </div>
                 {% else %}
                   <span class="free-label">Disponible</span>
@@ -1004,7 +1004,7 @@ function renderTimeline(agenda) {
         <div class="tl-time">${f.hora}</div>
         <div class="tl-content">
           <div class="appt-card${isCumple ? " cumple" : ""}">
-            <div class="appt-avatar">${isCumple ? "🎂" : "✂️"}</div>
+            <div class="appt-avatar">${isCumple ? "🎂" : f.es_fijo ? "📌" : "✂️"}</div>
             <div class="appt-body">
               <div class="appt-name">${f.cliente || "Sin nombre"}</div>
               <div class="appt-meta">
@@ -1012,8 +1012,8 @@ function renderTimeline(agenda) {
               </div>
             </div>
             ${f.servicio ? `<span class="badge-svc">${f.servicio}</span>` : ""}
-            <button class="btn-cancel" title="Cancelar cita"
-              onclick="pedirCancelar(${f.cita_id}, '${f.hora}', '${(f.cliente||'').replace(/'/g,"\\'")}')">✕</button>
+            ${f.cita_id ? `<button class="btn-cancel" title="Cancelar cita"
+              onclick="pedirCancelar(${f.cita_id}, '${f.hora}', '${(f.cliente||'').replace(/'/g,"\\'")}')">✕</button>` : ""}
           </div>
         </div>
       `;
