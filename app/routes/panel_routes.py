@@ -5,8 +5,34 @@ from app.models import Cita, Cliente, Barbero
 from app.extensions import db
 from datetime import date, datetime, time, timedelta
 import os
+from datetime import date as _date_cls
 
 panel_bp = Blueprint("panel", __name__)
+
+# ── Días festivos Colombia 2026 (Ley 51 de 1983) ──
+FESTIVOS_COLOMBIA = {
+    _date_cls(2026, 1, 1),   # Año Nuevo
+    _date_cls(2026, 1, 12),  # Reyes Magos (trasladado)
+    _date_cls(2026, 3, 23),  # San José (trasladado)
+    _date_cls(2026, 4, 2),   # Jueves Santo
+    _date_cls(2026, 4, 3),   # Viernes Santo
+    _date_cls(2026, 5, 1),   # Día del Trabajo
+    _date_cls(2026, 5, 18),  # Ascensión del Señor (trasladado)
+    _date_cls(2026, 6, 8),   # Corpus Christi (trasladado)
+    _date_cls(2026, 6, 15),  # Sagrado Corazón (trasladado)
+    _date_cls(2026, 6, 29),  # San Pedro y San Pablo (trasladado al lun)
+    _date_cls(2026, 7, 20),  # Independencia de Colombia
+    _date_cls(2026, 8, 7),   # Batalla de Boyacá
+    _date_cls(2026, 8, 17),  # Asunción de la Virgen (trasladado)
+    _date_cls(2026, 10, 12), # Día de la Raza (trasladado)
+    _date_cls(2026, 11, 2),  # Todos los Santos (trasladado)
+    _date_cls(2026, 11, 16), # Independencia de Cartagena (trasladado)
+    _date_cls(2026, 12, 8),  # Inmaculada Concepción
+    _date_cls(2026, 12, 25), # Navidad
+}
+
+def es_festivo(fecha):
+    return fecha in FESTIVOS_COLOMBIA
 PANEL_KEY = os.getenv("PANEL_KEY")
 
 PRECIOS = {
@@ -17,7 +43,9 @@ PRECIOS = {
     "Pigmentación cejas": 10000
 }
 
-def obtener_horarios_dia(dia_semana):
+def obtener_horarios_dia(dia_semana, fecha=None):
+    if fecha and es_festivo(fecha):
+        return []
     if dia_semana in [0, 1, 2]:
         return [(time(10,0), time(12,0)), (time(16,0), time(20,0))]
     if dia_semana == 3:
@@ -44,7 +72,7 @@ def _build_panel_data(fecha=None):
     servicio_top = max(conteo, key=conteo.get) if conteo else None
     agenda = []
     dia_semana = hoy.weekday()
-    bloques = obtener_horarios_dia(dia_semana)
+    bloques = obtener_horarios_dia(dia_semana, hoy)
     total_slots = 0
     for inicio, fin in bloques:
         actual = datetime.combine(hoy, inicio)
@@ -59,29 +87,67 @@ def _build_panel_data(fecha=None):
             actual += timedelta(minutes=30)
     ocupacion = int((citas_hoy / total_slots) * 100) if total_slots > 0 else 0
     # ── Overlay clientes fijos en slots libres del día ──
+    import re as _re
     DIAS_FIJOS = {
-        "lunes": 0, "martes": 1, "miércoles": 2, "miercoles": 2,
-        "jueves": 3, "viernes": 4, "sábado": 5, "sabado": 5, "domingo": 6
+        "lun": 0, "lunes": 0,
+        "mar": 1, "martes": 1,
+        "mie": 2, "miercoles": 2, "miércoles": 2,
+        "jue": 3, "jueves": 3,
+        "vie": 4, "viernes": 4, "vierne": 4,
+        "sab": 5, "sabado": 5, "sabados": 5, "sábado": 5, "sábados": 5,
+        "dom": 6, "domingo": 6, "domingos": 6
     }
+    def _parse_hora_fijo(h_str):
+        h_str = h_str.strip().lower().replace(" ", "")
+        m = _re.match(r"(\d{1,2}):(\d{2})\s*(am|pm)?", h_str)
+        if not m:
+            m = _re.match(r"(\d{1,2})\s*(am|pm)", h_str)
+            if m:
+                hh, mm, ap = int(m.group(1)), 0, m.group(2)
+            else:
+                return None
+        else:
+            hh, mm, ap = int(m.group(1)), int(m.group(2)), m.group(3)
+        if ap == "pm" and hh != 12:
+            hh += 12
+        elif ap == "am" and hh == 12:
+            hh = 0
+        try:
+            return time(hh, mm).strftime("%H:%M")
+        except Exception:
+            return None
     for cf in Cliente.query.filter_by(fijo=True).all():
         if not cf.horario_fijo:
             continue
-        parts = cf.horario_fijo.strip().lower().split()
-        if len(parts) < 2:
-            continue
-        dia_num = DIAS_FIJOS.get(parts[0].rstrip(','))
-        if dia_num is None or dia_num != dia_semana:
-            continue
-        try:
-            h, m = parts[1].split(":")
-            hora_fija = time(int(h), int(m)).strftime("%H:%M")
-        except Exception:
-            continue
-        for slot in agenda:
-            if slot["hora"] == hora_fija and slot["cita_id"] is None and slot["cliente"] is None:
-                slot["cliente"] = cf.nombre
-                slot["es_fijo"] = True
-                break
+        # Separar múltiples horarios por "y"
+        bloques_raw = _re.split(r"\s+y\s+", cf.horario_fijo.strip().lower())
+        for bloque in bloques_raw:
+            bloque = bloque.strip()
+            # Saltar bi-semanales ("cada X 15 dias")
+            if "15 dia" in bloque or "cada" in bloque:
+                continue
+            # Buscar día y hora
+            dia_found = None
+            for palabra in bloque.replace(",", " ").split():
+                palabra_clean = palabra.rstrip("s").rstrip(",")
+                if palabra_clean in DIAS_FIJOS:
+                    dia_found = DIAS_FIJOS[palabra_clean]
+                elif palabra in DIAS_FIJOS:
+                    dia_found = DIAS_FIJOS[palabra]
+            if dia_found is None or dia_found != dia_semana:
+                continue
+            # Extraer hora del bloque
+            hora_match = _re.search(r"(\d{1,2}:\d{2}\s*(?:am|pm)?|\d{1,2}\s*(?:am|pm))", bloque)
+            if not hora_match:
+                continue
+            hora_fija = _parse_hora_fijo(hora_match.group(1))
+            if not hora_fija:
+                continue
+            for slot in agenda:
+                if slot["hora"] == hora_fija and slot["cita_id"] is None and slot["cliente"] is None:
+                    slot["cliente"] = cf.nombre
+                    slot["es_fijo"] = True
+                    break
     return {"citas_hoy": citas_hoy, "clientes": clientes, "barberos": barberos_count, "ingresos_hoy": ingresos_hoy, "servicio_top": servicio_top, "ocupacion": ocupacion, "agenda": agenda, "fecha_iso": hoy.isoformat()}
 
 @panel_bp.route("/panel")
