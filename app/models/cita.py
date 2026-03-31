@@ -5,6 +5,9 @@ from datetime import datetime, timezone
 class Cita(db.Model):
 
     __tablename__ = "citas"
+    __table_args__ = (
+        db.UniqueConstraint("barbero_id", "fecha", "hora", name="uq_cita_barbero_fecha_hora"),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
 

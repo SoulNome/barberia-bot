@@ -1,6 +1,7 @@
 from app.models import Cita, Cliente
 from app import db
 from datetime import datetime, date
+from sqlalchemy.exc import IntegrityError
 import re
 
 
@@ -90,6 +91,9 @@ def crear_cita(nombre, telefono, barbero_id, fecha, hora, servicio=None, skip_cl
     try:
 
         fecha = normalizar_fecha(fecha)
+        if not fecha:
+            return False, "❌ Fecha inválida. Intenta con un formato como 2026-04-15."
+
         hora = normalizar_hora(hora)
 
         cliente = obtener_o_crear_cliente(nombre, telefono)
@@ -118,7 +122,7 @@ cancelar {cita_cliente.fecha} {formatear_hora(cita_cliente.hora)}
 """
 
         # ------------------------------------------------
-        # VERIFICAR SI HORARIO OCUPADO
+        # VERIFICAR SI HORARIO OCUPADO (primera barrera)
         # ------------------------------------------------
 
         cita_existente = Cita.query.filter_by(
@@ -128,7 +132,7 @@ cancelar {cita_cliente.fecha} {formatear_hora(cita_cliente.hora)}
         ).first()
 
         if cita_existente:
-            return False, "❌ Ese horario ya está ocupado."
+            return False, "❌ Ese horario ya está ocupado. Por favor elige otro."
 
         # ------------------------------------------------
         # CREAR CITA
@@ -143,7 +147,13 @@ cancelar {cita_cliente.fecha} {formatear_hora(cita_cliente.hora)}
         )
 
         db.session.add(nueva_cita)
-        db.session.commit()
+
+        try:
+            db.session.commit()
+        except IntegrityError:
+            # Segunda barrera: la BD rechazó el turno duplicado
+            db.session.rollback()
+            return False, "❌ Ese horario acaba de ser tomado por otro cliente. Por favor elige otro turno."
 
         try:
             from app.models import Barbero

@@ -19,5 +19,15 @@ with app.app_context():
     except Exception:
         db.session.rollback()
 
+    # Migración: índice único para evitar turno doble (barbero+fecha+hora)
+    try:
+        db.session.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_cita_barbero_fecha_hora "
+            "ON citas(barbero_id, fecha, hora)"
+        ))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
 if __name__ == "__main__":
     app.run(debug=True)

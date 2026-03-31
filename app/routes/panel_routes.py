@@ -127,10 +127,13 @@ def _build_panel_data(fecha=None):
                 })
             actual += timedelta(minutes=30)
     ocupacion = int((citas_hoy / total_slots) * 100) if total_slots > 0 else 0
+    barberos_lista = [{"id": b.id, "nombre": b.nombre} for b in Barbero.query.order_by(Barbero.nombre).all()]
+
     return {
         "citas_hoy": citas_hoy,
         "clientes": clientes,
         "barberos": barberos_count,
+        "barberos_lista": barberos_lista,
         "ingresos_hoy": ingresos_hoy,
         "servicio_top": servicio_top,
         "ocupacion": ocupacion,
