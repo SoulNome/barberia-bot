@@ -592,7 +592,7 @@ body {
                 {% if fila.cliente or fila.cita_id %}
                   <div class="appt-card {% if fila.cumpleanos %}cumple{% endif %}">
                     <div class="appt-avatar">
-                      {% if fila.cumpleanos %}🎂{% else %}{{ (fila.cliente or "?")[0].upper() }}{% endif %}
+                      {% if fila.fijo %}📌{% elif fila.cumpleanos %}🎂{% else %}{{ (fila.cliente or "?")[0].upper() }}{% endif %}
                     </div>
                     <div class="appt-body">
                       <div class="appt-name">{{ fila.cliente or "Sin nombre" }}</div>
@@ -601,8 +601,10 @@ body {
                       </div>
                     </div>
                     {% if fila.servicio %}<span class="badge-svc">{{ fila.servicio }}</span>{% endif %}
+                    {% if fila.cita_id %}
                     <button class="btn-cancel" title="Cancelar"
                             onclick="pedirCancelar({{ fila.cita_id }},'{{ fila.hora }}','{{ fila.cliente or "Sin nombre" }}')">✕</button>
+                    {% endif %}
                   </div>
                 {% else %}
                   <span class="free-label">Disponible</span>
@@ -657,6 +659,23 @@ body {
         <div class="inc-bar-bg"><div class="inc-bar-fill" id="inc-bar" style="width:0%"></div></div>
         <div class="inc-goal" id="inc-goal-txt">meta: $200.000</div>
       </div>
+
+      <!-- Clientes Fijos -->
+      {% if clientes_fijos %}
+      <div class="sb-card">
+        <div class="sb-title">📌 Clientes Fijos</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+          {% for cf in clientes_fijos %}
+          <div style="display:flex;flex-direction:column;gap:2px;padding:8px 10px;background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--r-sm)">
+            <span style="font-size:13px;font-weight:600;color:var(--label)">{{ cf.nombre }}</span>
+            {% if cf.horario_fijo %}
+            <span style="font-size:11px;color:var(--label3)">{{ cf.horario_fijo }}</span>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
 
     </div>
   </div>
@@ -852,18 +871,21 @@ function renderTimeline(agenda) {
     if (changed) slot.classList.add("updated");
     if (isBooked) {
       const c = f.cumpleanos;
+      const avatar = f.fijo ? "📌" : (c ? "🎂" : initial);
+      const cancelBtn = f.cita_id
+        ? `<button class="btn-cancel" onclick="pedirCancelar(${f.cita_id},'${f.hora}','${(f.cliente||"").replace(/'/g,"\\'")}')">✕</button>`
+        : "";
       slot.innerHTML = `
         <div class="tl-time">${f.hora}</div>
         <div class="tl-content">
           <div class="appt-card${c?" cumple":""}">
-            <div class="appt-avatar">${c?"🎂":initial}</div>
+            <div class="appt-avatar">${avatar}</div>
             <div class="appt-body">
               <div class="appt-name">${f.cliente||"Sin nombre"}</div>
               <div class="appt-meta">${f.barbero?`<span>${f.barbero}</span>`:""}</div>
             </div>
             ${f.servicio?`<span class="badge-svc">${f.servicio}</span>`:""}
-            <button class="btn-cancel"
-              onclick="pedirCancelar(${f.cita_id},'${f.hora}','${(f.cliente||"").replace(/'/g,"\\'")}')">✕</button>
+            ${cancelBtn}
           </div>
         </div>`;
     } else {

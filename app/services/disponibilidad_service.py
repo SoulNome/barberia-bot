@@ -1,6 +1,37 @@
 from datetime import datetime, time, timedelta
-from app.models import Cita
+from app.models import Cita, Cliente
 import dateparser
+import re
+
+
+# ------------------------------------------------
+# DIAS EN ESPAÑOL → número weekday
+# ------------------------------------------------
+
+_DIAS_NUM = {
+    "lunes": 0, "martes": 1,
+    "miércoles": 2, "miercoles": 2,
+    "jueves": 3, "viernes": 4,
+    "sábado": 5, "sabado": 5
+}
+
+
+def _parsear_horario_fijo(horario_str, dia_semana):
+    """
+    Dado un string como 'Lunes 10:00' o 'Martes y Jueves 16:00',
+    devuelve la hora (str HH:MM) si el dia_semana coincide, si no None.
+    """
+    if not horario_str:
+        return None
+    texto = horario_str.lower()
+    m = re.search(r'(\d{1,2}:\d{2})', texto)
+    if not m:
+        return None
+    hora_str = m.group(1)
+    for nombre, num in _DIAS_NUM.items():
+        if nombre in texto and num == dia_semana:
+            return hora_str
+    return None
 
 
 # ------------------------------------------------
@@ -228,6 +259,17 @@ def obtener_horarios_disponibles(barbero_id, fecha):
         ).all()
 
         ocupadas = {c.hora for c in citas}
+
+        # Bloquear horarios de clientes fijos aunque no tengan cita en DB
+        try:
+            clientes_fijos = Cliente.query.filter_by(fijo=True).all()
+            for cf in clientes_fijos:
+                hora_fija_str = _parsear_horario_fijo(cf.horario_fijo, dia_semana)
+                if hora_fija_str:
+                    t = datetime.strptime(hora_fija_str, "%H:%M").time()
+                    ocupadas.add(t)
+        except Exception as e:
+            print("⚠ Error bloqueando horarios fijos:", e)
 
 
         # ------------------------------------------------

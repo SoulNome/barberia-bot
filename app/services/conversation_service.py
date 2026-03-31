@@ -1,5 +1,5 @@
 from app.services.nlp_service import interpretar_mensaje
-from app.services.disponibilidad_service import obtener_horarios_disponibles
+from app.services.disponibilidad_service import obtener_horarios_disponibles, normalizar_fecha as _normalizar_fecha_raw
 from app.services.agenda_service import crear_cita, obtener_cita_cliente, cancelar_cita
 from app.services.clientes_service import obtener_cliente_por_telefono
 from app.services.state_service import get_state, set_state
@@ -297,6 +297,11 @@ Escribe *cancelar* si deseas cancelarla.
 
         resultado = obtener_horarios_disponibles(barbero["id"], fecha_consulta)
 
+        # Normalizar para mostrar fecha bonita
+        _fn = _normalizar_fecha_raw(fecha_consulta)
+        if _fn:
+            fecha_consulta = _fn.strftime("%Y-%m-%d")
+
         set_state(telefono, {"estado": "inicio"})
 
         if resultado == "domingo":
@@ -421,14 +426,36 @@ Escribe *cancelar* si deseas cancelarla.
             return texto
 
         set_state(telefono, {
-            "estado": "esperando_fecha",
+            "estado": "esperando_cantidad",
             "barbero_id": barbero["id"],
             "barbero_nombre": barbero["nombre"],
             "servicio": estado_data.get("servicio"),
             "nombre": estado_data.get("nombre")
         })
 
-        return f"💈 *{barbero['nombre']} seleccionado*\n\n¿Para qué fecha quieres tu cita?\n\nEjemplos: *hoy*, *mañana*, *lunes*, *viernes*"
+        return f"💈 *{barbero['nombre']} seleccionado*\n\n¿Para cuántas personas es el turno?\n\n1️⃣ Solo yo\n2️⃣ Somos dos (yo + acompañante)"
+
+    # ------------------------------------------------
+    # ESPERANDO CANTIDAD (1 o 2 turnos)
+    # ------------------------------------------------
+
+    if estado == "esperando_cantidad":
+
+        if mensaje not in ("1", "2"):
+            return "Escribe *1* si vas solo o *2* si van dos personas."
+
+        cantidad = int(mensaje)
+
+        set_state(telefono, {
+            "estado": "esperando_fecha",
+            "barbero_id": estado_data["barbero_id"],
+            "barbero_nombre": estado_data["barbero_nombre"],
+            "servicio": estado_data.get("servicio"),
+            "nombre": estado_data.get("nombre"),
+            "cantidad": cantidad
+        })
+
+        return "¿Para qué fecha quieres tu cita?\n\nEjemplos: *hoy*, *mañana*, *lunes*, *viernes*"
 
     # ------------------------------------------------
     # ESPERANDO FECHA
@@ -438,6 +465,7 @@ Escribe *cancelar* si deseas cancelarla.
     if estado == "esperando_fecha":
 
         barbero_id = estado_data["barbero_id"]
+        cantidad   = estado_data.get("cantidad", 1)
 
         # Usar fecha del NLP si existe, si no usar el mensaje crudo
         fecha_final = fecha if fecha else mensaje
@@ -459,7 +487,26 @@ Escribe *cancelar* si deseas cancelarla.
         if not horarios:
             return f"❌ No hay horarios disponibles para ese día.\n\nPrueba con otra fecha."
 
-        horarios_disponibles = [h for h in horarios if h["disponible"]][:9]
+        # Normalizar fecha a ISO antes de guardar en estado
+        _fn = _normalizar_fecha_raw(fecha_final)
+        if _fn:
+            fecha_final = _fn.strftime("%Y-%m-%d")
+
+        if cantidad == 2:
+            # Para 2 personas: solo mostrar turnos donde el siguiente también está libre
+            from datetime import datetime as _dt, timedelta as _td
+            disponibles_set = {h["hora"] for h in horarios if h["disponible"]}
+            horarios_disponibles = []
+            for h in horarios:
+                if not h["disponible"]:
+                    continue
+                siguiente = (_dt.strptime(h["hora"], "%H:%M") + _td(minutes=30)).strftime("%H:%M")
+                if siguiente in disponibles_set:
+                    horarios_disponibles.append(h)
+                    if len(horarios_disponibles) >= 9:
+                        break
+        else:
+            horarios_disponibles = [h for h in horarios if h["disponible"]][:9]
 
         if not horarios_disponibles:
             if _WAITLIST:
@@ -470,6 +517,7 @@ Escribe *cancelar* si deseas cancelarla.
                     "fecha":       fecha_final,
                     "servicio":    estado_data.get("servicio"),
                     "nombre":      estado_data.get("nombre"),
+                    "cantidad":    cantidad,
                 })
                 fecha_bonita = formatear_fecha(fecha_final)
                 return (
@@ -483,7 +531,12 @@ Escribe *cancelar* si deseas cancelarla.
         texto = f"📅 *{fecha_bonita}*\n\n"
 
         for i, h in enumerate(horarios_disponibles):
-            texto += f"{i+1}️⃣ {h['hora']}\n"
+            if cantidad == 2:
+                from datetime import datetime as _dt, timedelta as _td
+                sig = (_dt.strptime(h["hora"], "%H:%M") + _td(minutes=30)).strftime("%H:%M")
+                texto += f"{i+1}️⃣ {h['hora']} y {sig}\n"
+            else:
+                texto += f"{i+1}️⃣ {h['hora']}\n"
 
         texto += "\nElige el número del horario."
 
@@ -494,7 +547,8 @@ Escribe *cancelar* si deseas cancelarla.
             "fecha": fecha_final,
             "horarios": horarios_disponibles,
             "servicio": estado_data.get("servicio"),
-            "nombre": estado_data.get("nombre")
+            "nombre": estado_data.get("nombre"),
+            "cantidad": cantidad
         })
 
         return texto
@@ -515,6 +569,13 @@ Escribe *cancelar* si deseas cancelarla.
             return f"❌ Ese número no es válido. Elige entre 1 y {len(horarios)}."
 
         hora = horarios[index]["hora"]
+        cantidad = estado_data.get("cantidad", 1)
+
+        # Calcular segunda hora si son 2 personas
+        hora2 = None
+        if cantidad == 2:
+            from datetime import datetime as _dt, timedelta as _td
+            hora2 = (_dt.strptime(hora, "%H:%M") + _td(minutes=30)).strftime("%H:%M")
 
         cumpleanos = es_semana_cumpleanos(cliente)
 
@@ -524,9 +585,11 @@ Escribe *cancelar* si deseas cancelarla.
             "barbero_nombre": estado_data["barbero_nombre"],
             "fecha": estado_data["fecha"],
             "hora": hora,
+            "hora2": hora2,
             "servicio": estado_data.get("servicio"),
             "cumpleanos": cumpleanos,
-            "nombre": estado_data.get("nombre")
+            "nombre": estado_data.get("nombre"),
+            "cantidad": cantidad
         })
 
         if cumpleanos:
@@ -541,6 +604,19 @@ Tu corte de hoy es *GRATIS* 🎁
 ⏰ Hora: {hora}
 
 1️⃣ Confirmar cita
+2️⃣ Elegir otro horario
+"""
+
+        if cantidad == 2:
+            return f"""
+💈 Barbero: {estado_data["barbero_nombre"]}
+💇 Servicio: {estado_data.get("servicio", "Corte")}
+
+📅 Fecha: {estado_data["fecha"]}
+⏰ 1er turno: {hora}
+⏰ 2do turno: {hora2}
+
+1️⃣ Confirmar (2 turnos)
 2️⃣ Elegir otro horario
 """
 
@@ -565,6 +641,8 @@ Tu corte de hoy es *GRATIS* 🎁
 
             cumpleanos     = estado_data.get("cumpleanos", False)
             servicio_final = "🎂 Cumpleaños" if cumpleanos else estado_data.get("servicio")
+            cantidad       = estado_data.get("cantidad", 1)
+            hora2          = estado_data.get("hora2")
 
             ok, msg = crear_cita(
                 nombre=nombre_cliente or estado_data.get("nombre") or "Cliente",
@@ -580,6 +658,18 @@ Tu corte de hoy es *GRATIS* 🎁
             if not ok:
                 return f"❌ No se pudo crear la cita: {msg}"
 
+            # Crear segundo turno si vinieron 2 personas
+            if cantidad == 2 and hora2:
+                crear_cita(
+                    nombre=nombre_cliente or estado_data.get("nombre") or "Cliente",
+                    telefono=telefono_limpio,
+                    barbero_id=estado_data["barbero_id"],
+                    fecha=estado_data["fecha"],
+                    hora=hora2,
+                    servicio=f"{servicio_final or 'Corte'} (acompañante)",
+                    skip_client_check=True
+                )
+
             if cumpleanos:
                 return f"""
 ✅ *Cita confirmada* 🎂
@@ -591,6 +681,20 @@ Tu corte de hoy es *GRATIS* 🎁
 ⏰ Hora: {estado_data["hora"]}
 
 ¡Te esperamos y feliz cumpleaños! 🎉
+"""
+
+            if cantidad == 2:
+                return f"""
+✅ *2 turnos confirmados*
+
+💈 Barbero: {estado_data["barbero_nombre"]}
+💇 Servicio: {servicio_final}
+
+📅 Fecha: {estado_data["fecha"]}
+⏰ 1er turno: {estado_data["hora"]}
+⏰ 2do turno: {hora2}
+
+¡Los esperamos! 💈
 """
 
             return f"""
@@ -714,6 +818,11 @@ Ejemplos: *mañana*, *lunes*, *2026-04-10*
             return "📅 Ese día es festivo. Prueba otra fecha."
         if not horarios:
             return "❌ No hay horarios para ese día. Prueba otra fecha."
+
+        # Normalizar fecha a ISO antes de guardar en estado
+        _fn = _normalizar_fecha_raw(fecha_final)
+        if _fn:
+            fecha_final = _fn.strftime("%Y-%m-%d")
 
         disponibles = [h for h in horarios if h["disponible"]][:9]
 

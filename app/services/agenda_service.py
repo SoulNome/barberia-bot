@@ -11,7 +11,16 @@ import re
 def normalizar_fecha(fecha):
 
     if isinstance(fecha, str):
-        return datetime.strptime(fecha, "%Y-%m-%d").date()
+        try:
+            return datetime.strptime(fecha, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+        # Fallback: nombres de días como "miércoles", "lunes", etc.
+        import dateparser
+        parsed = dateparser.parse(fecha, languages=["es"], settings={"PREFER_DATES_FROM": "future"})
+        if parsed:
+            return parsed.date()
+        return None
 
     return fecha
 
@@ -76,7 +85,7 @@ def obtener_o_crear_cliente(nombre, telefono):
 # CREAR CITA
 # ------------------------------------------------
 
-def crear_cita(nombre, telefono, barbero_id, fecha, hora, servicio=None):
+def crear_cita(nombre, telefono, barbero_id, fecha, hora, servicio=None, skip_client_check=False):
 
     try:
 
@@ -89,14 +98,15 @@ def crear_cita(nombre, telefono, barbero_id, fecha, hora, servicio=None):
         # VERIFICAR SI CLIENTE YA TIENE CITA
         # ------------------------------------------------
 
-        cita_cliente = Cita.query.filter(
-            Cita.cliente_id == cliente.id,
-            Cita.fecha >= date.today()
-        ).first()
+        if not skip_client_check:
+            cita_cliente = Cita.query.filter(
+                Cita.cliente_id == cliente.id,
+                Cita.fecha >= date.today()
+            ).first()
 
-        if cita_cliente:
+            if cita_cliente:
 
-            return False, f"""
+                return False, f"""
 ❌ Ya tienes una cita registrada:
 
 📅 {cita_cliente.fecha}

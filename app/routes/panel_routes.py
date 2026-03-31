@@ -1,4 +1,5 @@
 import json
+import re
 import time as time_module
 from flask import Blueprint, request, render_template, Response, stream_with_context, jsonify
 from app.models import Cita, Cliente, Barbero
@@ -17,6 +18,25 @@ PRECIOS = {
     "Pigmentación cejas": 10000
 }
 
+_DIAS_NUM_PANEL = {
+    "lunes": 0, "martes": 1, "miércoles": 2, "miercoles": 2,
+    "jueves": 3, "viernes": 4, "sábado": 5, "sabado": 5
+}
+
+def _parsear_horario_fijo_panel(horario_str, dia_semana):
+    """Retorna 'HH:MM' si el horario_fijo coincide con dia_semana, si no None."""
+    if not horario_str:
+        return None
+    texto = horario_str.lower()
+    m = re.search(r'(\d{1,2}:\d{2})', texto)
+    if not m:
+        return None
+    hora_str = m.group(1)
+    for nombre, num in _DIAS_NUM_PANEL.items():
+        if nombre in texto and num == dia_semana:
+            return hora_str
+    return None
+
 def obtener_horarios_dia(dia_semana):
     if dia_semana in [0, 1, 2]:
         return [(time(10,0), time(12,0)), (time(16,0), time(20,0))]
@@ -34,7 +54,7 @@ def _build_panel_data(fecha=None):
     citas_hoy = len(citas)
     clientes = Cliente.query.count()
     barberos_count = Barbero.query.count()
-    clientes_dict = {c.id: c.nombre for c in Cliente.query.all()}
+    clientes_dict = {c.id: c for c in Cliente.query.all()}
     barberos_dict = {b.id: b.nombre for b in Barbero.query.all()}
     ingresos_hoy = sum(PRECIOS.get(c.servicio, 0) for c in citas)
     conteo = {}
@@ -42,8 +62,27 @@ def _build_panel_data(fecha=None):
         if cita.servicio:
             conteo[cita.servicio] = conteo.get(cita.servicio, 0) + 1
     servicio_top = max(conteo, key=conteo.get) if conteo else None
-    agenda = []
+
+    # Slots virtuales de clientes fijos para este día
     dia_semana = hoy.weekday()
+    fijo_slots = {}  # time -> nombre cliente
+    clientes_fijos_lista = []
+    for cf in Cliente.query.filter_by(fijo=True).all():
+        clientes_fijos_lista.append({
+            "nombre": cf.nombre,
+            "telefono": cf.telefono,
+            "horario_fijo": cf.horario_fijo or ""
+        })
+        hora_fija_str = _parsear_horario_fijo_panel(cf.horario_fijo, dia_semana)
+        if hora_fija_str:
+            try:
+                h, m_val = [int(x) for x in hora_fija_str.split(":")]
+                t = time(h, m_val)
+                fijo_slots[t] = cf.nombre
+            except Exception:
+                pass
+
+    agenda = []
     bloques = obtener_horarios_dia(dia_semana)
     total_slots = 0
     for inicio, fin in bloques:
@@ -53,12 +92,52 @@ def _build_panel_data(fecha=None):
             hora = actual.time()
             cita = next((c for c in citas if c.hora == hora), None)
             if cita:
-                agenda.append({"hora": hora.strftime("%H:%M"), "cita_id": cita.id, "cliente": clientes_dict.get(cita.cliente_id), "barbero": barberos_dict.get(cita.barbero_id), "servicio": cita.servicio, "cumpleanos": bool(cita.servicio and "🎂" in cita.servicio)})
+                cli_obj = clientes_dict.get(cita.cliente_id)
+                nombre_cli = cli_obj.nombre if cli_obj else None
+                es_fijo = bool(cli_obj and cli_obj.fijo)
+                agenda.append({
+                    "hora": hora.strftime("%H:%M"),
+                    "cita_id": cita.id,
+                    "cliente": nombre_cli,
+                    "barbero": barberos_dict.get(cita.barbero_id),
+                    "servicio": cita.servicio,
+                    "cumpleanos": bool(cita.servicio and "🎂" in cita.servicio),
+                    "fijo": es_fijo
+                })
+            elif hora in fijo_slots:
+                # Slot virtual de cliente fijo (sin cita en DB)
+                agenda.append({
+                    "hora": hora.strftime("%H:%M"),
+                    "cita_id": None,
+                    "cliente": fijo_slots[hora],
+                    "barbero": None,
+                    "servicio": "📌 Turno fijo",
+                    "cumpleanos": False,
+                    "fijo": True
+                })
             else:
-                agenda.append({"hora": hora.strftime("%H:%M"), "cita_id": None, "cliente": None, "barbero": None, "servicio": None, "cumpleanos": False})
+                agenda.append({
+                    "hora": hora.strftime("%H:%M"),
+                    "cita_id": None,
+                    "cliente": None,
+                    "barbero": None,
+                    "servicio": None,
+                    "cumpleanos": False,
+                    "fijo": False
+                })
             actual += timedelta(minutes=30)
     ocupacion = int((citas_hoy / total_slots) * 100) if total_slots > 0 else 0
-    return {"citas_hoy": citas_hoy, "clientes": clientes, "barberos": barberos_count, "ingresos_hoy": ingresos_hoy, "servicio_top": servicio_top, "ocupacion": ocupacion, "agenda": agenda, "fecha_iso": hoy.isoformat()}
+    return {
+        "citas_hoy": citas_hoy,
+        "clientes": clientes,
+        "barberos": barberos_count,
+        "ingresos_hoy": ingresos_hoy,
+        "servicio_top": servicio_top,
+        "ocupacion": ocupacion,
+        "agenda": agenda,
+        "clientes_fijos": clientes_fijos_lista,
+        "fecha_iso": hoy.isoformat()
+    }
 
 @panel_bp.route("/panel")
 def panel():
