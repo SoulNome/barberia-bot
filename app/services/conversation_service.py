@@ -6,6 +6,13 @@ from app.services.state_service import get_state, set_state
 from app.models import Barbero
 from datetime import datetime, date, timedelta
 
+# Import waitlist service (soft — graceful if not available yet)
+try:
+    from app.services.lista_espera_service import agregar_a_espera
+    _WAITLIST = True
+except ImportError:
+    _WAITLIST = False
+
 DIAS_ES   = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
 MESES_ES  = ["enero", "febrero", "marzo", "abril", "mayo", "junio",
              "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
@@ -60,8 +67,9 @@ def menu_principal(nombre=""):
 3️⃣ Ver horarios
 4️⃣ Cancelar cita
 5️⃣ Ver mi cita
-6️⃣ Ayuda
+6️⃣ Reagendar cita
 7️⃣ Ver precios
+8️⃣ Ayuda
 
 0️⃣ Volver al menú
 """
@@ -130,9 +138,11 @@ def manejar_mensaje(telefono, mensaje, barberos):
         elif mensaje == "5":
             accion = "ver_cita"
         elif mensaje == "6":
-            accion = "ayuda"
+            accion = "reagendar"
         elif mensaje == "7":
             accion = "precios"
+        elif mensaje == "8":
+            accion = "ayuda"
 
     # Solo llamar NLP si el menú numérico no resolvió la acción
     # FIX: evitar que NLP sobreescriba selección numérica del menú
@@ -452,7 +462,22 @@ Escribe *cancelar* si deseas cancelarla.
         horarios_disponibles = [h for h in horarios if h["disponible"]][:9]
 
         if not horarios_disponibles:
-            return f"❌ No hay turnos libres para ese día.\n\nPrueba con otra fecha."
+            if _WAITLIST:
+                set_state(telefono, {
+                    "estado":      "espera_confirmar",
+                    "barbero_id":  barbero_id,
+                    "barbero_nombre": estado_data.get("barbero_nombre", ""),
+                    "fecha":       fecha_final,
+                    "servicio":    estado_data.get("servicio"),
+                    "nombre":      estado_data.get("nombre"),
+                })
+                fecha_bonita = formatear_fecha(fecha_final)
+                return (
+                    f"😕 No hay turnos libres para *{fecha_bonita}*.\n\n"
+                    f"¿Quieres quedar en lista de espera? Si alguien cancela te avisamos de inmediato.\n\n"
+                    f"1️⃣ Sí, apuntarme\n2️⃣ No, elegir otra fecha"
+                )
+            return "❌ No hay turnos libres para ese día.\n\nPrueba con otra fecha."
 
         fecha_bonita = formatear_fecha(fecha_final)
         texto = f"📅 *{fecha_bonita}*\n\n"
@@ -595,6 +620,208 @@ Te esperamos 💈
             return "Escribe *1* para confirmar o *2* para cambiar."
 
     # ------------------------------------------------
+    # LISTA DE ESPERA — confirmación
+    # ------------------------------------------------
+
+    if estado == "espera_confirmar":
+
+        if mensaje == "1" and _WAITLIST:
+            ok, msg_espera = agregar_a_espera(
+                telefono   = telefono_limpio,
+                barbero_id = estado_data.get("barbero_id"),
+                fecha      = estado_data.get("fecha"),
+                servicio   = estado_data.get("servicio"),
+            )
+            set_state(telefono, {"estado": "inicio"})
+            if ok:
+                fecha_bonita = formatear_fecha(estado_data.get("fecha", ""))
+                return (
+                    f"✅ *Quedaste en lista de espera*\n\n"
+                    f"📅 {fecha_bonita}\n"
+                    f"💈 {estado_data.get('barbero_nombre', '')}\n\n"
+                    f"Si se libera un turno te avisamos por aquí de inmediato 🔔\n\n"
+                    f"Escribe *hola* para volver al menú."
+                )
+            return f"❌ {msg_espera}\n\nEscribe *hola* para volver al menú."
+
+        elif mensaje == "2":
+            set_state(telefono, {
+                "estado":        "esperando_fecha",
+                "barbero_id":    estado_data.get("barbero_id"),
+                "barbero_nombre": estado_data.get("barbero_nombre", ""),
+                "servicio":      estado_data.get("servicio"),
+                "nombre":        estado_data.get("nombre"),
+            })
+            return "Perfecto. ¿Para qué otra fecha quieres tu cita?\n\nEjemplos: *mañana*, *lunes*"
+
+        return "Escribe *1* para apuntarte o *2* para elegir otra fecha."
+
+    # ------------------------------------------------
+    # REAGENDAR — iniciar
+    # ------------------------------------------------
+
+    if accion == "reagendar":
+
+        cita = obtener_cita_cliente(telefono_limpio)
+
+        if not cita:
+            set_state(telefono, {"estado": "inicio"})
+            return "❌ No tienes citas registradas para reagendar.\n\nEscribe *1* para agendar una nueva."
+
+        barbero = Barbero.query.get(cita.barbero_id)
+        hora_str = cita.hora.strftime("%H:%M")
+
+        set_state(telefono, {
+            "estado":        "reagendando_fecha",
+            "cita_vieja_id": cita.id,
+            "barbero_id":    cita.barbero_id,
+            "barbero_nombre": barbero.nombre if barbero else "Barbero",
+            "servicio":      cita.servicio,
+            "fecha_vieja":   str(cita.fecha),
+            "hora_vieja":    hora_str,
+        })
+
+        return f"""
+🔄 *Reagendar cita*
+
+Tu cita actual:
+📅 {cita.fecha}  ⏰ {hora_str}
+💈 {barbero.nombre if barbero else ""}
+
+¿Para qué nueva fecha la quieres?
+Ejemplos: *mañana*, *lunes*, *2026-04-10*
+"""
+
+    # ------------------------------------------------
+    # REAGENDANDO — esperando nueva fecha
+    # ------------------------------------------------
+
+    if estado == "reagendando_fecha":
+
+        barbero_id   = estado_data["barbero_id"]
+        fecha_final  = fecha if fecha else mensaje
+
+        try:
+            horarios = obtener_horarios_disponibles(barbero_id, fecha_final)
+        except Exception:
+            return "❌ No entendí la fecha. Intenta con *mañana*, *lunes* o *2026-04-10*."
+
+        if horarios is None:
+            return "❌ Problema consultando horarios. Intenta de nuevo."
+        if horarios == "domingo":
+            return "📅 Los domingos no trabajamos. Prueba otra fecha."
+        if horarios == "festivo":
+            return "📅 Ese día es festivo. Prueba otra fecha."
+        if not horarios:
+            return "❌ No hay horarios para ese día. Prueba otra fecha."
+
+        disponibles = [h for h in horarios if h["disponible"]][:9]
+
+        if not disponibles:
+            return "❌ No hay turnos libres ese día. Prueba otra fecha."
+
+        fecha_bonita = formatear_fecha(fecha_final)
+        texto = f"📅 *{fecha_bonita}*\n\n"
+        for i, h in enumerate(disponibles):
+            texto += f"{i+1}️⃣ {h['hora']}\n"
+        texto += "\nElige el número del horario."
+
+        set_state(telefono, {
+            **estado_data,
+            "estado":   "reagendando_hora",
+            "fecha":    fecha_final,
+            "horarios": disponibles,
+        })
+
+        return texto
+
+    # ------------------------------------------------
+    # REAGENDANDO — esperando hora
+    # ------------------------------------------------
+
+    if estado == "reagendando_hora":
+
+        if not mensaje.isdigit():
+            return "❌ Escribe el número del horario."
+
+        index   = int(mensaje) - 1
+        horarios = estado_data["horarios"]
+
+        if index < 0 or index >= len(horarios):
+            return f"❌ Número inválido. Elige entre 1 y {len(horarios)}."
+
+        hora = horarios[index]["hora"]
+
+        set_state(telefono, {
+            **estado_data,
+            "estado": "reagendando_confirmar",
+            "hora":   hora,
+        })
+
+        return f"""
+🔄 *Confirmar reagenda*
+
+💈 {estado_data["barbero_nombre"]}
+💇 {estado_data.get("servicio") or "Corte"}
+
+📅 Nueva fecha: {estado_data["fecha"]}
+⏰ Nueva hora:  {hora}
+
+1️⃣ Confirmar cambio
+2️⃣ Elegir otra hora
+"""
+
+    # ------------------------------------------------
+    # REAGENDANDO — confirmar
+    # ------------------------------------------------
+
+    if estado == "reagendando_confirmar":
+
+        if mensaje == "2":
+            set_state(telefono, {
+                **estado_data,
+                "estado": "reagendando_fecha",
+            })
+            return "Perfecto. ¿Para qué fecha quieres reagendar?\n\nEjemplos: *mañana*, *lunes*"
+
+        if mensaje == "1":
+
+            # Cancelar cita vieja
+            cancelar_cita(
+                telefono_limpio,
+                estado_data["fecha_vieja"],
+                estado_data["hora_vieja"],
+            )
+
+            # Crear nueva cita
+            ok, msg = crear_cita(
+                nombre      = nombre_cliente or "Cliente",
+                telefono    = telefono_limpio,
+                barbero_id  = estado_data["barbero_id"],
+                fecha       = estado_data["fecha"],
+                hora        = estado_data["hora"],
+                servicio    = estado_data.get("servicio"),
+            )
+
+            set_state(telefono, {"estado": "inicio"})
+
+            if not ok:
+                return f"❌ No se pudo reagendar: {msg}"
+
+            return f"""
+✅ *Cita reagendada*
+
+💈 {estado_data["barbero_nombre"]}
+💇 {estado_data.get("servicio") or "Corte"}
+📅 {estado_data["fecha"]}
+⏰ {estado_data["hora"]}
+
+¡Te esperamos! Escribe *hola* para volver al menú.
+"""
+
+        return "Escribe *1* para confirmar o *2* para cambiar la hora."
+
+    # ------------------------------------------------
     # AYUDA
     # ------------------------------------------------
 
@@ -606,8 +833,9 @@ Puedes escribirme de forma natural o usar el menú:
 
 • *hola* — Ver menú principal
 • *1* — Agendar cita
+• *6* — Reagendar cita
 • *cancelar* — Cancelar tu cita
-• *0* — Volver al menú en cualquier mometo
+• *0* — Volver al menú en cualquier momento
 """
 
     # ------------------------------------------------

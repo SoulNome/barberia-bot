@@ -184,8 +184,18 @@ def cancelar_cita(telefono, fecha, hora):
         if not cita:
             return False, "❌ No encontramos esa cita."
 
+        barbero_id_guardado = cita.barbero_id
+        fecha_guardada      = cita.fecha
+
         db.session.delete(cita)
         db.session.commit()
+
+        # Notificar lista de espera si alguien está esperando
+        try:
+            from app.services.lista_espera_service import notificar_lista_espera
+            notificar_lista_espera(barbero_id_guardado, fecha_guardada)
+        except Exception:
+            pass
 
         return True, "✅ Tu cita fue cancelada correctamente."
 

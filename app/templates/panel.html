@@ -4,666 +4,575 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BarberIA · Panel</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+/* ══════════════════════════════════════════
+   APPLE SYSTEM PALETTE — light
+══════════════════════════════════════════ */
 :root {
-  --bg:      #06091a;
-  --s1:      rgba(13, 21, 48, 0.80);
-  --s2:      rgba(10, 16, 38, 0.95);
-  --border:  rgba(100, 180, 255, 0.10);
-  --border2: rgba(100, 180, 255, 0.18);
-  --accent:  #38bdf8;
-  --indigo:  #818cf8;
-  --green:   #34d399;
-  --red:     #f87171;
-  --amber:   #fbbf24;
-  --text:    #e2e8f0;
-  --muted:   rgba(226,232,240,0.42);
-  --slot-h:  64px;
+  --bg:           #f2f2f7;   /* systemGroupedBackground */
+  --card:         #ffffff;
+  --card2:        #f9f9fb;
+  --sep:          rgba(60,60,67,0.12);
+  --sep-light:    rgba(60,60,67,0.06);
+
+  /* Text */
+  --label:        #1c1c1e;
+  --label2:       #3c3c43;
+  --label3:       rgba(60,60,67,0.50);
+  --label4:       rgba(60,60,67,0.28);
+
+  /* System colors */
+  --blue:         #007aff;
+  --blue-bg:      rgba(0,122,255,0.08);
+  --blue-border:  rgba(0,122,255,0.18);
+  --green:        #34c759;
+  --green-bg:     rgba(52,199,89,0.10);
+  --red:          #ff3b30;
+  --red-bg:       rgba(255,59,48,0.08);
+  --orange:       #ff9f0a;
+  --orange-bg:    rgba(255,159,10,0.10);
+  --indigo:       #5856d6;
+  --indigo-bg:    rgba(88,86,214,0.08);
+
+  /* Elevation */
+  --shadow-sm:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:    0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.05);
+  --shadow-lg:    0 16px 48px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.07);
+
+  --r-sm:   10px;
+  --r-md:   14px;
+  --r-lg:   18px;
+  --r-xl:   22px;
+
+  --slot-h: 62px;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
   background: var(--bg);
-  color: var(--text);
+  color: var(--label);
   min-height: 100vh;
-  background-image:
-    radial-gradient(ellipse 90% 55% at 50% -5%,  rgba(56,189,248,0.10), transparent),
-    radial-gradient(ellipse 45% 35% at 95% 85%,  rgba(129,140,248,0.07), transparent),
-    radial-gradient(ellipse 30% 25% at 5%  70%,  rgba(52,211,153,0.05), transparent);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─────────────────── LAYOUT ─────────────────── */
-.wrap { max-width: 1340px; margin: auto; padding: 36px 28px 60px; }
+/* ── LAYOUT ── */
+.wrap      { max-width: 1240px; margin: auto; padding: 28px 20px 72px; }
+.page-grid { display: grid; grid-template-columns: 1fr 288px; gap: 18px; align-items: start; }
 
-.page-grid {
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 24px;
-  align-items: start;
-}
-
-@media (max-width: 900px) {
+@media (max-width: 860px) {
   .page-grid { grid-template-columns: 1fr; }
-  .sidebar { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .sidebar   { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 }
 
-/* ─────────────────── HEADER ─────────────────── */
+/* ── HEADER ── */
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
-  gap: 16px;
-  flex-wrap: wrap;
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 24px; gap: 12px; flex-wrap: wrap;
 }
 
 .logo {
-  font-family: 'Space Mono', monospace;
-  font-size: 20px;
-  font-weight: 700;
-  background: linear-gradient(90deg, var(--accent), var(--indigo));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.5px;
-}
-
-.header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-
-.live-pill {
-  display: flex; align-items: center; gap: 7px;
-  font-size: 12px; color: var(--muted);
-  background: rgba(52,211,153,0.07);
-  border: 1px solid rgba(52,211,153,0.18);
-  padding: 5px 13px; border-radius: 100px;
-}
-.live-dot {
-  width: 6px; height: 6px;
-  background: var(--green); border-radius: 50%;
-  animation: pulse 2s infinite;
-}
-@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(.7)} }
-
-.hdr-date {
-  font-size: 12px; color: var(--muted);
-  font-family: 'Space Mono', monospace;
-}
-
-/* ─────────────────── STAT CARDS ─────────────────── */
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 12px;
-  margin-bottom: 28px;
-}
-
-@media (max-width: 1100px) { .stats-row { grid-template-columns: repeat(3,1fr); } }
-@media (max-width: 600px)  { .stats-row { grid-template-columns: repeat(2,1fr); } }
-
-.stat-card {
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 18px 16px 16px;
-  backdrop-filter: blur(12px);
-  position: relative;
-  overflow: hidden;
-  transition: transform .2s, border-color .2s;
-}
-.stat-card:hover { transform: translateY(-2px); border-color: var(--border2); }
-
-.stat-card::after {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 2px;
-  opacity: 0;
-  transition: opacity .2s;
-}
-.stat-card:hover::after { opacity: 1; }
-.sc-blue::after  { background: linear-gradient(90deg, var(--accent), var(--indigo)); }
-.sc-green::after { background: linear-gradient(90deg, var(--green), #059669); }
-.sc-red::after   { background: linear-gradient(90deg, var(--red), #dc2626); }
-.sc-amber::after { background: linear-gradient(90deg, var(--amber), #d97706); }
-.sc-indigo::after{ background: linear-gradient(90deg, var(--indigo), #6366f1); }
-
-.stat-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 1.1px;
-  color: var(--muted);
-  font-weight: 600;
-  margin-bottom: 10px;
-}
-
-.stat-icon {
-  position: absolute;
-  top: 14px; right: 14px;
-  font-size: 18px;
-  opacity: .35;
-}
-
-.stat-val {
-  font-family: 'Space Mono', monospace;
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1;
-  color: var(--text);
-}
-.stat-val.green  { color: var(--green); }
-.stat-val.amber  { color: var(--amber); }
-.stat-val.indigo { color: var(--indigo); }
-
-/* ─────────────────── SECTION TITLE ─────────────────── */
-.section-hd {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 18px;
-}
-.section-hd h2 {
-  font-family: 'Space Mono', monospace;
-  font-size: 14px; font-weight: 700;
-  color: var(--text);
+  font-size: 17px; font-weight: 700; letter-spacing: -0.4px;
+  color: var(--label);
   display: flex; align-items: center; gap: 8px;
 }
-.section-hd span {
-  font-size: 11px; color: var(--muted);
-  font-family: 'DM Sans', sans-serif; font-weight: 400;
+.logo-icon {
+  width: 34px; height: 34px; border-radius: 9px;
+  background: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px;
+  box-shadow: 0 2px 8px rgba(0,122,255,0.30);
 }
 
-/* ─────────────────── TIMELINE ─────────────────── */
+.header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.hdr-clock {
+  font-size: 13px; font-weight: 500; color: var(--label3);
+  font-variant-numeric: tabular-nums;
+  background: var(--card); border: 1px solid var(--sep-light);
+  padding: 6px 12px; border-radius: var(--r-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.live-pill {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: var(--green);
+  background: var(--green-bg); border: 1px solid rgba(52,199,89,0.20);
+  padding: 6px 12px; border-radius: 100px;
+}
+.live-dot {
+  width: 6px; height: 6px; background: var(--green);
+  border-radius: 50%; animation: blink 2s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: var(--r-sm);
+  font-size: 13px; font-weight: 600; font-family: inherit;
+  border: none; cursor: pointer;
+  transition: all .15s ease;
+}
+.btn:active { transform: scale(.97); }
+
+.btn-blue {
+  background: var(--blue); color: #fff;
+  box-shadow: 0 2px 8px rgba(0,122,255,0.30);
+}
+.btn-blue:hover { background: #0071e3; box-shadow: 0 4px 12px rgba(0,122,255,0.35); }
+
+.btn-neutral {
+  background: var(--card); color: var(--label);
+  border: 1px solid var(--sep); box-shadow: var(--shadow-sm);
+}
+.btn-neutral:hover { background: var(--card2); }
+
+/* ── STAT CARDS ── */
+.stats-row {
+  display: grid; grid-template-columns: repeat(6,1fr);
+  gap: 10px; margin-bottom: 20px;
+}
+@media (max-width: 1100px) { .stats-row { grid-template-columns: repeat(3,1fr); } }
+@media (max-width: 560px)  { .stats-row { grid-template-columns: repeat(2,1fr); } }
+
+.stat-card {
+  background: var(--card);
+  border-radius: var(--r-md);
+  padding: 16px 15px 14px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--sep-light);
+  position: relative; overflow: hidden;
+  transition: box-shadow .2s, transform .2s;
+}
+.stat-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+
+.stat-color-bar {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 3px; border-radius: 0 0 var(--r-md) var(--r-md);
+}
+.sc-blue   .stat-color-bar { background: var(--blue); }
+.sc-green  .stat-color-bar { background: var(--green); }
+.sc-red    .stat-color-bar { background: var(--red); }
+.sc-orange .stat-color-bar { background: var(--orange); }
+.sc-indigo .stat-color-bar { background: var(--indigo); }
+
+.stat-icon-wrap {
+  width: 34px; height: 34px; border-radius: var(--r-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; margin-bottom: 10px;
+}
+.sc-blue   .stat-icon-wrap { background: var(--blue-bg); }
+.sc-green  .stat-icon-wrap { background: var(--green-bg); }
+.sc-red    .stat-icon-wrap { background: var(--red-bg); }
+.sc-orange .stat-icon-wrap { background: var(--orange-bg); }
+.sc-indigo .stat-icon-wrap { background: var(--indigo-bg); }
+
+.stat-label {
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--label3); margin-bottom: 4px;
+}
+.stat-val {
+  font-size: 24px; font-weight: 700; letter-spacing: -0.8px;
+  color: var(--label); font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.stat-val.blue   { color: var(--blue); }
+.stat-val.green  { color: var(--green); }
+.stat-val.orange { color: var(--orange); }
+.stat-val.indigo { color: var(--indigo); }
+.stat-val.sm     { font-size: 14px; letter-spacing: -0.2px; line-height: 1.4; }
+
+/* ── SECTION HEADER ── */
+.section-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.section-hd h2 {
+  font-size: 13px; font-weight: 600;
+  color: var(--label3); text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+/* ── TIMELINE CARD ── */
 .timeline-wrap {
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: 18px;
+  background: var(--card);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--sep-light);
   overflow: hidden;
-  backdrop-filter: blur(14px);
 }
 
 .timeline-inner {
-  position: relative;
-  padding: 8px 0 8px;
+  position: relative; padding: 4px 0;
 }
 
-/* The vertical rail line */
+/* Vertical rail */
 .timeline-inner::before {
   content: '';
-  position: absolute;
-  left: 72px;
-  top: 0; bottom: 0;
-  width: 1px;
-  background: linear-gradient(to bottom, transparent, var(--border2) 10%, var(--border2) 90%, transparent);
+  position: absolute; left: 64px; top: 0; bottom: 0;
+  width: 1px; background: var(--sep-light);
 }
 
 /* Now line */
 #now-line {
-  position: absolute;
-  left: 60px;
-  right: 0;
-  height: 2px;
-  background: var(--red);
-  box-shadow: 0 0 8px rgba(248,113,113,0.6);
-  z-index: 10;
-  display: none;
-  pointer-events: none;
+  position: absolute; left: 54px; right: 0;
+  height: 1.5px; background: var(--red);
+  box-shadow: 0 0 6px rgba(255,59,48,0.35);
+  z-index: 10; display: none; pointer-events: none;
 }
 #now-line::before {
   content: '';
-  position: absolute;
-  left: -4px; top: -4px;
-  width: 10px; height: 10px;
-  background: var(--red);
-  border-radius: 50%;
-  box-shadow: 0 0 10px rgba(248,113,113,0.8);
+  position: absolute; left: -4px; top: -3.5px;
+  width: 9px; height: 9px;
+  background: var(--red); border-radius: 50%;
 }
 
 .tl-slot {
-  display: flex;
-  align-items: stretch;
-  min-height: var(--slot-h);
-  padding: 0;
-  position: relative;
+  display: flex; align-items: stretch; min-height: var(--slot-h);
+  border-bottom: 1px solid var(--sep-light); position: relative;
 }
+.tl-slot:last-child { border-bottom: none; }
+.tl-slot.free:hover  { background: rgba(0,0,0,0.01); }
 
 .tl-time {
-  width: 72px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 16px;
-  font-family: 'Space Mono', monospace;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--accent);
-  opacity: .7;
+  width: 64px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 14px;
+  font-size: 11px; font-weight: 600;
+  color: var(--label4); font-variant-numeric: tabular-nums;
 }
+.tl-slot.booked .tl-time { color: var(--label3); }
 
 .tl-content {
-  flex: 1;
-  padding: 8px 16px 8px 18px;
-  display: flex;
-  align-items: center;
+  flex: 1; padding: 8px 14px 8px 14px;
+  display: flex; align-items: center;
 }
 
-/* Free slot */
-.tl-slot.free .tl-content {
-  border-left: 2px dashed rgba(100,180,255,0.08);
-}
-.tl-slot.free .tl-time { opacity: .35; }
-.free-label {
-  font-size: 12px;
-  color: rgba(226,232,240,0.18);
-  font-style: italic;
-}
+.free-label { font-size: 12px; color: var(--label4); }
 
-/* Booked slot */
-.tl-slot.booked .tl-content {
-  border-left: none;
-  padding-left: 16px;
-}
-
+/* Appointment card */
 .appt-card {
-  flex: 1;
-  background: rgba(56,189,248,0.06);
-  border: 1px solid rgba(56,189,248,0.14);
-  border-radius: 12px;
-  padding: 12px 14px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  transition: background .2s;
-  min-height: 48px;
+  flex: 1; background: var(--blue-bg);
+  border: 1px solid var(--blue-border);
+  border-radius: var(--r-sm);
+  padding: 9px 12px;
+  display: flex; align-items: center; gap: 10px;
+  transition: background .15s;
 }
-.appt-card:hover { background: rgba(56,189,248,0.10); }
+.appt-card:hover { background: rgba(0,122,255,0.12); }
+
 .appt-card.cumple {
-  background: rgba(251,191,36,0.06);
-  border-color: rgba(251,191,36,0.22);
+  background: var(--orange-bg);
+  border-color: rgba(255,159,10,0.22);
 }
-.appt-card.cumple:hover { background: rgba(251,191,36,0.10); }
+.appt-card.cumple:hover { background: rgba(255,159,10,0.14); }
 
 .appt-avatar {
-  width: 34px; height: 34px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--indigo));
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--blue); color: #fff;
   display: flex; align-items: center; justify-content: center;
-  font-size: 15px;
-  flex-shrink: 0;
+  font-size: 13px; font-weight: 700; flex-shrink: 0;
 }
-.appt-card.cumple .appt-avatar {
-  background: linear-gradient(135deg, var(--amber), #f59e0b);
-}
+.appt-card.cumple .appt-avatar { background: var(--orange); }
 
-.appt-body { flex: 1; min-width: 0; }
-.appt-name {
-  font-size: 14px; font-weight: 600;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.appt-meta {
-  font-size: 12px; color: var(--muted); margin-top: 2px;
-  display: flex; gap: 8px; flex-wrap: wrap;
-}
-.appt-meta span { display: flex; align-items: center; gap: 3px; }
+.appt-body  { flex: 1; min-width: 0; }
+.appt-name  { font-size: 14px; font-weight: 600; color: var(--label); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.appt-meta  { font-size: 11px; color: var(--label3); margin-top: 2px; display: flex; gap: 8px; }
 
 .badge-svc {
   font-size: 11px; font-weight: 600;
-  padding: 3px 9px; border-radius: 6px;
-  background: rgba(129,140,248,0.12);
-  color: var(--indigo);
-  border: 1px solid rgba(129,140,248,0.2);
-  white-space: nowrap;
-  flex-shrink: 0;
+  padding: 3px 8px; border-radius: 6px;
+  background: var(--indigo-bg); color: var(--indigo);
+  border: 1px solid rgba(88,86,214,0.16);
+  white-space: nowrap; flex-shrink: 0;
 }
 .appt-card.cumple .badge-svc {
-  background: rgba(251,191,36,0.12);
-  color: var(--amber);
-  border-color: rgba(251,191,36,0.25);
+  background: var(--orange-bg); color: var(--orange);
+  border-color: rgba(255,159,10,0.20);
 }
 
 .btn-cancel {
-  background: none;
-  border: 1px solid rgba(248,113,113,0.2);
-  border-radius: 8px;
-  color: rgba(248,113,113,0.55);
-  font-size: 13px;
-  width: 32px; height: 32px;
+  background: none; border: 1px solid rgba(255,59,48,0.20);
+  border-radius: 7px; color: rgba(255,59,48,0.40);
+  font-size: 11px; width: 28px; height: 28px;
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all .2s;
+  cursor: pointer; flex-shrink: 0; transition: all .15s;
 }
 .btn-cancel:hover {
-  background: rgba(248,113,113,0.12);
-  border-color: rgba(248,113,113,0.5);
+  background: var(--red-bg); border-color: rgba(255,59,48,0.40);
   color: var(--red);
 }
 
-/* ─────────────────── SIDEBAR ─────────────────── */
-.sidebar { display: flex; flex-direction: column; gap: 16px; }
+/* ── SIDEBAR ── */
+.sidebar { display: flex; flex-direction: column; gap: 14px; }
 
 .sb-card {
-  background: var(--s1);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 22px 20px;
-  backdrop-filter: blur(14px);
+  background: var(--card); border-radius: var(--r-lg);
+  padding: 20px 18px; box-shadow: var(--shadow-sm);
+  border: 1px solid var(--sep-light);
 }
-
 .sb-title {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 1.1px;
-  color: var(--muted);
-  font-weight: 600;
-  margin-bottom: 16px;
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.7px;
+  color: var(--label3); margin-bottom: 16px;
 }
 
-/* Occupancy ring */
-.ring-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.ring-svg { transform: rotate(-90deg); }
-
-.ring-track { fill: none; stroke: rgba(100,180,255,0.08); stroke-width: 8; }
-.ring-fill  {
-  fill: none;
-  stroke: url(#ringGrad);
-  stroke-width: 8;
+/* Ring */
+.ring-wrap      { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.ring-svg       { transform: rotate(-90deg); }
+.ring-track     { fill: none; stroke: var(--bg); stroke-width: 8; }
+.ring-fill      {
+  fill: none; stroke: var(--blue); stroke-width: 8;
   stroke-linecap: round;
-  transition: stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1);
+  transition: stroke-dashoffset 1s cubic-bezier(.4,0,.2,1);
 }
-
-.ring-center {
-  text-align: center;
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-}
-.ring-pct {
-  font-family: 'Space Mono', monospace;
-  font-size: 28px; font-weight: 700;
-  line-height: 1;
-  background: linear-gradient(135deg, var(--accent), var(--indigo));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.ring-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
-
 .ring-container { position: relative; display: inline-block; }
+.ring-center    { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; }
+.ring-pct       { font-size: 28px; font-weight: 700; letter-spacing: -1.5px; color: var(--label); font-variant-numeric: tabular-nums; }
+.ring-sub       { font-size: 11px; color: var(--label3); margin-top: 2px; }
 
-.occ-row {
-  display: flex; justify-content: space-between;
-  width: 100%; font-size: 12px;
-}
-.occ-row span { color: var(--muted); }
-.occ-row strong { color: var(--text); font-weight: 600; }
+.occ-row         { display: flex; justify-content: space-between; width: 100%; font-size: 12px; }
+.occ-row span    { color: var(--label3); }
+.occ-row strong  { color: var(--label); font-weight: 600; }
 
-/* Next appointment */
-.next-empty { font-size: 13px; color: var(--muted); font-style: italic; }
-
-.next-item {
-  display: flex; flex-direction: column; gap: 6px;
-}
-.next-time {
-  font-family: 'Space Mono', monospace;
-  font-size: 32px; font-weight: 700;
-  color: var(--accent);
-  line-height: 1;
-}
-.next-name { font-size: 15px; font-weight: 600; }
-.next-svc  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+/* Next */
+.next-empty  { font-size: 13px; color: var(--label3); }
+.next-item   { display: flex; flex-direction: column; gap: 4px; }
+.next-time   { font-size: 36px; font-weight: 800; letter-spacing: -2px; color: var(--blue); line-height: 1; font-variant-numeric: tabular-nums; }
+.next-name   { font-size: 15px; font-weight: 600; color: var(--label); }
+.next-svc    { font-size: 12px; color: var(--label3); margin-top: 2px; }
 .next-countdown {
-  margin-top: 8px;
-  font-size: 12px;
-  color: var(--green);
-  display: flex; align-items: center; gap: 6px;
+  margin-top: 10px; font-size: 12px; font-weight: 600; color: var(--green);
+  background: var(--green-bg); border-radius: 100px;
+  padding: 4px 10px; display: inline-flex; align-items: center; gap: 5px;
+  width: fit-content;
 }
 .next-countdown::before {
-  content: '';
-  width: 6px; height: 6px;
-  background: var(--green);
-  border-radius: 50%;
-  animation: pulse 2s infinite;
+  content: ''; width: 5px; height: 5px;
+  background: var(--green); border-radius: 50%;
+  animation: blink 2s infinite;
 }
 
-/* Income bar */
+/* Income */
 .income-amt {
-  font-family: 'Space Mono', monospace;
-  font-size: 24px; font-weight: 700;
-  color: var(--green); margin-bottom: 10px;
+  font-size: 28px; font-weight: 800; letter-spacing: -1px;
+  color: var(--label); margin-bottom: 12px;
+  font-variant-numeric: tabular-nums;
 }
-.inc-bar-bg {
-  background: rgba(52,211,153,0.08);
-  border-radius: 100px;
-  height: 6px;
-  overflow: hidden;
-}
-.inc-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--green), #059669);
-  border-radius: 100px;
-  transition: width 1.2s cubic-bezier(.4,0,.2,1);
-}
-.inc-goal { font-size: 11px; color: var(--muted); margin-top: 8px; }
+.income-amt span { font-size: 16px; font-weight: 500; color: var(--label3); }
 
-/* ─────────────────── TOAST ─────────────────── */
+.inc-bar-bg   {
+  background: var(--bg); border-radius: 100px;
+  height: 5px; overflow: hidden;
+}
+.inc-bar-fill { height: 100%; background: var(--green); border-radius: 100px; transition: width 1s cubic-bezier(.4,0,.2,1); }
+.inc-goal     { font-size: 11px; color: var(--label3); margin-top: 8px; }
+
+/* ── DATE NAV ── */
+.nav-arrow {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: var(--r-sm);
+  background: var(--card); border: 1px solid var(--sep);
+  color: var(--blue); font-size: 16px; text-decoration: none;
+  box-shadow: var(--shadow-sm);
+  transition: background .15s;
+}
+.nav-arrow:hover { background: var(--blue-bg); }
+
+.nav-today {
+  font-size: 12px; font-weight: 600; padding: 5px 12px;
+  background: var(--blue-bg); border: 1px solid var(--blue-border);
+  color: var(--blue); border-radius: var(--r-sm); text-decoration: none;
+}
+
+/* ── TOAST ── */
 #toast {
-  position: fixed;
-  bottom: 26px; right: 26px;
-  background: var(--s2);
-  border: 1px solid rgba(52,211,153,0.3);
-  color: var(--green);
-  padding: 11px 18px;
-  border-radius: 12px;
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--label); color: #fff;
+  padding: 12px 18px; border-radius: var(--r-md);
   font-size: 13px; font-weight: 500;
-  backdrop-filter: blur(16px);
-  transform: translateY(80px);
-  opacity: 0;
-  transition: all .35s cubic-bezier(.34,1.56,.64,1);
-  z-index: 200;
-  max-width: 320px;
+  box-shadow: var(--shadow-lg);
+  transform: translateY(60px); opacity: 0;
+  transition: all .3s cubic-bezier(.34,1.3,.64,1);
+  z-index: 200; max-width: 300px;
 }
 #toast.show { transform: translateY(0); opacity: 1; }
-#toast.err  { border-color: rgba(248,113,113,0.3); color: var(--red); }
+#toast.ok   { background: var(--green); }
+#toast.err  { background: var(--red); }
 
-/* ─────────────────── BUTTON ─────────────────── */
-.btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 9px 18px; border-radius: 10px;
-  font-size: 13px; font-weight: 700;
-  border: none; cursor: pointer;
-  letter-spacing: 0.3px;
-  transition: opacity .2s, transform .15s;
-}
-.btn:active { transform: scale(.97); }
-.btn:hover  { opacity: .85; }
-
-.btn-primary { background: linear-gradient(135deg, var(--accent), var(--indigo)); color: #06091a; }
-.btn-teal    { background: linear-gradient(135deg, var(--green), #059669); color: #06091a; }
-
-/* ─────────────────── MODAL ─────────────────── */
+/* ── MODAL ── */
 .modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(5px);
+  background: rgba(0,0,0,0.30);
+  backdrop-filter: blur(12px) saturate(180%);
   display: flex; align-items: center; justify-content: center;
   z-index: 100;
 }
 .modal {
-  background: #0a1228;
-  border: 1px solid rgba(100,180,255,0.18);
-  border-radius: 20px;
-  padding: 30px;
-  width: 100%; max-width: 440px;
-  box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+  background: var(--card); border-radius: var(--r-xl);
+  padding: 28px; width: 100%; max-width: 420px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--sep-light);
 }
-.modal-hd {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 22px;
+.modal-hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+.modal-hd h3 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; color: var(--label); }
+.modal-hd button {
+  background: var(--bg); border: 1px solid var(--sep);
+  color: var(--label3); width: 28px; height: 28px;
+  border-radius: 50%; cursor: pointer; font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: inherit; font-weight: 600;
 }
-.modal-hd h3 {
-  font-family: 'Space Mono', monospace;
-  font-size: 15px; color: var(--accent);
-}
-.modal-hd button { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; }
+.modal-hd button:hover { color: var(--label); }
 
-.fg { margin-bottom: 14px; }
+.fg { margin-bottom: 12px; }
 .fg label {
-  display: block; font-size: 10px; text-transform: uppercase;
-  letter-spacing: 1px; color: var(--muted); margin-bottom: 5px; font-weight: 600;
+  display: block; font-size: 11px; font-weight: 600;
+  color: var(--label3); margin-bottom: 5px;
+  text-transform: uppercase; letter-spacing: 0.4px;
 }
 .fg input, .fg select {
-  width: 100%; padding: 9px 13px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(100,180,255,0.14);
-  border-radius: 10px; color: var(--text);
-  font-size: 14px; font-family: 'DM Sans', sans-serif;
-  outline: none; transition: border-color .2s;
+  width: 100%; padding: 10px 12px;
+  background: var(--bg); border: 1px solid var(--sep);
+  border-radius: var(--r-sm); color: var(--label);
+  font-size: 14px; font-family: inherit;
+  outline: none; transition: border-color .15s, box-shadow .15s;
+  -webkit-appearance: none;
 }
-.fg input:focus, .fg select:focus { border-color: var(--accent); }
-.fg select option { background: #0a1228; }
+.fg input:focus, .fg select:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(0,122,255,0.10);
+}
 
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 .btn-submit {
   width: 100%; padding: 12px;
-  background: linear-gradient(135deg, var(--accent), var(--indigo));
-  color: #06091a; border: none; border-radius: 10px;
-  font-weight: 700; font-size: 14px; cursor: pointer;
-  margin-top: 6px; transition: opacity .2s;
+  background: var(--blue); color: #fff;
+  border: none; border-radius: var(--r-sm);
+  font-weight: 600; font-size: 15px;
+  font-family: inherit; cursor: pointer; margin-top: 4px;
+  box-shadow: 0 2px 8px rgba(0,122,255,0.30);
+  transition: all .15s;
 }
-.btn-submit:hover { opacity: .85; }
+.btn-submit:hover { background: #0071e3; }
+.btn-submit:active { transform: scale(.98); }
 
-.form-msg { margin-top: 10px; font-size: 13px; text-align: center; min-height: 18px; }
-.form-msg.ok  { color: var(--green); }
-.form-msg.err { color: var(--red); }
+.form-msg     { margin-top: 10px; font-size: 12px; text-align: center; min-height: 16px; color: var(--label3); }
+.form-msg.ok  { color: var(--green); font-weight: 600; }
+.form-msg.err { color: var(--red);   font-weight: 600; }
 
-/* ─────────────────── CONFIRM DIALOG ─────────────────── */
+/* ── CONFIRM ── */
 .confirm-overlay {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(4px);
+  background: rgba(0,0,0,0.30);
+  backdrop-filter: blur(12px);
   display: flex; align-items: center; justify-content: center;
   z-index: 150;
 }
 .confirm-box {
-  background: #0a1228;
-  border: 1px solid rgba(248,113,113,0.25);
-  border-radius: 16px;
-  padding: 28px 28px 24px;
-  max-width: 360px; width: 90%;
-  box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+  background: var(--card); border-radius: var(--r-xl);
+  padding: 28px; max-width: 340px; width: 90%;
+  box-shadow: var(--shadow-lg); border: 1px solid var(--sep-light);
 }
-.confirm-box h4 {
-  font-family: 'Space Mono', monospace;
-  font-size: 14px; color: var(--red); margin-bottom: 10px;
+.confirm-box h4 { font-size: 17px; font-weight: 700; margin-bottom: 8px; color: var(--label); }
+.confirm-box p  { font-size: 14px; color: var(--label3); margin-bottom: 22px; line-height: 1.5; }
+.confirm-btns   { display: flex; gap: 8px; justify-content: flex-end; }
+
+.btn-cancel-no {
+  padding: 9px 18px; border-radius: var(--r-sm);
+  background: var(--bg); border: 1px solid var(--sep);
+  color: var(--label2); font-size: 14px; font-weight: 500;
+  cursor: pointer; font-family: inherit; transition: background .15s;
 }
-.confirm-box p  { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
-.confirm-btns   { display: flex; gap: 10px; justify-content: flex-end; }
-.btn-cancel-no  {
-  padding: 9px 18px; border-radius: 9px; cursor: pointer;
-  background: none; border: 1px solid var(--border); color: var(--muted);
-  font-size: 13px; transition: border-color .2s;
-}
-.btn-cancel-no:hover  { border-color: var(--border2); }
+.btn-cancel-no:hover { background: #eaeaec; }
+
 .btn-cancel-yes {
-  padding: 9px 18px; border-radius: 9px; cursor: pointer;
-  background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.35);
-  color: var(--red); font-size: 13px; font-weight: 600;
-  transition: background .2s;
+  padding: 9px 18px; border-radius: var(--r-sm);
+  background: var(--red); color: #fff;
+  border: none; font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+  box-shadow: 0 2px 6px rgba(255,59,48,0.30);
+  transition: all .15s;
 }
-.btn-cancel-yes:hover { background: rgba(248,113,113,0.25); }
+.btn-cancel-yes:hover { background: #e0352b; }
 
-/* ─────────────────── DATE NAV ─────────────────── */
-.nav-arrow {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 8px;
-  background: var(--s1); border: 1px solid var(--border);
-  color: var(--accent); font-size: 18px; text-decoration: none;
-  transition: border-color .2s, background .2s;
-}
-.nav-arrow:hover { border-color: var(--border2); background: rgba(56,189,248,0.08); }
-
-.nav-today {
-  font-size: 12px; font-weight: 600; padding: 5px 12px;
-  background: rgba(56,189,248,0.10); border: 1px solid rgba(56,189,248,0.25);
-  color: var(--accent); border-radius: 8px; text-decoration: none;
-  transition: background .2s;
-}
-.nav-today:hover { background: rgba(56,189,248,0.18); }
-
-/* Slot flash on update */
-@keyframes flash { 0%{background:rgba(56,189,248,0.15)} 100%{background:transparent} }
+/* ── SLOT FLASH ── */
+@keyframes flash { 0%{background:rgba(0,122,255,0.12)} 100%{background:transparent} }
 .tl-slot.updated .appt-card { animation: flash 1.2s ease-out; }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <!-- ── HEADER ── -->
+  <!-- HEADER -->
   <div class="header">
-    <div class="logo">💈 BarberIA</div>
+    <div class="logo">
+      <div class="logo-icon">💈</div>
+      BarberIA
+    </div>
     <div class="header-right">
-      <span class="hdr-date" id="hdr-clock">—</span>
-      <button class="btn btn-primary" onclick="abrirModal()">+ Nueva cita</button>
-      <button class="btn btn-teal"    onclick="abrirModalCliente()">+ Cliente</button>
-      <div class="live-pill">
-        <div class="live-dot"></div>
-        En vivo
-      </div>
+      <span class="hdr-clock" id="hdr-clock">—</span>
+      <button class="btn btn-neutral" onclick="abrirModalCliente()">+ Cliente</button>
+      <button class="btn btn-blue"    onclick="abrirModal()">+ Nueva cita</button>
+      {% if es_hoy %}
+      <div class="live-pill"><div class="live-dot"></div>En vivo</div>
+      {% endif %}
     </div>
   </div>
 
-  <!-- ── STAT CARDS ── -->
+  <!-- STATS -->
   <div class="stats-row">
     <div class="stat-card sc-blue">
-      <div class="stat-icon">📅</div>
+      <div class="stat-icon-wrap">📅</div>
       <div class="stat-label">Citas hoy</div>
-      <div class="stat-val" id="stat-citas">{{ citas_hoy }}</div>
+      <div class="stat-val blue" id="stat-citas">{{ citas_hoy }}</div>
+      <div class="stat-color-bar"></div>
     </div>
     <div class="stat-card sc-green">
-      <div class="stat-icon">💰</div>
-      <div class="stat-label">Ingresos hoy</div>
-      <div class="stat-val green" id="stat-ingresos">${{ "{:,}".format(ingresos_hoy).replace(",", ".") }}</div>
+      <div class="stat-icon-wrap">💰</div>
+      <div class="stat-label">Ingresos</div>
+      <div class="stat-val green" id="stat-ingresos">${{ "{:,}".format(ingresos_hoy).replace(",",".") }}</div>
+      <div class="stat-color-bar"></div>
     </div>
     <div class="stat-card sc-indigo">
-      <div class="stat-icon">📊</div>
+      <div class="stat-icon-wrap">📊</div>
       <div class="stat-label">Ocupación</div>
       <div class="stat-val indigo" id="stat-ocupacion">{{ ocupacion }}%</div>
+      <div class="stat-color-bar"></div>
     </div>
-    <div class="stat-card sc-amber">
-      <div class="stat-icon">⭐</div>
+    <div class="stat-card sc-orange">
+      <div class="stat-icon-wrap">⭐</div>
       <div class="stat-label">Top servicio</div>
-      <div class="stat-val amber" id="stat-servicio" style="font-size:14px;line-height:1.3">{{ servicio_top or "—" }}</div>
+      <div class="stat-val orange sm" id="stat-servicio">{{ servicio_top or "—" }}</div>
+      <div class="stat-color-bar"></div>
     </div>
     <div class="stat-card sc-blue">
-      <div class="stat-icon">👥</div>
+      <div class="stat-icon-wrap">👥</div>
       <div class="stat-label">Clientes</div>
       <div class="stat-val" id="stat-clientes">{{ clientes }}</div>
+      <div class="stat-color-bar"></div>
     </div>
     <div class="stat-card sc-indigo">
-      <div class="stat-icon">💈</div>
+      <div class="stat-icon-wrap">💈</div>
       <div class="stat-label">Barberos</div>
       <div class="stat-val indigo" id="stat-barberos">{{ barberos }}</div>
+      <div class="stat-color-bar"></div>
     </div>
   </div>
 
-  <!-- ── MAIN GRID ── -->
+  <!-- MAIN GRID -->
   <div class="page-grid">
 
-    <!-- ── TIMELINE ── -->
+    <!-- TIMELINE -->
     <div>
       <div class="section-hd">
-        <h2>📅 Agenda <span id="last-update">{{ fecha_label }}</span></h2>
+        <h2>Agenda <span style="color:var(--label);font-weight:500;text-transform:none;letter-spacing:0;font-size:14px" id="last-update">— {{ fecha_label }}</span></h2>
         <div style="display:flex;align-items:center;gap:8px">
           <a href="/panel?key={{ key }}&fecha={{ fecha_prev }}" class="nav-arrow">‹</a>
           {% if not es_hoy %}<a href="/panel?key={{ key }}" class="nav-today">Hoy</a>{% endif %}
@@ -682,18 +591,18 @@ body {
               <div class="tl-content">
                 {% if fila.cliente or fila.cita_id %}
                   <div class="appt-card {% if fila.cumpleanos %}cumple{% endif %}">
-                    <div class="appt-avatar">{% if fila.cumpleanos %}🎂{% elif fila.es_fijo %}📌{% else %}✂️{% endif %}</div>
+                    <div class="appt-avatar">
+                      {% if fila.cumpleanos %}🎂{% else %}{{ (fila.cliente or "?")[0].upper() }}{% endif %}
+                    </div>
                     <div class="appt-body">
                       <div class="appt-name">{{ fila.cliente or "Sin nombre" }}</div>
                       <div class="appt-meta">
-                        {% if fila.barbero %}<span>💈 {{ fila.barbero }}</span>{% endif %}
+                        {% if fila.barbero %}<span>{{ fila.barbero }}</span>{% endif %}
                       </div>
                     </div>
-                    {% if fila.servicio %}
-                      <span class="badge-svc">{{ fila.servicio }}</span>
-                    {% endif %}
-                    {% if fila.cita_id %}<button class="btn-cancel" title="Cancelar cita"
-                            onclick="pedirCancelar({{ fila.cita_id }}, '{{ fila.hora }}', '{{ fila.cliente or "Sin nombre" }}')">✕</button>{% endif %}
+                    {% if fila.servicio %}<span class="badge-svc">{{ fila.servicio }}</span>{% endif %}
+                    <button class="btn-cancel" title="Cancelar"
+                            onclick="pedirCancelar({{ fila.cita_id }},'{{ fila.hora }}','{{ fila.cliente or "Sin nombre" }}')">✕</button>
                   </div>
                 {% else %}
                   <span class="free-label">Disponible</span>
@@ -706,26 +615,20 @@ body {
       </div>
     </div>
 
-    <!-- ── SIDEBAR ── -->
+    <!-- SIDEBAR -->
     <div class="sidebar">
 
-      <!-- Occupancy ring -->
+      <!-- Ocupación -->
       <div class="sb-card">
         <div class="sb-title">Ocupación del día</div>
         <div class="ring-wrap">
           <div class="ring-container">
-            <svg class="ring-svg" width="130" height="130" viewBox="0 0 130 130">
-              <defs>
-                <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%"   stop-color="#38bdf8"/>
-                  <stop offset="100%" stop-color="#818cf8"/>
-                </linearGradient>
-              </defs>
-              <circle class="ring-track" cx="65" cy="65" r="52"/>
-              <circle class="ring-fill"  cx="65" cy="65" r="52"
+            <svg class="ring-svg" width="118" height="118" viewBox="0 0 118 118">
+              <circle class="ring-track" cx="59" cy="59" r="48"/>
+              <circle class="ring-fill"  cx="59" cy="59" r="48"
                       id="ring-fill"
-                      stroke-dasharray="326.73"
-                      stroke-dashoffset="326.73"/>
+                      stroke-dasharray="301.59"
+                      stroke-dashoffset="301.59"/>
             </svg>
             <div class="ring-center">
               <div class="ring-pct" id="ring-pct">{{ ocupacion }}%</div>
@@ -733,51 +636,49 @@ body {
             </div>
           </div>
           <div class="occ-row">
-            <span>Citas</span>
-            <strong id="occ-citas">{{ citas_hoy }} de <span id="occ-total">—</span></strong>
+            <span>Citas hoy</span>
+            <strong id="occ-citas">{{ citas_hoy }} / <span id="occ-total">—</span></strong>
           </div>
         </div>
       </div>
 
-      <!-- Next appointment -->
+      <!-- Próxima -->
       <div class="sb-card">
         <div class="sb-title">Próxima cita</div>
-        <div id="next-appt-content">
-          <span class="next-empty">Calculando…</span>
-        </div>
+        <div id="next-appt-content"><span class="next-empty">Calculando…</span></div>
       </div>
 
-      <!-- Income -->
+      <!-- Ingresos -->
       <div class="sb-card">
         <div class="sb-title">Ingresos del día</div>
-        <div class="income-amt" id="sb-income">${{ "{:,}".format(ingresos_hoy).replace(",", ".") }}</div>
-        <div class="inc-bar-bg">
-          <div class="inc-bar-fill" id="inc-bar" style="width:0%"></div>
+        <div class="income-amt" id="sb-income">
+          ${{ "{:,}".format(ingresos_hoy).replace(",",".") }}
         </div>
+        <div class="inc-bar-bg"><div class="inc-bar-fill" id="inc-bar" style="width:0%"></div></div>
         <div class="inc-goal" id="inc-goal-txt">meta: $200.000</div>
       </div>
 
-    </div><!-- /sidebar -->
-  </div><!-- /page-grid -->
-</div><!-- /wrap -->
-
-<!-- ─── CONFIRM DIALOG ─── -->
-<div id="confirm-overlay" class="confirm-overlay" style="display:none">
-  <div class="confirm-box">
-    <h4>⚠ Cancelar cita</h4>
-    <p id="confirm-msg">¿Cancelar la cita de las XX:XX?</p>
-    <div class="confirm-btns">
-      <button class="btn-cancel-no"  onclick="cerrarConfirm()">No, volver</button>
-      <button class="btn-cancel-yes" id="confirm-yes">Sí, cancelar</button>
     </div>
   </div>
 </div>
 
-<!-- ─── MODAL NUEVA CITA ─── -->
+<!-- CONFIRM -->
+<div id="confirm-overlay" class="confirm-overlay" style="display:none">
+  <div class="confirm-box">
+    <h4>Cancelar cita</h4>
+    <p id="confirm-msg">¿Cancelar la cita?</p>
+    <div class="confirm-btns">
+      <button class="btn-cancel-no"  onclick="cerrarConfirm()">No, volver</button>
+      <button class="btn-cancel-yes" id="confirm-yes">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CITA -->
 <div id="modal-cita" class="modal-overlay" style="display:none">
   <div class="modal">
     <div class="modal-hd">
-      <h3>✦ Nueva cita</h3>
+      <h3>Nueva cita</h3>
       <button onclick="cerrarModal()">✕</button>
     </div>
     <div class="fg">
@@ -787,16 +688,8 @@ body {
       </select>
     </div>
     <div class="grid2">
-      <div class="fg">
-        <label>Fecha</label>
-        <input type="date" id="f-fecha" onchange="cargarHorarios()">
-      </div>
-      <div class="fg">
-        <label>Hora</label>
-        <select id="f-hora">
-          <option value="">Selecciona fecha</option>
-        </select>
-      </div>
+      <div class="fg"><label>Fecha</label><input type="date" id="f-fecha" onchange="cargarHorarios()"></div>
+      <div class="fg"><label>Hora</label><select id="f-hora"><option value="">— elige fecha —</option></select></div>
     </div>
     <div class="fg">
       <label>Servicio</label>
@@ -810,25 +703,19 @@ body {
       </select>
     </div>
     <div class="grid2">
-      <div class="fg">
-        <label>Nombre del cliente</label>
-        <input type="text" id="f-nombre" placeholder="Juan Pérez">
-      </div>
-      <div class="fg">
-        <label>Teléfono</label>
-        <input type="tel" id="f-telefono" placeholder="+57300…">
-      </div>
+      <div class="fg"><label>Nombre</label><input type="text" id="f-nombre" placeholder="Juan Pérez"></div>
+      <div class="fg"><label>Teléfono</label><input type="tel" id="f-telefono" placeholder="+57300…"></div>
     </div>
     <button class="btn-submit" onclick="enviarCita()">Agendar cita</button>
     <div id="form-msg" class="form-msg"></div>
   </div>
 </div>
 
-<!-- ─── MODAL NUEVO CLIENTE ─── -->
+<!-- MODAL CLIENTE -->
 <div id="modal-cliente" class="modal-overlay" style="display:none">
   <div class="modal">
     <div class="modal-hd">
-      <h3>✦ Nuevo cliente</h3>
+      <h3>Nuevo cliente</h3>
       <button onclick="cerrarModalCliente()">✕</button>
     </div>
     <div class="grid2">
@@ -837,204 +724,159 @@ body {
     </div>
     <div class="fg"><label>Teléfono</label><input type="tel" id="c-telefono" placeholder="+573001234567"></div>
     <div class="fg"><label>Fecha de cumpleaños</label><input type="date" id="c-cumple"></div>
-    <div class="fg" style="display:flex;align-items:center;gap:10px">
-      <input type="checkbox" id="c-fijo" style="width:auto;margin:0">
-      <label style="text-transform:none;letter-spacing:0;font-size:14px;margin:0;color:var(--text)">Cliente fijo</label>
+    <div class="fg" style="display:flex;align-items:center;gap:10px;margin-top:4px">
+      <input type="checkbox" id="c-fijo" style="width:16px;height:16px;margin:0;accent-color:var(--blue);cursor:pointer">
+      <label for="c-fijo" style="text-transform:none;letter-spacing:0;font-size:14px;margin:0;color:var(--label);font-weight:500;cursor:pointer">Cliente fijo</label>
     </div>
-    <div class="fg"><label>Horario fijo (si aplica)</label><input type="text" id="c-horario" placeholder="Lunes 10:00"></div>
+    <div class="fg"><label>Horario fijo</label><input type="text" id="c-horario" placeholder="Ej: Lunes 10:00"></div>
     <button class="btn-submit" onclick="enviarCliente()">Registrar cliente</button>
     <div id="cliente-msg" class="form-msg"></div>
   </div>
 </div>
 
-<!-- ─── TOAST ─── -->
+<!-- TOAST -->
 <div id="toast"></div>
 
 <script>
-const params = new URLSearchParams(window.location.search);
-const key = params.get("key") || "";
-const INCOME_GOAL = 200000;
+const params    = new URLSearchParams(window.location.search);
+const key       = params.get("key") || "";
+const GOAL      = 200000;
 
 // ── TOAST ──
-function showToast(msg, isErr) {
+function showToast(msg, type) {
   const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.className = isErr ? "err" : "";
+  t.textContent = msg; t.className = "";
+  if (type) t.classList.add(type);
   t.classList.add("show");
-  setTimeout(() => t.classList.remove("show", "err"), 3500);
+  setTimeout(() => t.classList.remove("show", "ok", "err"), 3200);
 }
 
 // ── CLOCK ──
 function tickClock() {
-  const now = new Date();
-  const days = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+  const now    = new Date();
+  const days   = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
   const months = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-  const d = days[now.getDay()];
-  const mo = months[now.getMonth()];
-  const h = String(now.getHours()).padStart(2,"0");
-  const m = String(now.getMinutes()).padStart(2,"0");
-  const s = String(now.getSeconds()).padStart(2,"0");
-  document.getElementById("hdr-clock").textContent = `${d} ${now.getDate()} ${mo} · ${h}:${m}:${s}`;
+  const pad    = n => String(n).padStart(2,"0");
+  document.getElementById("hdr-clock").textContent =
+    `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} · ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 }
-setInterval(tickClock, 1000);
-tickClock();
+setInterval(tickClock, 1000); tickClock();
 
 // ── NOW LINE ──
 function updateNowLine() {
-  const inner = document.getElementById("timeline-inner");
-  const slots = inner.querySelectorAll(".tl-slot");
+  const slots   = document.querySelectorAll(".tl-slot");
   if (!slots.length) return;
-
-  const now = new Date();
-  const nowMins = now.getHours() * 60 + now.getMinutes();
-
-  // Parse slot times
-  let firstSlotMins = null, lastSlotMins = null;
+  const now     = new Date();
+  const nowMins = now.getHours()*60 + now.getMinutes();
+  let first = null, last = null;
   slots.forEach(s => {
-    const [h, m] = s.dataset.hora.split(":").map(Number);
-    const mins = h * 60 + m;
-    if (firstSlotMins === null || mins < firstSlotMins) firstSlotMins = mins;
-    if (lastSlotMins  === null || mins > lastSlotMins)  lastSlotMins  = mins;
+    const [h,m] = s.dataset.hora.split(":").map(Number);
+    const mins  = h*60+m;
+    if (first === null || mins < first) first = mins;
+    if (last  === null || mins > last)  last  = mins;
   });
-
-  const lastEnd = lastSlotMins + 30;
-
-  if (nowMins < firstSlotMins || nowMins > lastEnd) {
-    document.getElementById("now-line").style.display = "none";
-    return;
-  }
-
-  // Find position
-  const slotH = 64; // px per slot
-  const pxPerMin = slotH / 30;
-  const offsetPx = (nowMins - firstSlotMins) * pxPerMin + 8; // 8px top padding
-
   const line = document.getElementById("now-line");
+  if (nowMins < first || nowMins > last+30) { line.style.display="none"; return; }
   line.style.display = "block";
-  line.style.top = offsetPx + "px";
+  line.style.top     = (nowMins - first) * (62/30) + 4 + "px";
 }
-setInterval(updateNowLine, 30000);
-updateNowLine();
+setInterval(updateNowLine, 30000); updateNowLine();
 
-// ── SCROLL TO NOW ──
 function scrollToNow() {
   const line = document.getElementById("now-line");
-  if (line.style.display === "none") return;
-  const top = parseInt(line.style.top) || 0;
+  if (line.style.display==="none") return;
   const wrap = document.querySelector(".timeline-wrap");
-  if (wrap) wrap.scrollTop = Math.max(0, top - 80);
+  if (wrap) wrap.scrollTop = Math.max(0, parseInt(line.style.top)-80);
 }
 setTimeout(scrollToNow, 300);
 
-// ── OCCUPANCY RING ──
+// ── RING ──
 function updateRing(pct) {
-  const circ = 2 * Math.PI * 52; // 326.73
-  const fill = document.getElementById("ring-fill");
-  const offset = circ - (circ * Math.min(pct, 100) / 100);
-  fill.style.strokeDashoffset = offset;
+  const circ   = 2*Math.PI*48; // 301.59
+  const fill   = document.getElementById("ring-fill");
+  fill.style.strokeDashoffset = circ - (circ * Math.min(pct,100) / 100);
   document.getElementById("ring-pct").textContent = pct + "%";
 }
-// Init
 updateRing({{ ocupacion }});
 
-// ── INCOME BAR ──
+// ── INCOME ──
 function updateIncomeBar(amount) {
-  const pct = Math.min((amount / INCOME_GOAL) * 100, 100);
-  document.getElementById("inc-bar").style.width = pct + "%";
-  document.getElementById("sb-income").textContent = "$" + amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  document.getElementById("inc-goal-txt").textContent = `meta: $${(INCOME_GOAL/1000).toFixed(0)}0.000 · ${Math.round(pct)}% alcanzado`;
+  const pct = Math.min((amount/GOAL)*100, 100);
+  document.getElementById("inc-bar").style.width       = pct + "%";
+  document.getElementById("sb-income").innerHTML       = "$" + amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g,".");
+  document.getElementById("inc-goal-txt").textContent  = `meta: $${(GOAL/1000).toFixed(0)}0.000 · ${Math.round(pct)}%`;
 }
 updateIncomeBar({{ ingresos_hoy }});
 
-// ── NEXT APPOINTMENT ──
+// ── NEXT APPT ──
 function updateNextAppt(agenda) {
-  const now = new Date();
-  const nowMins = now.getHours() * 60 + now.getMinutes();
-  const next = agenda.find(f => {
+  const now     = new Date();
+  const nowMins = now.getHours()*60 + now.getMinutes();
+  const next    = agenda.find(f => {
     if (!f.cliente) return false;
-    const [h, m] = f.hora.split(":").map(Number);
-    return h * 60 + m >= nowMins;
+    const [h,m] = f.hora.split(":").map(Number);
+    return h*60+m >= nowMins;
   });
-
   const el = document.getElementById("next-appt-content");
-  if (!next) {
-    el.innerHTML = '<span class="next-empty">No hay más citas hoy</span>';
-    return;
-  }
-
-  const [h, m] = next.hora.split(":").map(Number);
-  const slotMins = h * 60 + m;
-  const diff = slotMins - nowMins;
-  const diffTxt = diff === 0 ? "¡Ahora!" : diff < 60 ? `En ${diff} min` : `En ${Math.floor(diff/60)}h ${diff%60}min`;
-
+  if (!next) { el.innerHTML='<span class="next-empty">Sin más citas hoy</span>'; return; }
+  const [h,m] = next.hora.split(":").map(Number);
+  const diff   = h*60+m - nowMins;
+  const diffTxt = diff===0 ? "¡Ahora mismo!" : diff<60 ? `En ${diff} min` : `En ${Math.floor(diff/60)}h ${diff%60}min`;
   el.innerHTML = `
     <div class="next-item">
       <div class="next-time">${next.hora}</div>
       <div class="next-name">${next.cliente}</div>
-      ${next.servicio ? `<div class="next-svc">${next.servicio}${next.barbero ? ' · ' + next.barbero : ''}</div>` : ''}
+      ${next.servicio ? `<div class="next-svc">${next.servicio}${next.barbero ? " · "+next.barbero : ""}</div>` : ""}
       <div class="next-countdown">${diffTxt}</div>
-    </div>
-  `;
+    </div>`;
 }
 updateNextAppt({{ agenda | tojson }});
 
 // ── RENDER TIMELINE ──
 function renderTimeline(agenda) {
-  const tl = document.getElementById("timeline");
+  const tl   = document.getElementById("timeline");
   const prev = {};
-  tl.querySelectorAll(".tl-slot[data-hora]").forEach(row => {
-    prev[row.dataset.hora] = { booked: row.classList.contains("booked"), citaId: row.dataset.citaId };
+  tl.querySelectorAll(".tl-slot[data-hora]").forEach(r => {
+    prev[r.dataset.hora] = { booked: r.classList.contains("booked") };
   });
-
   tl.innerHTML = "";
   agenda.forEach(f => {
     const isBooked  = !!f.cliente || !!f.cita_id;
     const wasBooked = prev[f.hora]?.booked ?? null;
     const changed   = wasBooked !== null && wasBooked !== isBooked;
-
-    const slot = document.createElement("div");
-    slot.className = `tl-slot ${isBooked ? "booked" : "free"}`;
+    const slot      = document.createElement("div");
+    const initial   = (f.cliente || "?")[0].toUpperCase();
+    slot.className  = `tl-slot ${isBooked ? "booked" : "free"}`;
     slot.dataset.hora = f.hora;
     if (f.cita_id) slot.dataset.citaId = f.cita_id;
     if (changed) slot.classList.add("updated");
-
     if (isBooked) {
-      const isCumple = f.cumpleanos;
+      const c = f.cumpleanos;
       slot.innerHTML = `
         <div class="tl-time">${f.hora}</div>
         <div class="tl-content">
-          <div class="appt-card${isCumple ? " cumple" : ""}">
-            <div class="appt-avatar">${isCumple ? "🎂" : f.es_fijo ? "📌" : "✂️"}</div>
+          <div class="appt-card${c?" cumple":""}">
+            <div class="appt-avatar">${c?"🎂":initial}</div>
             <div class="appt-body">
-              <div class="appt-name">${f.cliente || "Sin nombre"}</div>
-              <div class="appt-meta">
-                ${f.barbero ? `<span>💈 ${f.barbero}</span>` : ""}
-              </div>
+              <div class="appt-name">${f.cliente||"Sin nombre"}</div>
+              <div class="appt-meta">${f.barbero?`<span>${f.barbero}</span>`:""}</div>
             </div>
-            ${f.servicio ? `<span class="badge-svc">${f.servicio}</span>` : ""}
-            ${f.cita_id ? `<button class="btn-cancel" title="Cancelar cita"
-              onclick="pedirCancelar(${f.cita_id}, '${f.hora}', '${(f.cliente||'').replace(/'/g,"\\'")}')">✕</button>` : ""}
+            ${f.servicio?`<span class="badge-svc">${f.servicio}</span>`:""}
+            <button class="btn-cancel"
+              onclick="pedirCancelar(${f.cita_id},'${f.hora}','${(f.cliente||"").replace(/'/g,"\\'")}')">✕</button>
           </div>
-        </div>
-      `;
+        </div>`;
     } else {
       slot.innerHTML = `
         <div class="tl-time">${f.hora}</div>
-        <div class="tl-content">
-          <span class="free-label">Disponible</span>
-        </div>
-      `;
+        <div class="tl-content"><span class="free-label">Disponible</span></div>`;
     }
-
     tl.appendChild(slot);
-
     if (changed) {
       setTimeout(() => slot.classList.remove("updated"), 1200);
-      if (isBooked)  showToast(`Nueva cita · ${f.hora} — ${f.cliente}`);
-      if (!isBooked) showToast(`Cita cancelada · ${f.hora}`);
+      showToast(isBooked ? `${f.hora} — ${f.cliente}` : `Cancelada · ${f.hora}`, isBooked?"ok":"err");
     }
   });
-
   updateNowLine();
 }
 
@@ -1045,97 +887,68 @@ function updateStats(data) {
   document.getElementById("stat-barberos").textContent  = data.barberos;
   document.getElementById("stat-servicio").textContent  = data.servicio_top || "—";
   document.getElementById("stat-ocupacion").textContent = data.ocupacion + "%";
-  document.getElementById("occ-citas").innerHTML        = `${data.citas_hoy} de <span id="occ-total">${data.agenda.length}</span>`;
+  document.getElementById("occ-citas").innerHTML        = `${data.citas_hoy} / <span id="occ-total">${data.agenda.length}</span>`;
   updateRing(data.ocupacion);
   updateIncomeBar(data.ingresos_hoy);
   updateNextAppt(data.agenda);
-  document.getElementById("last-update").textContent = `actualizado ${new Date().toLocaleTimeString("es-CO")}`;
+  document.getElementById("last-update").textContent    = `— ${new Date().toLocaleTimeString("es-CO")}`;
 }
 
-// ── SSE (solo cuando es hoy) ──
-const ES_HOY = {{ 'true' if es_hoy else 'false' }};
+// ── SSE ──
+const ES_HOY    = {{ 'true' if es_hoy else 'false' }};
 const FECHA_ISO = "{{ fecha_iso }}";
-
 function conectarSSE() {
   const es = new EventSource(`/panel-stream?key=${key}&fecha=${FECHA_ISO}`);
-  es.addEventListener("update", e => {
-    const data = JSON.parse(e.data);
-    updateStats(data);
-    renderTimeline(data.agenda);
-  });
+  es.addEventListener("update", e => { const d=JSON.parse(e.data); updateStats(d); renderTimeline(d.agenda); });
   es.onerror = () => { es.close(); setTimeout(conectarSSE, 5000); };
 }
+if (ES_HOY) conectarSSE();
+else document.getElementById("last-update").textContent = `— {{ fecha_label }} · estático`;
 
-if (ES_HOY) {
-  conectarSSE();
-} else {
-  document.getElementById("last-update").textContent = "{{ fecha_label }} · vista estática";
-}
-
-// ── CANCEL CONFIRM ──
+// ── CANCEL ──
 function pedirCancelar(citaId, hora, nombre) {
-  const overlay = document.getElementById("confirm-overlay");
   document.getElementById("confirm-msg").textContent = `¿Cancelar la cita de las ${hora} — ${nombre}?`;
-  overlay.style.display = "flex";
-
-  const btnYes = document.getElementById("confirm-yes");
-  // Clonar para eliminar listeners anteriores
-  const nuevoBtn = btnYes.cloneNode(true);
-  btnYes.parentNode.replaceChild(nuevoBtn, btnYes);
-
-  nuevoBtn.addEventListener("click", async function() {
-    overlay.style.display = "none";
+  document.getElementById("confirm-overlay").style.display = "flex";
+  const btn = document.getElementById("confirm-yes");
+  const nb  = btn.cloneNode(true); btn.parentNode.replaceChild(nb, btn);
+  nb.addEventListener("click", async () => {
+    document.getElementById("confirm-overlay").style.display = "none";
     try {
-      const r = await fetch(`/cancelar-cita-panel?key=${key}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cita_id: citaId })
+      const r    = await fetch(`/cancelar-cita-panel?key=${key}`, {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({cita_id:citaId})
       });
       const data = await r.json();
       if (data.success) {
-        showToast("✓ Cita cancelada");
-        if (data.data) {
-          updateStats(data.data);
-          renderTimeline(data.data.agenda);
-        }
-      } else {
-        showToast("⚠ " + (data.mensaje || "Error desconocido"), true);
-      }
-    } catch(e) {
-      showToast("Error de conexión: " + e.message, true);
-    }
+        showToast("Cita cancelada","err");
+        if (data.data) { updateStats(data.data); renderTimeline(data.data.agenda); }
+      } else showToast(data.mensaje||"Error","err");
+    } catch(e) { showToast("Error de conexión","err"); }
   });
 }
+function cerrarConfirm() { document.getElementById("confirm-overlay").style.display="none"; }
 
-function cerrarConfirm() {
-  document.getElementById("confirm-overlay").style.display = "none";
-}
-
-// ── MODAL NUEVA CITA ──
+// ── MODAL CITA ──
 function abrirModal() {
   document.getElementById("modal-cita").style.display = "flex";
   document.getElementById("form-msg").textContent = "";
   cargarBarberos();
   const hoy = new Date().toISOString().split("T")[0];
-  document.getElementById("f-fecha").min   = hoy;
+  document.getElementById("f-fecha").min = hoy;
   document.getElementById("f-fecha").value = hoy;
   cargarHorarios();
 }
-function cerrarModal() {
-  document.getElementById("modal-cita").style.display = "none";
-}
-document.getElementById("modal-cita").addEventListener("click", e => { if (e.target === e.currentTarget) cerrarModal(); });
+function cerrarModal() { document.getElementById("modal-cita").style.display="none"; }
+document.getElementById("modal-cita").addEventListener("click", e => { if(e.target===e.currentTarget) cerrarModal(); });
 
 async function cargarBarberos() {
   const sel = document.getElementById("f-barbero");
   if (sel.options.length > 1) return;
   try {
-    const r = await fetch("/barberos");
-    const data = await r.json();
-    (data.barberos || data).forEach(b => {
-      const opt = document.createElement("option");
-      opt.value = b.id; opt.textContent = b.nombre;
-      sel.appendChild(opt);
+    const r = await fetch("/barberos"); const data = await r.json();
+    (data.barberos||data).forEach(b => {
+      const o = document.createElement("option");
+      o.value = b.id; o.textContent = b.nombre; sel.appendChild(o);
     });
   } catch(e) {}
 }
@@ -1144,21 +957,17 @@ async function cargarHorarios() {
   const barberoId = document.getElementById("f-barbero").value;
   const fecha     = document.getElementById("f-fecha").value;
   const sel       = document.getElementById("f-hora");
-  if (!barberoId || !fecha) { sel.innerHTML = '<option value="">Selecciona barbero y fecha</option>'; return; }
+  if (!barberoId||!fecha) { sel.innerHTML='<option value="">Selecciona barbero y fecha</option>'; return; }
   sel.innerHTML = '<option value="">Cargando…</option>';
   try {
     const r    = await fetch(`/agenda/horarios?barbero_id=${barberoId}&fecha=${fecha}`);
     const data = await r.json();
     sel.innerHTML = "";
-    if (!data.horarios || !data.horarios.length) {
-      sel.innerHTML = '<option value="">Sin horarios disponibles</option>'; return;
-    }
+    if (!data.horarios?.length) { sel.innerHTML='<option value="">Sin horarios disponibles</option>'; return; }
     data.horarios.forEach(h => {
-      const opt = document.createElement("option");
-      opt.value = h.hora; opt.textContent = h.hora;
-      sel.appendChild(opt);
+      const o = document.createElement("option"); o.value=h.hora; o.textContent=h.hora; sel.appendChild(o);
     });
-  } catch(e) { sel.innerHTML = '<option value="">Error</option>'; }
+  } catch(e) { sel.innerHTML='<option value="">Error</option>'; }
 }
 
 async function enviarCita() {
@@ -1169,35 +978,26 @@ async function enviarCita() {
   const servicio = document.getElementById("f-servicio").value;
   const nombre   = document.getElementById("f-nombre").value.trim();
   const telefono = document.getElementById("f-telefono").value.trim();
-  if (!barbero || !fecha || !hora || !nombre || !telefono) {
-    msg.className = "form-msg err"; msg.textContent = "Completa todos los campos obligatorios."; return;
+  if (!barbero||!fecha||!hora||!nombre||!telefono) {
+    msg.className="form-msg err"; msg.textContent="Completa todos los campos."; return;
   }
-  msg.className = "form-msg"; msg.textContent = "Agendando…";
+  msg.className="form-msg"; msg.textContent="Agendando…";
   try {
-    const r = await fetch("/agenda/crear-cita", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nombre, telefono, barbero_id: parseInt(barbero), fecha, hora, servicio: servicio || null })
-    });
+    const r    = await fetch("/agenda/crear-cita",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({nombre,telefono,barbero_id:parseInt(barbero),fecha,hora,servicio:servicio||null})});
     const data = await r.json();
-    if (data.success) {
-      msg.className = "form-msg ok"; msg.textContent = "✓ Cita agendada";
-      setTimeout(cerrarModal, 1500);
-    } else {
-      msg.className = "form-msg err"; msg.textContent = data.mensaje || "No se pudo agendar.";
-    }
-  } catch(e) { msg.className = "form-msg err"; msg.textContent = "Error de conexión."; }
+    if (data.success) { msg.className="form-msg ok"; msg.textContent="✓ Cita agendada"; setTimeout(cerrarModal,1400); }
+    else              { msg.className="form-msg err"; msg.textContent=data.mensaje||"Error."; }
+  } catch(e) { msg.className="form-msg err"; msg.textContent="Error de conexión."; }
 }
 
-// ── MODAL NUEVO CLIENTE ──
+// ── MODAL CLIENTE ──
 function abrirModalCliente() {
-  document.getElementById("modal-cliente").style.display = "flex";
-  document.getElementById("cliente-msg").textContent = "";
+  document.getElementById("modal-cliente").style.display="flex";
+  document.getElementById("cliente-msg").textContent="";
 }
-function cerrarModalCliente() {
-  document.getElementById("modal-cliente").style.display = "none";
-}
-document.getElementById("modal-cliente").addEventListener("click", e => { if (e.target === e.currentTarget) cerrarModalCliente(); });
+function cerrarModalCliente() { document.getElementById("modal-cliente").style.display="none"; }
+document.getElementById("modal-cliente").addEventListener("click", e => { if(e.target===e.currentTarget) cerrarModalCliente(); });
 
 async function enviarCliente() {
   const msg      = document.getElementById("cliente-msg");
@@ -1207,24 +1007,15 @@ async function enviarCliente() {
   const cumple   = document.getElementById("c-cumple").value;
   const fijo     = document.getElementById("c-fijo").checked;
   const horario  = document.getElementById("c-horario").value.trim();
-  if (!nombre || !telefono) {
-    msg.className = "form-msg err"; msg.textContent = "Nombre y teléfono son obligatorios."; return;
-  }
-  msg.className = "form-msg"; msg.textContent = "Registrando…";
+  if (!nombre||!telefono) { msg.className="form-msg err"; msg.textContent="Nombre y teléfono son obligatorios."; return; }
+  msg.className="form-msg"; msg.textContent="Registrando…";
   try {
-    const r = await fetch(`/crear-cliente?key=${key}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nombre, apellido, telefono, fecha_cumpleanos: cumple||null, fijo, horario_fijo: horario||null, key })
-    });
+    const r    = await fetch(`/crear-cliente?key=${key}`,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({nombre,apellido,telefono,fecha_cumpleanos:cumple||null,fijo,horario_fijo:horario||null,key})});
     const data = await r.json();
-    if (data.success) {
-      msg.className = "form-msg ok"; msg.textContent = "✓ " + data.mensaje;
-      setTimeout(cerrarModalCliente, 1500);
-    } else {
-      msg.className = "form-msg err"; msg.textContent = data.mensaje;
-    }
-  } catch(e) { msg.className = "form-msg err"; msg.textContent = "Error de conexión."; }
+    if (data.success) { msg.className="form-msg ok"; msg.textContent="✓ "+data.mensaje; setTimeout(cerrarModalCliente,1400); }
+    else              { msg.className="form-msg err"; msg.textContent=data.mensaje; }
+  } catch(e) { msg.className="form-msg err"; msg.textContent="Error de conexión."; }
 }
 </script>
 </body>
