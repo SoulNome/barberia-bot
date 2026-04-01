@@ -2,18 +2,60 @@ from datetime import datetime, time, timedelta
 from app.models import Cita, Cliente
 import dateparser
 import re
+import unicodedata
 
 
 # ------------------------------------------------
-# DIAS EN ESPAÑOL → número weekday
+# UTILIDADES DE FECHA — Colombia UTC-5
 # ------------------------------------------------
 
+def _colombia_now():
+    """Hora actual en Colombia (UTC-5)."""
+    return datetime.utcnow() - timedelta(hours=5)
+
+
+def _sin_tildes(s):
+    """miércoles → miercoles, sábado → sabado"""
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', s)
+        if unicodedata.category(c) != 'Mn'
+    )
+
+
+# Mapa sin tildes para comparación segura
+_DIAS_A_NUM = {
+    "lunes": 0, "martes": 1, "miercoles": 2,
+    "jueves": 3, "viernes": 4, "sabado": 5, "domingo": 6
+}
+
+# Mapa original con tildes (para _parsear_horario_fijo)
 _DIAS_NUM = {
     "lunes": 0, "martes": 1,
     "miércoles": 2, "miercoles": 2,
     "jueves": 3, "viernes": 4,
     "sábado": 5, "sabado": 5
 }
+
+
+def _dia_nombre_a_fecha(texto):
+    """
+    Convierte un nombre de día en español a la próxima fecha con ese weekday.
+    Usa aritmética de Python pura — NO depende de dateparser.
+    Ejemplos: "miércoles" → próximo miércoles, "próximo viernes" → el de la semana siguiente.
+    Devuelve datetime en hora Colombia, o None si no reconoce ningún día.
+    """
+    t = _sin_tildes(texto.strip().lower())
+    es_proximo = "proximo" in t or "siguiente" in t
+
+    for nombre, num in _DIAS_A_NUM.items():
+        if nombre in t:
+            hoy = _colombia_now()
+            dias_diff = (num - hoy.weekday()) % 7
+            # "próximo lunes" cuando hoy es lunes → semana siguiente
+            if es_proximo and dias_diff == 0:
+                dias_diff = 7
+            return hoy + timedelta(days=dias_diff)
+    return None
 
 
 def _parsear_horario_fijo(horario_str, dia_semana):
@@ -55,37 +97,37 @@ DOMINGO = 6
 
 HORARIOS = {
 
-    # lunes
+    # lunes — último turno 21:00
     0: [
         ("10:00", "12:00"),
-        ("16:00", "20:00")
+        ("16:00", "21:30")
     ],
 
-    # martes
+    # martes — último turno 21:00
     1: [
         ("10:00", "12:00"),
-        ("16:00", "20:00")
+        ("16:00", "21:30")
     ],
 
-    # miércoles
+    # miércoles — último turno 21:00
     2: [
         ("10:00", "12:00"),
-        ("16:00", "20:00")
+        ("16:00", "21:30")
     ],
 
-    # jueves
+    # jueves — último turno 21:00
     3: [
         ("10:00", "12:30"),
-        ("15:00", "22:00")
+        ("15:00", "21:30")
     ],
 
-    # viernes
+    # viernes — último turno 22:00
     4: [
         ("09:00", "13:30"),
-        ("14:30", "21:30")
+        ("14:30", "22:30")
     ],
 
-    # sábado
+    # sábado — último turno 21:00
     5: [
         ("09:00", "13:00"),
         ("15:00", "21:30")
@@ -152,20 +194,26 @@ def normalizar_fecha(fecha):
         f = fecha.strip().lower()
 
         if f == "hoy":
-            return datetime.now()
+            return _colombia_now()
 
         if f in ("mañana", "manana"):
-            return datetime.now() + timedelta(days=1)
+            return _colombia_now() + timedelta(days=1)
 
         if f in ("pasado mañana", "pasado manana"):
-            return datetime.now() + timedelta(days=2)
+            return _colombia_now() + timedelta(days=2)
 
+        # Formato ISO exacto
         try:
             return datetime.strptime(f, "%Y-%m-%d")
-        except:
+        except ValueError:
             pass
 
-        # Fallback: dateparser para "lunes", "próximo viernes", etc.
+        # Nombre de día en español — parser propio, nunca dateparser
+        por_nombre = _dia_nombre_a_fecha(f)
+        if por_nombre:
+            return por_nombre
+
+        # Último recurso: dateparser solo para fechas absolutas ("15 de abril", etc.)
         parsed = dateparser.parse(f, languages=["es"], settings={"PREFER_DATES_FROM": "future"})
         if parsed:
             return parsed
@@ -177,7 +225,7 @@ def normalizar_fecha(fecha):
 
     try:
         return datetime.combine(fecha, time())
-    except:
+    except Exception:
         return None
 
 

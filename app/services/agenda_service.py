@@ -16,7 +16,11 @@ def normalizar_fecha(fecha):
             return datetime.strptime(fecha, "%Y-%m-%d").date()
         except ValueError:
             pass
-        # Fallback: nombres de días como "miércoles", "lunes", etc.
+        # Fallback: usar el mismo parser confiable de disponibilidad_service
+        from app.services.disponibilidad_service import _dia_nombre_a_fecha
+        por_nombre = _dia_nombre_a_fecha(fecha)
+        if por_nombre:
+            return por_nombre.date()
         import dateparser
         parsed = dateparser.parse(fecha, languages=["es"], settings={"PREFER_DATES_FROM": "future"})
         if parsed:
