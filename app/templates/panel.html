@@ -208,9 +208,15 @@ body {
   border-radius: var(--r-xl);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--sep-light);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   min-height: 320px;
+  max-height: calc(100vh - 180px);
+  scroll-behavior: smooth;
 }
+.timeline-wrap::-webkit-scrollbar { width: 4px; }
+.timeline-wrap::-webkit-scrollbar-track { background: transparent; }
+.timeline-wrap::-webkit-scrollbar-thumb { background: var(--sep); border-radius: 100px; }
 
 .timeline-inner {
   position: relative; padding: 4px 0;
@@ -820,11 +826,11 @@ function updateNowLine() {
 setInterval(updateNowLine, 30000); updateNowLine();
 
 function scrollToNow() {
+  const wrap = document.querySelector(".timeline-wrap");
   const line = document.getElementById("now-line");
-  if (line.style.display==="none") return;
-  const rect = line.getBoundingClientRect();
-  const scrollY = window.scrollY + rect.top - 120;
-  window.scrollTo({ top: Math.max(0, scrollY), behavior: "smooth" });
+  if (!wrap || line.style.display === "none") return;
+  const lineTop = parseInt(line.style.top || "0", 10);
+  wrap.scrollTo({ top: Math.max(0, lineTop - 120), behavior: "smooth" });
 }
 setTimeout(scrollToNow, 300);
 

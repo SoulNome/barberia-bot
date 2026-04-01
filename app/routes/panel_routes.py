@@ -154,9 +154,16 @@ def panel():
         fecha = date.today()
     hoy = date.today()
     es_hoy = fecha == hoy
+    es_manana = fecha == hoy + timedelta(days=1)
     DIAS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"]
-    MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]
-    fecha_label = f"{DIAS[fecha.weekday()]} {fecha.day} {MESES[fecha.month-1]} {fecha.year}"
+    MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
+    base_label = f"{DIAS[fecha.weekday()]} {fecha.day} de {MESES[fecha.month-1]}"
+    if es_hoy:
+        fecha_label = f"Hoy · {base_label}"
+    elif es_manana:
+        fecha_label = f"Mañana · {base_label}"
+    else:
+        fecha_label = f"{base_label} {fecha.year}"
     fecha_prev = (fecha - timedelta(days=1)).isoformat()
     fecha_next = (fecha + timedelta(days=1)).isoformat()
     data = _build_panel_data(fecha)
