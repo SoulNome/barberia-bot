@@ -40,12 +40,12 @@ def _parsear_horario_fijo_panel(horario_str, dia_semana):
 def obtener_horarios_dia(dia_semana):
     if dia_semana in [0, 1, 2]:          # L-M-X: último turno 21:00
         return [(time(10,0), time(12,0)), (time(16,0), time(21,30))]
-    if dia_semana == 3:                  # Jueves: último turno 21:00
-        return [(time(10,0), time(12,30)), (time(15,0), time(21,30))]
-    if dia_semana == 4:                  # Viernes: último turno 22:00
-        return [(time(9,0), time(13,30)), (time(14,30), time(22,30))]
-    if dia_semana == 5:                  # Sábado: último turno 21:00
-        return [(time(9,0), time(13,0)), (time(15,0), time(21,30))]
+    if dia_semana == 3:                  # Jueves: hasta la 1, arranca 2, último 21:00
+        return [(time(10,0), time(13,0)), (time(14,0), time(21,30))]
+    if dia_semana == 4:                  # Viernes: hasta la 1, arranca 2, último 22:00
+        return [(time(9,0), time(13,0)), (time(14,0), time(22,30))]
+    if dia_semana == 5:                  # Sábado: hasta la 1, arranca 2, último 21:00
+        return [(time(9,0), time(13,0)), (time(14,0), time(21,30))]
     return []
 
 def _build_panel_data(fecha=None):
