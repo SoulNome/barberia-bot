@@ -715,7 +715,9 @@ Te esperamos 💈
                 "estado": "esperando_fecha",
                 "barbero_id": estado_data["barbero_id"],
                 "barbero_nombre": estado_data["barbero_nombre"],
-                "servicio": estado_data.get("servicio")
+                "servicio": estado_data.get("servicio"),
+                "nombre": estado_data.get("nombre"),
+                "cantidad": estado_data.get("cantidad", 1),
             })
 
             return "Perfecto 👍\nDime otra fecha."
@@ -755,6 +757,7 @@ Te esperamos 💈
                 "barbero_nombre": estado_data.get("barbero_nombre", ""),
                 "servicio":      estado_data.get("servicio"),
                 "nombre":        estado_data.get("nombre"),
+                "cantidad":      estado_data.get("cantidad", 1),
             })
             return "Perfecto. ¿Para qué otra fecha quieres tu cita?\n\nEjemplos: *mañana*, *lunes*"
 
@@ -889,20 +892,19 @@ Ejemplos: *mañana*, *lunes*, *2026-04-10*
         if mensaje == "2":
             set_state(telefono, {
                 **estado_data,
-                "estado": "reagendando_fecha",
+                "estado": "reagendando_hora",
             })
-            return "Perfecto. ¿Para qué fecha quieres reagendar?\n\nEjemplos: *mañana*, *lunes*"
+            horarios_lista = estado_data.get("horarios", [])
+            fecha_bonita   = formatear_fecha(estado_data.get("fecha", ""))
+            texto_horas    = f"📅 *{fecha_bonita}*\n\n"
+            for i, h in enumerate(horarios_lista):
+                texto_horas += f"{i+1}️⃣ {h['hora']}\n"
+            texto_horas += "\nElige el número del horario."
+            return texto_horas
 
         if mensaje == "1":
 
-            # Cancelar cita vieja
-            cancelar_cita(
-                telefono_limpio,
-                estado_data["fecha_vieja"],
-                estado_data["hora_vieja"],
-            )
-
-            # Crear nueva cita
+            # Crear nueva cita PRIMERO — si falla, la vieja queda intacta
             ok, msg = crear_cita(
                 nombre      = nombre_cliente or "Cliente",
                 telefono    = telefono_limpio,
@@ -910,12 +912,21 @@ Ejemplos: *mañana*, *lunes*, *2026-04-10*
                 fecha       = estado_data["fecha"],
                 hora        = estado_data["hora"],
                 servicio    = estado_data.get("servicio"),
+                skip_client_check=True,
+            )
+
+            if not ok:
+                set_state(telefono, {"estado": "inicio"})
+                return f"❌ No se pudo reagendar: {msg}\n\nTu cita anterior sigue activa. Escribe *hola* para volver al menú."
+
+            # Cancelar cita vieja solo si la nueva fue creada exitosamente
+            cancelar_cita(
+                telefono_limpio,
+                estado_data["fecha_vieja"],
+                estado_data["hora_vieja"],
             )
 
             set_state(telefono, {"estado": "inicio"})
-
-            if not ok:
-                return f"❌ No se pudo reagendar: {msg}"
 
             return f"""
 ✅ *Cita reagendada*
