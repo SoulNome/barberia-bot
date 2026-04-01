@@ -47,11 +47,14 @@ def crear():
 @agenda_bp.route("/cancelar-cita", methods=["POST"])
 def cancelar():
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
 
     telefono = data.get("telefono")
     fecha = data.get("fecha")
     hora = data.get("hora")
+
+    if not all([telefono, fecha, hora]):
+        return jsonify({"success": False, "mensaje": "Faltan datos"}), 400
 
     ok, mensaje = cancelar_cita(
         telefono,

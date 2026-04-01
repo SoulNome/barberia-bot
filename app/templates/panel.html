@@ -192,6 +192,10 @@ body {
 .section-hd {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 12px;
+  position: sticky; top: 0; z-index: 4;
+  background: var(--bg);
+  padding: 6px 0 10px;
+  margin-top: -6px;
 }
 .section-hd h2 {
   font-size: 13px; font-weight: 600;
@@ -204,8 +208,18 @@ body {
   border-radius: var(--r-xl);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--sep-light);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(100vh - 252px);
+  min-height: 320px;
+  scroll-behavior: smooth;
 }
+
+/* Scrollbar discreta */
+.timeline-wrap::-webkit-scrollbar { width: 5px; }
+.timeline-wrap::-webkit-scrollbar-track { background: transparent; }
+.timeline-wrap::-webkit-scrollbar-thumb { background: var(--sep); border-radius: 100px; }
+.timeline-wrap::-webkit-scrollbar-thumb:hover { background: var(--label4); }
 
 .timeline-inner {
   position: relative; padding: 4px 0;
@@ -245,6 +259,8 @@ body {
   padding-right: 14px;
   font-size: 11px; font-weight: 600;
   color: var(--label4); font-variant-numeric: tabular-nums;
+  position: sticky; left: 0;
+  background: var(--card); z-index: 1;
 }
 .tl-slot.booked .tl-time { color: var(--label3); }
 
@@ -309,7 +325,15 @@ body {
 }
 
 /* ── SIDEBAR ── */
-.sidebar { display: flex; flex-direction: column; gap: 14px; }
+.sidebar {
+  display: flex; flex-direction: column; gap: 14px;
+  position: sticky; top: 24px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto; overflow-x: hidden;
+}
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--sep); border-radius: 100px; }
 
 .sb-card {
   background: var(--card); border-radius: var(--r-lg);

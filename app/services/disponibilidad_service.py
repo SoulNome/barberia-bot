@@ -291,7 +291,7 @@ def obtener_horarios_disponibles(barbero_id, fecha):
         # ------------------------------------------------
 
         citas = Cita.query.filter_by(
-            barbero_id=barbero_id,
+            barbero_id=int(barbero_id),
             fecha=fecha_date
         ).all()
 
