@@ -208,15 +208,9 @@ body {
   border-radius: var(--r-xl);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--sep-light);
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: visible;
   min-height: 320px;
-  max-height: calc(100vh - 180px);
-  scroll-behavior: smooth;
 }
-.timeline-wrap::-webkit-scrollbar { width: 4px; }
-.timeline-wrap::-webkit-scrollbar-track { background: transparent; }
-.timeline-wrap::-webkit-scrollbar-thumb { background: var(--sep); border-radius: 100px; }
 
 .timeline-inner {
   position: relative; padding: 4px 0;
@@ -850,11 +844,12 @@ function updateNowLine() {
 setInterval(updateNowLine, 30000); updateNowLine();
 
 function scrollToNow() {
-  const wrap = document.querySelector(".timeline-wrap");
-  const line = document.getElementById("now-line");
-  if (!wrap || line.style.display === "none") return;
-  const lineTop = parseInt(line.style.top || "0", 10);
-  wrap.scrollTo({ top: Math.max(0, lineTop - 120), behavior: "smooth" });
+  const line  = document.getElementById("now-line");
+  const inner = document.getElementById("timeline-inner");
+  if (!line || !inner || line.style.display === "none") return;
+  const innerTop = inner.getBoundingClientRect().top + window.scrollY;
+  const lineTop  = parseInt(line.style.top || "0", 10);
+  window.scrollTo({ top: Math.max(0, innerTop + lineTop - 160), behavior: "smooth" });
 }
 setTimeout(scrollToNow, 300);
 
