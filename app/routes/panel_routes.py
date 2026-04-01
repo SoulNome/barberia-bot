@@ -24,17 +24,43 @@ _DIAS_NUM_PANEL = {
 }
 
 def _parsear_horario_fijo_panel(horario_str, dia_semana):
-    """Retorna 'HH:MM' si el horario_fijo coincide con dia_semana, si no None."""
+    """Retorna 'HH:MM' (24h) si el horario_fijo coincide con dia_semana, si no None.
+    Soporta am/pm, múltiples entradas separadas por 'y', y horas ambiguas 1-8 (asume PM).
+    """
     if not horario_str:
         return None
     texto = horario_str.lower()
-    m = re.search(r'(\d{1,2}:\d{2})', texto)
-    if not m:
-        return None
-    hora_str = m.group(1)
-    for nombre, num in _DIAS_NUM_PANEL.items():
-        if nombre in texto and num == dia_semana:
-            return hora_str
+
+    # Separar entradas como "Miercoles 6:00 am y Sabados 6:30 pm"
+    partes = re.split(r'\s+y\s+', texto)
+
+    for parte in partes:
+        # Buscar si hay un nombre de día en esta parte
+        dia_encontrado = None
+        for nombre, num in _DIAS_NUM_PANEL.items():
+            if nombre in parte:
+                dia_encontrado = num
+                break
+
+        if dia_encontrado != dia_semana:
+            continue
+
+        m = re.search(r'(\d{1,2}):(\d{2})\s*(am|pm)?', parte)
+        if not m:
+            continue
+
+        h, mins, ampm = int(m.group(1)), int(m.group(2)), m.group(3)
+
+        if ampm == "pm" and h != 12:
+            h += 12
+        elif ampm == "am" and h == 12:
+            h = 0
+        elif ampm is None and 1 <= h <= 8:
+            # Sin indicador, horas 1-8 → asumir PM (tarde/noche)
+            h += 12
+
+        return f"{h:02d}:{mins:02d}"
+
     return None
 
 def obtener_horarios_dia(dia_semana):
@@ -126,6 +152,24 @@ def _build_panel_data(fecha=None):
                     "fijo": False
                 })
             actual += timedelta(minutes=30)
+
+    # Añadir fijos con horario FUERA del rango normal (casos excepcionales)
+    horas_en_agenda = {row["hora"] for row in agenda}
+    for t_fijo, nombre_fijo in sorted(fijo_slots.items()):
+        hora_str = t_fijo.strftime("%H:%M")
+        if hora_str not in horas_en_agenda:
+            agenda.append({
+                "hora": hora_str,
+                "cita_id": None,
+                "cliente": nombre_fijo,
+                "barbero": None,
+                "servicio": "📌 Turno fijo (excepcional)",
+                "cumpleanos": False,
+                "fijo": True
+            })
+    # Reordenar agenda por hora
+    agenda.sort(key=lambda r: r["hora"])
+
     ocupacion = int((citas_hoy / total_slots) * 100) if total_slots > 0 else 0
     barberos_lista = [{"id": b.id, "nombre": b.nombre} for b in Barbero.query.order_by(Barbero.nombre).all()]
 
@@ -256,6 +300,36 @@ def crear_cliente():
         db.session.commit()
         return jsonify({"success": True, "mensaje": f"Cliente {nombre} registrado"})
 
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "mensaje": str(e)})
+
+
+@panel_bp.route("/editar-cliente", methods=["POST"])
+def editar_cliente():
+    key = request.args.get("key") or (request.get_json(silent=True) or {}).get("key")
+    if key != PANEL_KEY:
+        return jsonify({"success": False, "mensaje": "No autorizado"}), 401
+
+    data = request.get_json(silent=True) or {}
+    telefono = (data.get("telefono") or "").strip()
+    cliente = Cliente.query.filter_by(telefono=telefono).first()
+    if not cliente:
+        return jsonify({"success": False, "mensaje": "Cliente no encontrado"})
+
+    try:
+        from datetime import datetime as dt
+        if "nombre" in data:
+            cliente.nombre = data["nombre"].strip()
+        if "horario_fijo" in data:
+            cliente.horario_fijo = (data["horario_fijo"] or "").strip() or None
+        if "fijo" in data:
+            cliente.fijo = bool(data["fijo"])
+        if "fecha_cumpleanos" in data:
+            raw = (data["fecha_cumpleanos"] or "").strip()
+            cliente.fecha_cumpleanos = dt.strptime(raw, "%Y-%m-%d").date() if raw else None
+        db.session.commit()
+        return jsonify({"success": True, "mensaje": f"Cliente {cliente.nombre} actualizado"})
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "mensaje": str(e)})
