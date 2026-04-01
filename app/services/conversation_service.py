@@ -433,7 +433,7 @@ Escribe *cancelar* si deseas cancelarla.
             "nombre": estado_data.get("nombre")
         })
 
-        return f"💈 *{barbero['nombre']} seleccionado*\n\n¿Para cuántas personas es el turno?\n\n1️⃣ Solo yo\n2️⃣ Somos dos (yo + acompañante)"
+        return f"💈 *{barbero['nombre']} seleccionado*\n\n¿Para cuántas personas es el turno?\n\nEscribe el número (1 a 7)\nEjemplo: *1* si vas solo, *3* si van tres"
 
     # ------------------------------------------------
     # ESPERANDO CANTIDAD (1 o 2 turnos)
@@ -441,8 +441,8 @@ Escribe *cancelar* si deseas cancelarla.
 
     if estado == "esperando_cantidad":
 
-        if mensaje not in ("1", "2"):
-            return "Escribe *1* si vas solo o *2* si van dos personas."
+        if not mensaje.isdigit() or not (1 <= int(mensaje) <= 7):
+            return "Escribe un número del 1 al 7 según cuántas personas van.\nEjemplo: *1* si vas solo, *3* si van tres."
 
         cantidad = int(mensaje)
 
@@ -492,19 +492,25 @@ Escribe *cancelar* si deseas cancelarla.
         if _fn:
             fecha_final = _fn.strftime("%Y-%m-%d")
 
-        if cantidad == 2:
-            # Para 2 personas: solo mostrar turnos donde el siguiente también está libre
+        if cantidad > 1:
+            # Para N personas: solo mostrar turnos donde hay N slots consecutivos libres
             from datetime import datetime as _dt, timedelta as _td
             disponibles_set = {h["hora"] for h in horarios if h["disponible"]}
             horarios_disponibles = []
             for h in horarios:
                 if not h["disponible"]:
                     continue
-                siguiente = (_dt.strptime(h["hora"], "%H:%M") + _td(minutes=30)).strftime("%H:%M")
-                if siguiente in disponibles_set:
-                    horarios_disponibles.append(h)
-                    if len(horarios_disponibles) >= 9:
+                # Verificar que los N-1 slots siguientes también estén libres
+                todos_libres = True
+                for k in range(1, cantidad):
+                    sig = (_dt.strptime(h["hora"], "%H:%M") + _td(minutes=30*k)).strftime("%H:%M")
+                    if sig not in disponibles_set:
+                        todos_libres = False
                         break
+                if todos_libres:
+                    horarios_disponibles.append(h)
+                if len(horarios_disponibles) >= 9:
+                    break
         else:
             horarios_disponibles = [h for h in horarios if h["disponible"]][:9]
 
@@ -531,10 +537,13 @@ Escribe *cancelar* si deseas cancelarla.
         texto = f"📅 *{fecha_bonita}*\n\n"
 
         for i, h in enumerate(horarios_disponibles):
-            if cantidad == 2:
+            if cantidad > 1:
                 from datetime import datetime as _dt, timedelta as _td
-                sig = (_dt.strptime(h["hora"], "%H:%M") + _td(minutes=30)).strftime("%H:%M")
-                texto += f"{i+1}️⃣ {h['hora']} y {sig}\n"
+                slots_txt = h["hora"]
+                for k in range(1, cantidad):
+                    sig = (_dt.strptime(h["hora"], "%H:%M") + _td(minutes=30*k)).strftime("%H:%M")
+                    slots_txt += f" · {sig}"
+                texto += f"{i+1}️⃣ {slots_txt}\n"
             else:
                 texto += f"{i+1}️⃣ {h['hora']}\n"
 
@@ -571,11 +580,12 @@ Escribe *cancelar* si deseas cancelarla.
         hora = horarios[index]["hora"]
         cantidad = estado_data.get("cantidad", 1)
 
-        # Calcular segunda hora si son 2 personas
-        hora2 = None
-        if cantidad == 2:
-            from datetime import datetime as _dt, timedelta as _td
-            hora2 = (_dt.strptime(hora, "%H:%M") + _td(minutes=30)).strftime("%H:%M")
+        # Calcular horas extra si son N personas
+        from datetime import datetime as _dt, timedelta as _td
+        horas_extra = []
+        for k in range(1, cantidad):
+            horas_extra.append((_dt.strptime(hora, "%H:%M") + _td(minutes=30*k)).strftime("%H:%M"))
+        hora2 = horas_extra[0] if horas_extra else None
 
         cumpleanos = es_semana_cumpleanos(cliente)
 
@@ -586,6 +596,7 @@ Escribe *cancelar* si deseas cancelarla.
             "fecha": estado_data["fecha"],
             "hora": hora,
             "hora2": hora2,
+            "horas_extra": horas_extra,
             "servicio": estado_data.get("servicio"),
             "cumpleanos": cumpleanos,
             "nombre": estado_data.get("nombre"),
@@ -607,16 +618,17 @@ Tu corte de hoy es *GRATIS* 🎁
 2️⃣ Elegir otro horario
 """
 
-        if cantidad == 2:
+        if cantidad > 1:
+            lineas_horas = f"⏰ Turno 1: {hora}\n"
+            for k, h in enumerate(horas_extra, 2):
+                lineas_horas += f"⏰ Turno {k}: {h}\n"
             return f"""
 💈 Barbero: {estado_data["barbero_nombre"]}
 💇 Servicio: {estado_data.get("servicio", "Corte")}
 
 📅 Fecha: {estado_data["fecha"]}
-⏰ 1er turno: {hora}
-⏰ 2do turno: {hora2}
-
-1️⃣ Confirmar (2 turnos)
+{lineas_horas}
+1️⃣ Confirmar ({cantidad} turnos)
 2️⃣ Elegir otro horario
 """
 
@@ -642,7 +654,7 @@ Tu corte de hoy es *GRATIS* 🎁
             cumpleanos     = estado_data.get("cumpleanos", False)
             servicio_final = "🎂 Cumpleaños" if cumpleanos else estado_data.get("servicio")
             cantidad       = estado_data.get("cantidad", 1)
-            hora2          = estado_data.get("hora2")
+            horas_extra    = estado_data.get("horas_extra", [])
 
             ok, msg = crear_cita(
                 nombre=nombre_cliente or estado_data.get("nombre") or "Cliente",
@@ -658,15 +670,15 @@ Tu corte de hoy es *GRATIS* 🎁
             if not ok:
                 return f"❌ No se pudo crear la cita: {msg}"
 
-            # Crear segundo turno si vinieron 2 personas
-            if cantidad == 2 and hora2:
+            # Crear turnos extra si son más de 1 persona
+            for k, hora_extra in enumerate(horas_extra, 2):
                 crear_cita(
                     nombre=nombre_cliente or estado_data.get("nombre") or "Cliente",
                     telefono=telefono_limpio,
                     barbero_id=estado_data["barbero_id"],
                     fecha=estado_data["fecha"],
-                    hora=hora2,
-                    servicio=f"{servicio_final or 'Corte'} (acompañante)",
+                    hora=hora_extra,
+                    servicio=f"{servicio_final or 'Corte'} (persona {k})",
                     skip_client_check=True
                 )
 
@@ -683,17 +695,18 @@ Tu corte de hoy es *GRATIS* 🎁
 ¡Te esperamos y feliz cumpleaños! 🎉
 """
 
-            if cantidad == 2:
+            if cantidad > 1:
+                lineas = f"⏰ Turno 1: {estado_data['hora']}\n"
+                for k, h in enumerate(horas_extra, 2):
+                    lineas += f"⏰ Turno {k}: {h}\n"
                 return f"""
-✅ *2 turnos confirmados*
+✅ *{cantidad} turnos confirmados*
 
 💈 Barbero: {estado_data["barbero_nombre"]}
 💇 Servicio: {servicio_final}
 
 📅 Fecha: {estado_data["fecha"]}
-⏰ 1er turno: {estado_data["hora"]}
-⏰ 2do turno: {hora2}
-
+{lineas}
 ¡Los esperamos! 💈
 """
 
