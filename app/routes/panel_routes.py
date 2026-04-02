@@ -153,8 +153,26 @@ def _build_panel_data(fecha=None):
                 })
             actual += timedelta(minutes=30)
 
-    # Añadir fijos con horario FUERA del rango normal (casos excepcionales)
+    # Añadir citas que caen FUERA de los slots del horario actual (horario cambió después de agendar)
     horas_en_agenda = {row["hora"] for row in agenda}
+    for cita in citas:
+        hora_str = cita.hora.strftime("%H:%M")
+        if hora_str not in horas_en_agenda:
+            cli_obj = clientes_dict.get(cita.cliente_id)
+            nombre_cli = cli_obj.nombre if cli_obj else None
+            es_fijo = bool(cli_obj and cli_obj.fijo)
+            agenda.append({
+                "hora": hora_str,
+                "cita_id": cita.id,
+                "cliente": nombre_cli,
+                "barbero": barberos_dict.get(cita.barbero_id),
+                "servicio": cita.servicio,
+                "cumpleanos": bool(cita.servicio and "🎂" in cita.servicio),
+                "fijo": es_fijo
+            })
+            horas_en_agenda.add(hora_str)
+
+    # Añadir fijos con horario FUERA del rango normal (casos excepcionales)
     for t_fijo, nombre_fijo in sorted(fijo_slots.items()):
         hora_str = t_fijo.strftime("%H:%M")
         if hora_str not in horas_en_agenda:
@@ -363,3 +381,62 @@ def cancelar_cita_panel():
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "mensaje": str(e)})
+
+
+@panel_bp.route("/notificar-dia", methods=["POST"])
+def notificar_dia():
+    """Envía un mensaje WhatsApp a todos los clientes con cita en una fecha dada."""
+    key = request.args.get("key") or (request.get_json(silent=True) or {}).get("key")
+    if key != PANEL_KEY:
+        return jsonify({"success": False, "mensaje": "No autorizado"}), 401
+
+    data = request.get_json(silent=True) or {}
+    fecha_str = (data.get("fecha") or "").strip()
+    mensaje_custom = (data.get("mensaje") or "").strip()
+
+    try:
+        from datetime import datetime as dt
+        fecha_obj = dt.strptime(fecha_str, "%Y-%m-%d").date() if fecha_str else None
+    except ValueError:
+        fecha_obj = None
+
+    if not fecha_obj:
+        return jsonify({"success": False, "mensaje": "Fecha inválida. Usar formato YYYY-MM-DD"})
+
+    citas = Cita.query.filter_by(fecha=fecha_obj).all()
+    if not citas:
+        return jsonify({"success": False, "mensaje": f"No hay citas para el {fecha_str}"})
+
+    from app.services.recordatorio_service import _enviar_whatsapp
+    DIAS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"]
+    dia_nombre = DIAS[fecha_obj.weekday()]
+
+    enviados = 0
+    errores = 0
+    for cita in citas:
+        cli = Cliente.query.get(cita.cliente_id)
+        if not cli or not cli.telefono:
+            errores += 1
+            continue
+        hora_fmt = cita.hora.strftime("%H:%M")
+        if mensaje_custom:
+            texto = mensaje_custom.replace("{nombre}", cli.nombre or "").replace("{hora}", hora_fmt).replace("{fecha}", str(fecha_obj))
+        else:
+            texto = (
+                f"💈 *BarberIA*\n\n"
+                f"Hola {cli.nombre} 👋\n\n"
+                f"Te avisamos que hubo un ajuste en el horario del *{dia_nombre} {fecha_obj.day}*.\n\n"
+                f"Tu turno sigue registrado a las *{hora_fmt}* ✅\n\n"
+                f"Si querés cancelar o cambiar tu turno escribinos por acá.\n\n"
+                f"¡Te esperamos!"
+            )
+        ok = _enviar_whatsapp(cli.telefono, texto)
+        if ok:
+            enviados += 1
+        else:
+            errores += 1
+
+    return jsonify({
+        "success": True,
+        "mensaje": f"Mensajes enviados: {enviados} / {len(citas)} citas. Errores: {errores}"
+    })
