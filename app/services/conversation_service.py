@@ -219,7 +219,13 @@ Escribe *hola* para volver al menú.
             return "👍 Tu cita se mantiene.\n\nEscribe *hola* para volver al menú."
 
         else:
-            return "Escribe *1* para cancelar o *2* para mantener tu cita."
+            return (
+                f"❗ *¿Cancelar tu cita?*\n\n"
+                f"📅 {estado_data.get('fecha', '')}  "
+                f"⏰ {estado_data.get('hora', '')}\n\n"
+                f"1️⃣ Sí, cancelar\n"
+                f"2️⃣ No, mantener cita"
+            )
 
     # ------------------------------------------------
     # VER MI CITA
@@ -376,13 +382,14 @@ Escribe *cancelar* si deseas cancelarla.
 
     if estado == "esperando_servicio":
 
-        if not mensaje.isdigit():
-            return "❌ Escribe el número del servicio."
+        if not mensaje.isdigit() or int(mensaje) not in SERVICIOS:
+            texto = "Elige el número del servicio:\n\n"
+            for i, s in SERVICIOS.items():
+                precio = f"${s['precio']:,}".replace(",", ".")
+                texto += f"{i}️⃣ {s['nombre']} — {precio}\n"
+            return texto
 
         servicio_id = int(mensaje)
-
-        if servicio_id not in SERVICIOS:
-            return f"❌ Servicio inválido. Elige entre 1 y {len(SERVICIOS)}."
 
         servicio = SERVICIOS[servicio_id]
 
@@ -568,14 +575,32 @@ Escribe *cancelar* si deseas cancelarla.
 
     if estado == "esperando_hora":
 
+        horarios = estado_data.get("horarios", [])
+        cantidad = estado_data.get("cantidad", 1)
+
+        def _mostrar_horarios():
+            fecha_e = estado_data.get("fecha", "")
+            fecha_bonita_e = formatear_fecha(fecha_e) if "-" in str(fecha_e) else fecha_e
+            txt = f"Elegí el número del horario 👇\n\n📅 *{fecha_bonita_e}*\n\n"
+            for idx, h in enumerate(horarios):
+                if cantidad > 1:
+                    from datetime import datetime as _dt2, timedelta as _td2
+                    slots_txt = h["hora"]
+                    for k in range(1, cantidad):
+                        sig = (_dt2.strptime(h["hora"], "%H:%M") + _td2(minutes=30*k)).strftime("%H:%M")
+                        slots_txt += f" · {sig}"
+                    txt += f"{idx+1}️⃣ {slots_txt}\n"
+                else:
+                    txt += f"{idx+1}️⃣ {h['hora']}\n"
+            return txt
+
         if not mensaje.isdigit():
-            return "❌ Escribe el número del horario."
+            return _mostrar_horarios()
 
         index = int(mensaje) - 1
-        horarios = estado_data["horarios"]
 
         if index < 0 or index >= len(horarios):
-            return f"❌ Ese número no es válido. Elige entre 1 y {len(horarios)}."
+            return _mostrar_horarios()
 
         hora = horarios[index]["hora"]
         cantidad = estado_data.get("cantidad", 1)
@@ -736,7 +761,24 @@ Te esperamos 💈
             return "Perfecto 👍\nDime otra fecha."
 
         else:
-            return "Escribe *1* para confirmar o *2* para cambiar."
+            # re-mostrar resumen de la cita
+            _hora = estado_data.get("hora", "")
+            _cant = estado_data.get("cantidad", 1)
+            _extras = estado_data.get("horas_extra", [])
+            if _cant > 1:
+                _lineas = f"⏰ Turno 1: {_hora}\n"
+                for _k, _h in enumerate(_extras, 2):
+                    _lineas += f"⏰ Turno {_k}: {_h}\n"
+                return (
+                    f"💈 {estado_data['barbero_nombre']}\n"
+                    f"📅 {estado_data['fecha']}\n{_lineas}\n"
+                    f"Respondé *1* para confirmar o *2* para cambiar horario."
+                )
+            return (
+                f"💈 {estado_data['barbero_nombre']}\n"
+                f"📅 {estado_data['fecha']}  ⏰ {_hora}\n\n"
+                f"Respondé *1* para confirmar o *2* para cambiar horario."
+            )
 
     # ------------------------------------------------
     # LISTA DE ESPERA — confirmación
@@ -774,7 +816,12 @@ Te esperamos 💈
             })
             return "Perfecto. ¿Para qué otra fecha quieres tu cita?\n\nEjemplos: *mañana*, *lunes*"
 
-        return "Escribe *1* para apuntarte o *2* para elegir otra fecha."
+        _fecha_espera = formatear_fecha(estado_data.get("fecha", "")) if estado_data.get("fecha") else ""
+        return (
+            f"😕 No hay turnos libres para *{_fecha_espera}*.\n\n"
+            f"1️⃣ Sí, apuntarme a lista de espera\n"
+            f"2️⃣ No, elegir otra fecha"
+        )
 
     # ------------------------------------------------
     # REAGENDAR — iniciar
@@ -866,14 +913,23 @@ Ejemplos: *mañana*, *lunes*, *2026-04-10*
 
     if estado == "reagendando_hora":
 
+        horarios = estado_data.get("horarios", [])
+
+        def _mostrar_horarios_reag():
+            fecha_r = estado_data.get("fecha", "")
+            fecha_bonita_r = formatear_fecha(fecha_r) if "-" in str(fecha_r) else fecha_r
+            txt = f"Elegí el número del horario 👇\n\n📅 *{fecha_bonita_r}*\n\n"
+            for idx, h in enumerate(horarios):
+                txt += f"{idx+1}️⃣ {h['hora']}\n"
+            return txt
+
         if not mensaje.isdigit():
-            return "❌ Escribe el número del horario."
+            return _mostrar_horarios_reag()
 
         index   = int(mensaje) - 1
-        horarios = estado_data["horarios"]
 
         if index < 0 or index >= len(horarios):
-            return f"❌ Número inválido. Elige entre 1 y {len(horarios)}."
+            return _mostrar_horarios_reag()
 
         hora = horarios[index]["hora"]
 
@@ -952,7 +1008,14 @@ Ejemplos: *mañana*, *lunes*, *2026-04-10*
 ¡Te esperamos! Escribe *hola* para volver al menú.
 """
 
-        return "Escribe *1* para confirmar o *2* para cambiar la hora."
+        # re-mostrar resumen reagenda
+        _hora_r = estado_data.get("hora", "")
+        return (
+            f"🔄 *Confirmar reagenda*\n\n"
+            f"💈 {estado_data.get('barbero_nombre', '')}\n"
+            f"📅 {estado_data.get('fecha', '')}  ⏰ {_hora_r}\n\n"
+            f"Respondé *1* para confirmar o *2* para cambiar la hora."
+        )
 
     # ------------------------------------------------
     # AYUDA
@@ -972,7 +1035,86 @@ Puedes escribirme de forma natural o usar el menú:
 """
 
     # ------------------------------------------------
-    # FALLBACK
-    # ----
+    # FALLBACK — re-prompt según el estado activo
+    # ------------------------------------------------
 
-    return "❌ No entendí tu mensaje.\nEscribe *hola* para ver el menú."
+    if estado == "esperando_nombre":
+        return "¿Cómo te llamás? Escribí tu nombre para continuar."
+
+    if estado == "esperando_servicio":
+        texto = "Elegí el número del servicio:\n\n"
+        for i, s in SERVICIOS.items():
+            precio = f"${s['precio']:,}".replace(",", ".")
+            texto += f"{i}️⃣ {s['nombre']} — {precio}\n"
+        return texto
+
+    if estado == "esperando_barbero":
+        texto = "Elegí un barbero:\n\n"
+        for b in barberos:
+            texto += f"{b['menu_id']}️⃣ {b['nombre']}\n"
+        return texto
+
+    if estado == "esperando_cantidad":
+        return "¿Para cuántas personas es el turno?\n\nEscribí un número del *1* al *7*."
+
+    if estado == "esperando_fecha":
+        return "¿Para qué fecha querés la cita?\n\nEjemplos: *hoy*, *mañana*, *lunes*, *viernes*"
+
+    if estado == "esperando_hora":
+        _hs = estado_data.get("horarios", [])
+        if _hs:
+            _fe = estado_data.get("fecha", "")
+            _fb = formatear_fecha(_fe) if "-" in str(_fe) else _fe
+            txt = f"Elegí el número del horario 👇\n\n📅 *{_fb}*\n\n"
+            for _i, _h in enumerate(_hs):
+                txt += f"{_i+1}️⃣ {_h['hora']}\n"
+            return txt
+        return "Elegí el número del horario."
+
+    if estado == "esperando_confirmacion":
+        _hora_f = estado_data.get("hora", "")
+        return (
+            f"💈 {estado_data.get('barbero_nombre', '')}\n"
+            f"📅 {estado_data.get('fecha', '')}  ⏰ {_hora_f}\n\n"
+            f"Respondé *1* para confirmar o *2* para cambiar horario."
+        )
+
+    if estado == "confirmando_cancelacion":
+        return (
+            f"❗ *¿Cancelar tu cita?*\n\n"
+            f"📅 {estado_data.get('fecha', '')}  "
+            f"⏰ {estado_data.get('hora', '')}\n\n"
+            f"1️⃣ Sí, cancelar\n2️⃣ No, mantener cita"
+        )
+
+    if estado == "reagendando_fecha":
+        return "¿Para qué nueva fecha querés la cita?\n\nEjemplos: *mañana*, *lunes*, *2026-04-10*"
+
+    if estado == "reagendando_hora":
+        _hs_r = estado_data.get("horarios", [])
+        if _hs_r:
+            _fe_r = estado_data.get("fecha", "")
+            _fb_r = formatear_fecha(_fe_r) if "-" in str(_fe_r) else _fe_r
+            txt = f"Elegí el número del horario 👇\n\n📅 *{_fb_r}*\n\n"
+            for _i, _h in enumerate(_hs_r):
+                txt += f"{_i+1}️⃣ {_h['hora']}\n"
+            return txt
+
+    if estado == "reagendando_confirmar":
+        _hora_rc = estado_data.get("hora", "")
+        return (
+            f"🔄 *Confirmar reagenda*\n\n"
+            f"💈 {estado_data.get('barbero_nombre', '')}\n"
+            f"📅 {estado_data.get('fecha', '')}  ⏰ {_hora_rc}\n\n"
+            f"Respondé *1* para confirmar o *2* para cambiar la hora."
+        )
+
+    if estado == "espera_confirmar":
+        _fecha_ec = formatear_fecha(estado_data.get("fecha", "")) if estado_data.get("fecha") else ""
+        return (
+            f"😕 No hay turnos libres para *{_fecha_ec}*.\n\n"
+            f"1️⃣ Sí, apuntarme a lista de espera\n"
+            f"2️⃣ No, elegir otra fecha"
+        )
+
+    return menu_principal(nombre_cliente)
