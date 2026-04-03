@@ -197,13 +197,12 @@ def iniciar_scheduler(app):
         args=[app]
     )
 
-    # Crear citas reales para clientes fijos — cada lunes a las 12:00 UTC (07:00 Colombia)
-    # Se ejecuta ANTES del recordatorio para que los turnos ya estén en BD
+    # Crear citas reales para clientes fijos — cada día a las 11:00 UTC (06:00 Colombia)
+    # Corre diariamente para garantizar que los turnos fijos estén siempre en BD
     scheduler.add_job(
         crear_citas_fijos,
         "cron",
-        day_of_week="mon",
-        hour=12,
+        hour=11,
         minute=0,
         args=[app]
     )

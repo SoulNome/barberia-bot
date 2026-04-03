@@ -501,6 +501,96 @@ def reparar_fijos():
     })
 
 
+@panel_bp.route("/confirmar-citas", methods=["POST"])
+def confirmar_citas():
+    """
+    Envía mensajes de confirmación a TODOS los clientes con cita en una fecha.
+    Por defecto usa mañana. Incluye clientes fijos aunque no tengan cita en BD.
+    Body JSON opcional: {"fecha": "YYYY-MM-DD"}
+    """
+    key = request.args.get("key") or (request.get_json(silent=True) or {}).get("key")
+    if key != PANEL_KEY:
+        return jsonify({"success": False, "mensaje": "No autorizado"}), 401
+
+    data = request.get_json(silent=True) or {}
+    fecha_str = (data.get("fecha") or "").strip()
+
+    try:
+        fecha_obj = datetime.strptime(fecha_str, "%Y-%m-%d").date() if fecha_str else date.today() + timedelta(days=1)
+    except ValueError:
+        fecha_obj = date.today() + timedelta(days=1)
+
+    DIAS_ES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    MESES_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio",
+                "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+    dia_nombre = DIAS_ES[fecha_obj.weekday()]
+    fecha_bonita = f"{dia_nombre} {fecha_obj.day} de {MESES_ES[fecha_obj.month - 1]}"
+
+    from app.services.recordatorio_service import _enviar_whatsapp
+
+    enviados = 0
+    errores = 0
+    notificados = set()  # evitar duplicados por teléfono
+
+    # ── 1. Clientes con cita en BD ───────────────────────────────────────────
+    citas_db = Cita.query.filter_by(fecha=fecha_obj).all()
+    for cita in citas_db:
+        cli = Cliente.query.get(cita.cliente_id)
+        if not cli or not cli.telefono:
+            errores += 1
+            continue
+        if cli.telefono in notificados:
+            continue
+        hora_fmt = cita.hora.strftime("%H:%M")
+        texto = (
+            f"💈 *BarberIA*\n\n"
+            f"Hola {cli.nombre} 👋\n\n"
+            f"✅ Tu cita está confirmada:\n\n"
+            f"📅 {fecha_bonita}\n"
+            f"⏰ {hora_fmt}\n\n"
+            f"Por favor llegá 5 minutos antes.\n\n"
+            f"Si no podés asistir escribí *cancelar*.\n\n"
+            f"¡Te esperamos! 💈"
+        )
+        if _enviar_whatsapp(cli.telefono, texto):
+            enviados += 1
+        else:
+            errores += 1
+        notificados.add(cli.telefono)
+
+    # ── 2. Clientes fijos que NO tienen cita en BD para ese día ─────────────
+    dia_semana = fecha_obj.weekday()
+    for cf in Cliente.query.filter_by(fijo=True).all():
+        if not cf.telefono or cf.telefono in notificados:
+            continue
+        hora_fija_str = _parsear_horario_fijo_panel(cf.horario_fijo, dia_semana)
+        if not hora_fija_str:
+            continue
+        texto = (
+            f"💈 *BarberIA*\n\n"
+            f"Hola {cf.nombre} 👋\n\n"
+            f"✅ Tu turno habitual está confirmado:\n\n"
+            f"📅 {fecha_bonita}\n"
+            f"⏰ {hora_fija_str}\n\n"
+            f"Por favor llegá 5 minutos antes.\n\n"
+            f"Si no podés asistir escribí *cancelar*.\n\n"
+            f"¡Te esperamos! 💈"
+        )
+        if _enviar_whatsapp(cf.telefono, texto):
+            enviados += 1
+        else:
+            errores += 1
+        notificados.add(cf.telefono)
+
+    return jsonify({
+        "success": True,
+        "fecha": str(fecha_obj),
+        "enviados": enviados,
+        "errores": errores,
+        "mensaje": f"Confirmaciones enviadas: {enviados}. Errores: {errores}."
+    })
+
+
 @panel_bp.route("/notificar-dia", methods=["POST"])
 def notificar_dia():
     """Envía un mensaje WhatsApp a todos los clientes con cita en una fecha dada."""
