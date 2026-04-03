@@ -1,5 +1,5 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from app.models.cita import Cita
 from app.models.cliente import Cliente
@@ -86,6 +86,104 @@ def enviar_recordatorios_fijos(app):
         print(f"📲 Recordatorios fijos enviados: {enviados}/{len(clientes)}")
 
 
+def crear_citas_fijos(app):
+    """
+    Crea citas reales en la BD para clientes fijos para la semana en curso.
+    Se ejecuta cada lunes. Así los clientes fijos pueden usar el flujo
+    normal de reagendar/cancelar y sus turnos quedan protegidos en la BD.
+    """
+    with app.app_context():
+        from app.models.barbero import Barbero
+        from app.services.disponibilidad_service import _parsear_horario_fijo, FESTIVOS
+
+        barbero_default = Barbero.query.order_by(Barbero.id).first()
+        if not barbero_default:
+            print("⚠ No hay barberos registrados, no se crean citas fijas")
+            return
+
+        hoy = date.today()
+        clientes_fijos = Cliente.query.filter_by(fijo=True).all()
+        creadas = 0
+        confirmaciones = []
+
+        for cf in clientes_fijos:
+            if not cf.horario_fijo or not cf.telefono:
+                continue
+
+            for dias_ahead in range(7):
+                fecha_cita = hoy + timedelta(days=dias_ahead)
+                fecha_str = fecha_cita.strftime("%Y-%m-%d")
+
+                # Saltar festivos y domingos
+                if fecha_cita.weekday() == 6 or fecha_str in FESTIVOS:
+                    continue
+
+                dia_semana = fecha_cita.weekday()
+                hora_str = _parsear_horario_fijo(cf.horario_fijo, dia_semana)
+                if not hora_str:
+                    continue
+
+                hora = datetime.strptime(hora_str, "%H:%M").time()
+
+                # No crear si ya existe cita del cliente en esa fecha/hora
+                ya_existe = Cita.query.filter_by(
+                    cliente_id=cf.id,
+                    fecha=fecha_cita,
+                    hora=hora
+                ).first()
+                if ya_existe:
+                    continue
+
+                # No crear si el slot fue tomado por otro cliente
+                conflicto = Cita.query.filter_by(
+                    barbero_id=barbero_default.id,
+                    fecha=fecha_cita,
+                    hora=hora
+                ).first()
+                if conflicto:
+                    print(f"⚠ Slot fijo {cf.nombre} {fecha_str} {hora_str} ocupado por otro cliente")
+                    continue
+
+                nueva = Cita(
+                    cliente_id=cf.id,
+                    barbero_id=barbero_default.id,
+                    fecha=fecha_cita,
+                    hora=hora,
+                    servicio="📌 Turno fijo"
+                )
+                db.session.add(nueva)
+                creadas += 1
+                confirmaciones.append((cf.telefono, cf.nombre, fecha_str, hora_str))
+
+        try:
+            db.session.commit()
+            print(f"📌 Citas fijas creadas: {creadas}")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠ Error creando citas fijas: {e}")
+            return
+
+        # Enviar confirmación a cada cliente por cita creada
+        from app.services.recordatorio_service import _enviar_whatsapp
+        DIAS_ES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+        for telefono, nombre, fecha_str, hora_str in confirmaciones:
+            try:
+                fecha_obj = datetime.strptime(fecha_str, "%Y-%m-%d")
+                dia_nombre = DIAS_ES[fecha_obj.weekday()]
+                texto = (
+                    f"💈 *BarberIA*\n\n"
+                    f"Hola {nombre} 👋\n\n"
+                    f"✅ Tu turno de esta semana está confirmado:\n\n"
+                    f"📅 {dia_nombre} {fecha_obj.day}\n"
+                    f"⏰ {hora_str}\n\n"
+                    f"Si necesitas cambiar la hora escribe *reagendar*.\n\n"
+                    f"¡Te esperamos!"
+                )
+                _enviar_whatsapp(telefono, texto)
+            except Exception as e:
+                print(f"⚠ Error enviando confirmación a {telefono}: {e}")
+
+
 def iniciar_scheduler(app):
 
     scheduler = BackgroundScheduler()
@@ -95,6 +193,17 @@ def iniciar_scheduler(app):
         enviar_recordatorios,
         "cron",
         hour=18,
+        minute=0,
+        args=[app]
+    )
+
+    # Crear citas reales para clientes fijos — cada lunes a las 12:00 UTC (07:00 Colombia)
+    # Se ejecuta ANTES del recordatorio para que los turnos ya estén en BD
+    scheduler.add_job(
+        crear_citas_fijos,
+        "cron",
+        day_of_week="mon",
+        hour=12,
         minute=0,
         args=[app]
     )

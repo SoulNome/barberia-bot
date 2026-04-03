@@ -139,6 +139,24 @@ cancelar {cita_cliente.fecha} {formatear_hora(cita_cliente.hora)}
             return False, "❌ Ese horario ya está ocupado. Por favor elige otro."
 
         # ------------------------------------------------
+        # VERIFICAR SI HORARIO ES DE CLIENTE FIJO (segunda barrera)
+        # ------------------------------------------------
+
+        try:
+            from app.services.disponibilidad_service import _parsear_horario_fijo as _chk_fijo
+            dia_semana = fecha.weekday()
+            for cf in Cliente.query.filter_by(fijo=True).all():
+                if cf.telefono == telefono:
+                    continue  # el mismo cliente fijo puede confirmar su propio turno
+                hora_fija_str = _chk_fijo(cf.horario_fijo, dia_semana)
+                if hora_fija_str:
+                    t_fijo = datetime.strptime(hora_fija_str, "%H:%M").time()
+                    if t_fijo == hora:
+                        return False, "❌ Ese horario está reservado para un cliente habitual. Por favor elige otro."
+        except Exception as e:
+            print(f"⚠ Error verificando fijos en crear_cita: {e}")
+
+        # ------------------------------------------------
         # CREAR CITA
         # ------------------------------------------------
 

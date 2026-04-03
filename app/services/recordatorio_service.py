@@ -80,7 +80,7 @@ def enviar_recordatorio_fijo(telefono, nombre, horario):
         f"Hola {nombre} 👋\n\n"
         f"Te recordamos que esta semana tienes tu cita habitual:\n\n"
         f"⏰ *{horario}*\n\n"
-        f"Si necesitas cambiarla escribe *cambiar cita*.\n\n"
+        f"Si necesitas cambiarla escribe *reagendar*.\n\n"
         f"¡Te esperamos!"
     )
     return _enviar_whatsapp(telefono, mensaje)

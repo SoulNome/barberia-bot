@@ -33,6 +33,9 @@ def limpiar_texto(texto):
 
 def detectar_accion(texto):
 
+    if any(p in texto for p in ["reagendar", "cambiar cita", "cambiar mi cita", "cambiar turno", "mover cita", "mover turno", "cambiar hora"]):
+        return "reagendar"
+
     if any(p in texto for p in ["cita", "agendar", "reservar", "turno", "corte"]):
         return "agendar"
 

@@ -60,19 +60,36 @@ def _dia_nombre_a_fecha(texto):
 
 def _parsear_horario_fijo(horario_str, dia_semana):
     """
-    Dado un string como 'Lunes 10:00' o 'Martes y Jueves 16:00',
+    Dado un string como 'Lunes 10:00', 'Martes y Jueves 16:00',
+    o 'Miercoles 6:00 am y Sabados 6:30 pm',
     devuelve la hora (str HH:MM) si el dia_semana coincide, si no None.
+    Soporta am/pm, múltiples entradas separadas por 'y', y horas
+    ambiguas 1-8 sin indicador (asume PM).
     """
     if not horario_str:
         return None
     texto = horario_str.lower()
-    m = re.search(r'(\d{1,2}:\d{2})', texto)
-    if not m:
-        return None
-    hora_str = m.group(1)
-    for nombre, num in _DIAS_NUM.items():
-        if nombre in texto and num == dia_semana:
-            return hora_str
+    partes = re.split(r'\s+y\s+', texto)
+    for parte in partes:
+        dia_encontrado = None
+        for nombre, num in _DIAS_NUM.items():
+            if nombre in parte:
+                dia_encontrado = num
+                break
+        if dia_encontrado != dia_semana:
+            continue
+        m = re.search(r'(\d{1,2}):(\d{2})\s*(am|pm)?', parte)
+        if not m:
+            continue
+        h, mins, ampm = int(m.group(1)), int(m.group(2)), m.group(3)
+        if ampm == "pm" and h != 12:
+            h += 12
+        elif ampm == "am" and h == 12:
+            h = 0
+        elif ampm is None and 1 <= h <= 8:
+            # Sin indicador, horas 1-8 → asumir PM (tarde/noche)
+            h += 12
+        return f"{h:02d}:{mins:02d}"
     return None
 
 
