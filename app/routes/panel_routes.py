@@ -383,6 +383,124 @@ def cancelar_cita_panel():
         return jsonify({"success": False, "mensaje": str(e)})
 
 
+@panel_bp.route("/reparar-fijos", methods=["POST"])
+def reparar_fijos():
+    """
+    Detecta citas de clientes NO-fijos que ocupan slots reservados para clientes fijos.
+    - Envía WhatsApp al cliente desplazado pidiéndole reagendar.
+    - Cancela la cita conflictiva para devolver el slot al cliente fijo.
+    - Pasa ?solo_preview=1 para ver los conflictos SIN cancelar ni enviar mensajes.
+    """
+    key = request.args.get("key") or (request.get_json(silent=True) or {}).get("key")
+    if key != PANEL_KEY:
+        return jsonify({"success": False, "mensaje": "No autorizado"}), 401
+
+    solo_preview = request.args.get("solo_preview") == "1"
+    data = request.get_json(silent=True) or {}
+
+    # Rango de fechas a revisar (por defecto: hoy + 30 días)
+    from datetime import datetime as dt, timedelta as td
+    hoy = date.today()
+    dias_adelante = int(data.get("dias", 30))
+
+    from app.services.recordatorio_service import _enviar_whatsapp
+
+    conflictos = []
+    enviados = 0
+    canceladas = 0
+
+    clientes_fijos = Cliente.query.filter_by(fijo=True).all()
+    if not clientes_fijos:
+        return jsonify({"success": True, "mensaje": "No hay clientes fijos registrados", "conflictos": []})
+
+    for dias_ahead in range(dias_adelante + 1):
+        fecha_check = hoy + td(days=dias_ahead)
+        dia_semana = fecha_check.weekday()
+        if dia_semana == 6:  # domingo
+            continue
+        fecha_str = fecha_check.strftime("%Y-%m-%d")
+
+        for cf in clientes_fijos:
+            hora_fija_str = _parsear_horario_fijo_panel(cf.horario_fijo, dia_semana)
+            if not hora_fija_str:
+                continue
+            try:
+                h, m_val = [int(x) for x in hora_fija_str.split(":")]
+                hora_fija = time(h, m_val)
+            except Exception:
+                continue
+
+            # Buscar cita en ese slot que NO pertenece al cliente fijo
+            cita_conflicto = Cita.query.filter_by(
+                fecha=fecha_check,
+                hora=hora_fija
+            ).first()
+
+            if not cita_conflicto:
+                continue
+
+            cli_conflicto = Cliente.query.get(cita_conflicto.cliente_id)
+            if not cli_conflicto:
+                continue
+
+            # Si la cita pertenece al mismo cliente fijo, no hay conflicto
+            if cli_conflicto.id == cf.id:
+                continue
+
+            DIAS_ES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+            dia_nombre = DIAS_ES[dia_semana]
+
+            conflictos.append({
+                "fecha": fecha_str,
+                "dia": dia_nombre,
+                "hora": hora_fija_str,
+                "cliente_fijo": cf.nombre,
+                "cliente_desplazado": cli_conflicto.nombre,
+                "telefono_desplazado": cli_conflicto.telefono,
+                "cita_id": cita_conflicto.id,
+            })
+
+            if not solo_preview:
+                # Notificar al cliente desplazado
+                if cli_conflicto.telefono:
+                    texto = (
+                        f"💈 *BarberIA*\n\n"
+                        f"Hola {cli_conflicto.nombre} 👋\n\n"
+                        f"Tuvimos un problema con tu turno del *{dia_nombre} {fecha_check.day}* "
+                        f"a las *{hora_fija_str}* — ese horario estaba reservado para otro cliente.\n\n"
+                        f"Por favor escribe *reagendar* para elegir un nuevo horario.\n\n"
+                        f"¡Disculpá las molestias!"
+                    )
+                    if _enviar_whatsapp(cli_conflicto.telefono, texto):
+                        enviados += 1
+
+                # Cancelar la cita conflictiva
+                try:
+                    db.session.delete(cita_conflicto)
+                    db.session.commit()
+                    canceladas += 1
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"⚠ Error cancelando cita conflictiva {cita_conflicto.id}: {e}")
+
+    if solo_preview:
+        return jsonify({
+            "success": True,
+            "preview": True,
+            "total_conflictos": len(conflictos),
+            "conflictos": conflictos
+        })
+
+    return jsonify({
+        "success": True,
+        "total_conflictos": len(conflictos),
+        "canceladas": canceladas,
+        "mensajes_enviados": enviados,
+        "conflictos": conflictos,
+        "mensaje": f"Se encontraron {len(conflictos)} conflicto(s). Canceladas: {canceladas}. Notificados: {enviados}."
+    })
+
+
 @panel_bp.route("/notificar-dia", methods=["POST"])
 def notificar_dia():
     """Envía un mensaje WhatsApp a todos los clientes con cita en una fecha dada."""
