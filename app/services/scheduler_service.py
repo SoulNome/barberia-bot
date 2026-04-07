@@ -14,7 +14,7 @@ from app.services.recordatorio_service import enviar_recordatorio
 
 def obtener_citas_de_manana():
 
-    manana = date.today() + timedelta(days=1)
+    manana = (datetime.utcnow() - timedelta(hours=5)).date() + timedelta(days=1)
 
     citas = Cita.query.filter(
         Cita.fecha == manana,
@@ -101,7 +101,7 @@ def crear_citas_fijos(app):
             print("⚠ No hay barberos registrados, no se crean citas fijas")
             return
 
-        hoy = date.today()
+        hoy = (datetime.utcnow() - timedelta(hours=5)).date()
         clientes_fijos = Cliente.query.filter_by(fijo=True).all()
         creadas = 0
         confirmaciones = []
@@ -125,13 +125,23 @@ def crear_citas_fijos(app):
 
                 hora = datetime.strptime(hora_str, "%H:%M").time()
 
-                # No crear si ya existe cita del cliente en esa fecha/hora
+                # No crear si ya existe la cita fija exacta del cliente
                 ya_existe = Cita.query.filter_by(
                     cliente_id=cf.id,
                     fecha=fecha_cita,
                     hora=hora
                 ).first()
                 if ya_existe:
+                    continue
+
+                # No crear si el cliente ya reagendó a otro horario ese día
+                # (evita duplicados cuando la cita fija fue cancelada por reagenda)
+                reagendo = Cita.query.filter(
+                    Cita.cliente_id == cf.id,
+                    Cita.fecha == fecha_cita,
+                    Cita.hora != hora
+                ).first()
+                if reagendo:
                     continue
 
                 # No crear si el slot fue tomado por otro cliente

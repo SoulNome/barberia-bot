@@ -21,7 +21,7 @@ def es_semana_cumpleanos(cliente):
     if not cliente or not cliente.fecha_cumpleanos:
         return False
     try:
-        hoy = date.today()
+        hoy = (datetime.utcnow() - timedelta(hours=5)).date()
         cumple = cliente.fecha_cumpleanos.replace(year=hoy.year)
         lunes  = cumple - timedelta(days=cumple.weekday())
         return lunes <= hoy <= lunes + timedelta(days=6)

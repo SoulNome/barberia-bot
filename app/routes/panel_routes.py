@@ -10,6 +10,10 @@ import os
 panel_bp = Blueprint("panel", __name__)
 PANEL_KEY = os.getenv("PANEL_KEY")
 
+def _colombia_today():
+    """Fecha actual en Colombia (UTC-5). El servidor Railway corre en UTC."""
+    return (datetime.utcnow() - timedelta(hours=5)).date()
+
 PRECIOS = {
     "Corte niños": 15000,
     "Corte normal": 20000,
@@ -75,7 +79,7 @@ def obtener_horarios_dia(dia_semana):
     return []
 
 def _build_panel_data(fecha=None):
-    hoy = fecha or date.today()
+    hoy = fecha or _colombia_today()
     citas = Cita.query.filter_by(fecha=hoy).all()
     citas_hoy = len(citas)
     clientes = Cliente.query.count()
@@ -211,10 +215,10 @@ def panel():
         return "No autorizado"
     fecha_str = request.args.get("fecha", "")
     try:
-        fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date() if fecha_str else date.today()
+        fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date() if fecha_str else _colombia_today()
     except ValueError:
-        fecha = date.today()
-    hoy = date.today()
+        fecha = _colombia_today()
+    hoy = _colombia_today()
     es_hoy = fecha == hoy
     es_manana = fecha == hoy + timedelta(days=1)
     DIAS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"]
@@ -400,7 +404,7 @@ def reparar_fijos():
 
     # Rango de fechas a revisar (por defecto: hoy + 30 días)
     from datetime import datetime as dt, timedelta as td
-    hoy = date.today()
+    hoy = _colombia_today()
     dias_adelante = int(data.get("dias", 30))
 
     from app.services.recordatorio_service import _enviar_whatsapp
@@ -516,9 +520,9 @@ def confirmar_citas():
     fecha_str = (data.get("fecha") or "").strip()
 
     try:
-        fecha_obj = datetime.strptime(fecha_str, "%Y-%m-%d").date() if fecha_str else date.today() + timedelta(days=1)
+        fecha_obj = datetime.strptime(fecha_str, "%Y-%m-%d").date() if fecha_str else _colombia_today() + timedelta(days=1)
     except ValueError:
-        fecha_obj = date.today() + timedelta(days=1)
+        fecha_obj = _colombia_today() + timedelta(days=1)
 
     DIAS_ES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
     MESES_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio",
