@@ -104,7 +104,6 @@ def crear_citas_fijos(app):
         hoy = (datetime.utcnow() - timedelta(hours=5)).date()
         clientes_fijos = Cliente.query.filter_by(fijo=True).all()
         creadas = 0
-        confirmaciones = []
 
         for cf in clientes_fijos:
             if not cf.horario_fijo or not cf.telefono:
@@ -167,7 +166,7 @@ def crear_citas_fijos(app):
                     print(f"⚠ Slot fijo {cf.nombre} {fecha_str} {hora_str} ocupado por otro cliente")
                     continue
 
-                nueva = Cita(
+                        nueva = Cita(
                     cliente_id=cf.id,
                     barbero_id=barbero_default.id,
                     fecha=fecha_cita,
@@ -176,7 +175,6 @@ def crear_citas_fijos(app):
                 )
                 db.session.add(nueva)
                 creadas += 1
-                confirmaciones.append((cf.telefono, cf.nombre, fecha_str, hora_str))
 
         try:
             db.session.commit()
@@ -184,27 +182,6 @@ def crear_citas_fijos(app):
         except Exception as e:
             db.session.rollback()
             print(f"⚠ Error creando citas fijas: {e}")
-            return
-
-        # Enviar confirmación a cada cliente por cita creada
-        from app.services.recordatorio_service import _enviar_whatsapp
-        DIAS_ES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-        for telefono, nombre, fecha_str, hora_str in confirmaciones:
-            try:
-                fecha_obj = datetime.strptime(fecha_str, "%Y-%m-%d")
-                dia_nombre = DIAS_ES[fecha_obj.weekday()]
-                texto = (
-                    f"💈 *BarberIA*\n\n"
-                    f"Hola {nombre} 👋\n\n"
-                    f"✅ Tu turno de esta semana está confirmado:\n\n"
-                    f"📅 {dia_nombre} {fecha_obj.day}\n"
-                    f"⏰ {hora_str}\n\n"
-                    f"Si necesitas cambiar la hora escribe *reagendar*.\n\n"
-                    f"¡Te esperamos!"
-                )
-                _enviar_whatsapp(telefono, texto)
-            except Exception as e:
-                print(f"⚠ Error enviando confirmación a {telefono}: {e}")
 
 
 def iniciar_scheduler(app):
