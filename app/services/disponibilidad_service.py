@@ -355,9 +355,10 @@ def obtener_horarios_disponibles(barbero_id, fecha):
         # OBTENER CITAS OCUPADAS
         # ------------------------------------------------
 
-        citas = Cita.query.filter_by(
-            barbero_id=int(barbero_id),
-            fecha=fecha_date
+        citas = Cita.query.filter(
+            Cita.barbero_id == int(barbero_id),
+            Cita.fecha == fecha_date,
+            Cita.estado != "cancelada"
         ).all()
 
         ocupadas = {c.hora for c in citas}

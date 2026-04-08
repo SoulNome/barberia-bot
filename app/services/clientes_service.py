@@ -7,8 +7,13 @@ from app.models.cliente import Cliente
 # ------------------------------------------------
 
 def obtener_cliente_por_telefono(telefono):
-
-    return Cliente.query.filter_by(telefono=telefono).first()
+    """Busca con/sin prefijo '+' para tolerar diferencias de formato."""
+    tel = telefono.strip()
+    c = Cliente.query.filter_by(telefono=tel).first()
+    if c:
+        return c
+    alt = tel[1:] if tel.startswith('+') else ('+' + tel)
+    return Cliente.query.filter_by(telefono=alt).first()
 
 
 # ------------------------------------------------

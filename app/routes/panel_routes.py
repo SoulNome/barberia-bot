@@ -80,7 +80,7 @@ def obtener_horarios_dia(dia_semana):
 
 def _build_panel_data(fecha=None):
     hoy = fecha or _colombia_today()
-    citas = Cita.query.filter_by(fecha=hoy).all()
+    citas = Cita.query.filter(Cita.fecha == hoy, Cita.estado != "cancelada").all()
     citas_hoy = len(citas)
     clientes = Cliente.query.count()
     barberos_count = Barbero.query.count()

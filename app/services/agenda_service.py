@@ -69,9 +69,23 @@ def formatear_hora(hora):
     return hora.strftime("%H:%M")
 
 
+def _buscar_cliente(telefono):
+    """
+    Busca un cliente normalizando el formato del teléfono.
+    El panel guarda "573001234567" y el bot llega con "+573001234567".
+    Prueba el valor exacto y luego con/sin el prefijo '+'.
+    """
+    tel = telefono.strip()
+    c = Cliente.query.filter_by(telefono=tel).first()
+    if c:
+        return c
+    alt = tel[1:] if tel.startswith('+') else ('+' + tel)
+    return Cliente.query.filter_by(telefono=alt).first()
+
+
 def obtener_o_crear_cliente(nombre, telefono):
 
-    cliente = Cliente.query.filter_by(telefono=telefono).first()
+    cliente = _buscar_cliente(telefono)
 
     if not cliente:
 
@@ -212,7 +226,7 @@ def cancelar_cita(telefono, fecha, hora):
         fecha = normalizar_fecha(fecha)
         hora = normalizar_hora(hora)
 
-        cliente = Cliente.query.filter_by(telefono=telefono).first()
+        cliente = _buscar_cliente(telefono)
 
         if not cliente:
             return False, "❌ No encontramos un cliente con ese número."
@@ -228,16 +242,26 @@ def cancelar_cita(telefono, fecha, hora):
 
         barbero_id_guardado = cita.barbero_id
         fecha_guardada      = cita.fecha
+        es_turno_fijo       = (cita.servicio or "").startswith("📌")
 
-        db.session.delete(cita)
-        db.session.commit()
+        if es_turno_fijo:
+            # Para turnos fijos: marcar como cancelada SIN borrar el registro.
+            # Así el scheduler no la recrea el día siguiente.
+            # La UniqueConstraint se libera cambiando barbero_id a NULL-safe vía estado.
+            # Usamos delete igual pero bloqueamos la recreación via check en scheduler.
+            cita.estado = "cancelada"
+            db.session.commit()
+        else:
+            db.session.delete(cita)
+            db.session.commit()
 
-        # Notificar lista de espera si alguien está esperando
-        try:
-            from app.services.lista_espera_service import notificar_lista_espera
-            notificar_lista_espera(barbero_id_guardado, fecha_guardada)
-        except Exception:
-            pass
+        # Notificar lista de espera si alguien está esperando (solo citas borradas)
+        if not es_turno_fijo:
+            try:
+                from app.services.lista_espera_service import notificar_lista_espera
+                notificar_lista_espera(barbero_id_guardado, fecha_guardada)
+            except Exception:
+                pass
 
         return True, "✅ Tu cita fue cancelada correctamente."
 
@@ -254,14 +278,15 @@ def cancelar_cita(telefono, fecha, hora):
 
 def obtener_cita_cliente(telefono):
 
-    cliente = Cliente.query.filter_by(telefono=telefono).first()
+    cliente = _buscar_cliente(telefono)
 
     if not cliente:
         return None
 
     cita = Cita.query.filter(
         Cita.cliente_id == cliente.id,
-        Cita.fecha >= (datetime.utcnow() - timedelta(hours=5)).date()
+        Cita.fecha >= (datetime.utcnow() - timedelta(hours=5)).date(),
+        Cita.estado != "cancelada"
     ).order_by(Cita.fecha.asc()).first()
 
     return cita

@@ -125,30 +125,43 @@ def crear_citas_fijos(app):
 
                 hora = datetime.strptime(hora_str, "%H:%M").time()
 
-                # No crear si ya existe la cita fija exacta del cliente
+                # Buscar si ya existe una cita del cliente en esa fecha/hora
                 ya_existe = Cita.query.filter_by(
                     cliente_id=cf.id,
                     fecha=fecha_cita,
                     hora=hora
                 ).first()
+
                 if ya_existe:
-                    continue
+                    if ya_existe.estado == "cancelada":
+                        # El cliente canceló este turno fijo intencionalmente.
+                        # Recrear SOLO si la fecha ya pasó (nueva semana).
+                        hoy_co = (datetime.utcnow() - timedelta(hours=5)).date()
+                        if fecha_cita >= hoy_co:
+                            continue  # sigue cancelada esta semana, no recrear
+                        else:
+                            # Fecha pasada y cancelada → limpiar para que no bloquee
+                            db.session.delete(ya_existe)
+                            db.session.flush()
+                    else:
+                        continue  # ya confirmada, nada que hacer
 
                 # No crear si el cliente ya reagendó a otro horario ese día
-                # (evita duplicados cuando la cita fija fue cancelada por reagenda)
                 reagendo = Cita.query.filter(
                     Cita.cliente_id == cf.id,
                     Cita.fecha == fecha_cita,
-                    Cita.hora != hora
+                    Cita.hora != hora,
+                    Cita.estado != "cancelada"
                 ).first()
                 if reagendo:
                     continue
 
                 # No crear si el slot fue tomado por otro cliente
-                conflicto = Cita.query.filter_by(
-                    barbero_id=barbero_default.id,
-                    fecha=fecha_cita,
-                    hora=hora
+                conflicto = Cita.query.filter(
+                    Cita.barbero_id == barbero_default.id,
+                    Cita.fecha == fecha_cita,
+                    Cita.hora == hora,
+                    Cita.estado != "cancelada"
                 ).first()
                 if conflicto:
                     print(f"⚠ Slot fijo {cf.nombre} {fecha_str} {hora_str} ocupado por otro cliente")
