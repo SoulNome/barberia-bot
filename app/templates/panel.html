@@ -404,6 +404,10 @@ body {
   background: var(--blue-bg); border: 1px solid var(--blue-border);
   color: var(--blue); border-radius: var(--r-sm); text-decoration: none;
 }
+.nav-date-label {
+  font-size: 13px; font-weight: 600; color: var(--fg);
+  min-width: 200px; text-align: center; white-space: nowrap;
+}
 
 /* ── TOAST ── */
 #toast {
@@ -591,8 +595,9 @@ body {
         <h2>Agenda <span style="color:var(--label);font-weight:500;text-transform:none;letter-spacing:0;font-size:14px" id="last-update">— {{ fecha_label }}</span></h2>
         <div style="display:flex;align-items:center;gap:8px">
           <a href="/panel?key={{ key }}&fecha={{ fecha_prev }}" class="nav-arrow">‹</a>
-          {% if not es_hoy %}<a href="/panel?key={{ key }}" class="nav-today">Hoy</a>{% endif %}
+          <span class="nav-date-label">{{ fecha_label }}</span>
           <a href="/panel?key={{ key }}&fecha={{ fecha_next }}" class="nav-arrow">›</a>
+          {% if not es_hoy %}<a href="/panel?key={{ key }}" class="nav-today">↩ Hoy</a>{% endif %}
         </div>
       </div>
       <div class="timeline-wrap">
@@ -978,7 +983,7 @@ function updateStats(data) {
   updateRing(data.ocupacion);
   updateIncomeBar(data.ingresos_hoy);
   updateNextAppt(data.agenda);
-  document.getElementById("last-update").textContent    = `— ${new Date().toLocaleTimeString("es-CO")}`;
+  document.getElementById("last-update").textContent    = `— Hoy · ${new Date().toLocaleTimeString("es-CO")}`;
 }
 
 // ── SSE ──
@@ -990,7 +995,7 @@ function conectarSSE() {
   es.onerror = () => { es.close(); setTimeout(conectarSSE, 5000); };
 }
 if (ES_HOY) conectarSSE();
-else document.getElementById("last-update").textContent = `— {{ fecha_label }} · estático`;
+else document.getElementById("last-update").textContent = `— estático`;
 
 // ── CANCEL ──
 function pedirCancelar(citaId, hora, nombre) {
