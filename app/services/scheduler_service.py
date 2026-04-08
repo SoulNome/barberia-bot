@@ -166,7 +166,7 @@ def crear_citas_fijos(app):
                     print(f"⚠ Slot fijo {cf.nombre} {fecha_str} {hora_str} ocupado por otro cliente")
                     continue
 
-                        nueva = Cita(
+                nueva = Cita(
                     cliente_id=cf.id,
                     barbero_id=barbero_default.id,
                     fecha=fecha_cita,
