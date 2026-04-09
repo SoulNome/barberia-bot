@@ -516,10 +516,10 @@ Escribe *cancelar* si deseas cancelarla.
                         break
                 if todos_libres:
                     horarios_disponibles.append(h)
-                if len(horarios_disponibles) >= 9:
+                if len(horarios_disponibles) >= 20:
                     break
         else:
-            horarios_disponibles = [h for h in horarios if h["disponible"]][:9]
+            horarios_disponibles = [h for h in horarios if h["disponible"]][:20]
 
         if not horarios_disponibles:
             if _WAITLIST:
@@ -887,7 +887,7 @@ Ejemplos: *mañana*, *lunes*, *2026-04-10*
         if _fn:
             fecha_final = _fn.strftime("%Y-%m-%d")
 
-        disponibles = [h for h in horarios if h["disponible"]][:9]
+        disponibles = [h for h in horarios if h["disponible"]][:20]
 
         if not disponibles:
             return "❌ No hay turnos libres ese día. Prueba otra fecha."
