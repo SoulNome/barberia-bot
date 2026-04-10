@@ -449,12 +449,22 @@ def reparar_fijos():
                 continue
 
             # Si la cita pertenece al mismo cliente fijo (por ID o por teléfono), no hay conflicto
+            def _ultimos_digitos(t):
+                if not t:
+                    return ""
+                digits = "".join(c for c in t if c.isdigit())
+                return digits[-10:] if len(digits) >= 10 else digits
+
             mismo_id = cli_conflicto.id == cf.id
-            mismo_tel = (
+            mismo_tel = bool(
                 cli_conflicto.telefono and cf.telefono and
-                cli_conflicto.telefono.lstrip("+") == cf.telefono.lstrip("+")
+                _ultimos_digitos(cli_conflicto.telefono) == _ultimos_digitos(cf.telefono)
             )
-            if mismo_id or mismo_tel:
+            mismo_nombre = (
+                cli_conflicto.nombre and cf.nombre and
+                cli_conflicto.nombre.strip().lower() == cf.nombre.strip().lower()
+            )
+            if mismo_id or mismo_tel or mismo_nombre:
                 continue
 
             DIAS_ES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
