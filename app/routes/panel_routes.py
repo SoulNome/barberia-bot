@@ -434,10 +434,11 @@ def reparar_fijos():
             except Exception:
                 continue
 
-            # Buscar cita en ese slot que NO pertenece al cliente fijo
-            cita_conflicto = Cita.query.filter_by(
-                fecha=fecha_check,
-                hora=hora_fija
+            # Buscar cita activa en ese slot que NO pertenece al cliente fijo
+            cita_conflicto = Cita.query.filter(
+                Cita.fecha == fecha_check,
+                Cita.hora == hora_fija,
+                Cita.estado != "cancelada"
             ).first()
 
             if not cita_conflicto:
@@ -447,8 +448,13 @@ def reparar_fijos():
             if not cli_conflicto:
                 continue
 
-            # Si la cita pertenece al mismo cliente fijo, no hay conflicto
-            if cli_conflicto.id == cf.id:
+            # Si la cita pertenece al mismo cliente fijo (por ID o por teléfono), no hay conflicto
+            mismo_id = cli_conflicto.id == cf.id
+            mismo_tel = (
+                cli_conflicto.telefono and cf.telefono and
+                cli_conflicto.telefono.lstrip("+") == cf.telefono.lstrip("+")
+            )
+            if mismo_id or mismo_tel:
                 continue
 
             DIAS_ES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
