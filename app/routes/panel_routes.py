@@ -357,6 +357,28 @@ def editar_cliente():
         return jsonify({"success": False, "mensaje": str(e)})
 
 
+@panel_bp.route("/crear-cita-panel", methods=["POST"])
+def crear_cita_panel():
+    key = request.args.get("key") or (request.get_json(silent=True) or {}).get("key")
+    if key != PANEL_KEY:
+        return jsonify({"success": False, "mensaje": "No autorizado"}), 401
+
+    data = request.get_json(silent=True) or {}
+    nombre     = (data.get("nombre") or "").strip()
+    telefono   = (data.get("telefono") or "").strip()
+    barbero_id = data.get("barbero_id")
+    fecha      = (data.get("fecha") or "").strip()
+    hora       = (data.get("hora") or "").strip()
+    servicio   = (data.get("servicio") or "").strip() or None
+
+    if not all([nombre, telefono, barbero_id, fecha, hora]):
+        return jsonify({"success": False, "mensaje": "Faltan datos"}), 400
+
+    from app.services.agenda_service import crear_cita
+    ok, mensaje = crear_cita(nombre, telefono, barbero_id, fecha, hora, servicio, skip_client_check=True)
+    return jsonify({"success": ok, "mensaje": mensaje})
+
+
 @panel_bp.route("/cancelar-cita-panel", methods=["POST"])
 def cancelar_cita_panel():
     key = request.args.get("key")
