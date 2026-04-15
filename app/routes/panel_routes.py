@@ -72,8 +72,8 @@ def obtener_horarios_dia(dia_semana):
         return [(time(10,0), time(12,0)), (time(16,0), time(21,30))]
     if dia_semana == 3:                  # Jueves: hasta la 1, arranca 2, último 21:00
         return [(time(10,0), time(13,0)), (time(14,0), time(21,30))]
-    if dia_semana == 4:                  # Viernes: hasta la 1, arranca 2, último 22:00
-        return [(time(9,0), time(13,0)), (time(14,0), time(22,30))]
+    if dia_semana == 4:                  # Viernes: hasta la 1, arranca 2, último 16:30 (17:00-22:00 reservado)
+        return [(time(9,0), time(13,0)), (time(14,0), time(17,0))]
     if dia_semana == 5:                  # Sábado: hasta la 1, arranca 2, último 21:00
         return [(time(9,0), time(13,0)), (time(14,0), time(21,30))]
     return []

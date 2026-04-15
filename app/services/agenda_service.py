@@ -123,7 +123,8 @@ def crear_cita(nombre, telefono, barbero_id, fecha, hora, servicio=None, skip_cl
         if not skip_client_check:
             cita_cliente = Cita.query.filter(
                 Cita.cliente_id == cliente.id,
-                Cita.fecha >= (datetime.utcnow() - timedelta(hours=5)).date()
+                Cita.fecha >= (datetime.utcnow() - timedelta(hours=5)).date(),
+                Cita.estado != "cancelada"
             ).first()
 
             if cita_cliente:

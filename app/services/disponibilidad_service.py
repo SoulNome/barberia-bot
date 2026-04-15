@@ -138,10 +138,10 @@ HORARIOS = {
         ("14:00", "21:30")
     ],
 
-    # viernes — hasta la 1, arranca a las 2, último turno 22:00
+    # viernes — hasta la 1, arranca a las 2, último turno 16:30 (17:00-22:00 reservado)
     4: [
         ("09:00", "13:00"),
-        ("14:00", "22:30")
+        ("14:00", "17:00")
     ],
 
     # sábado — hasta la 1, arranca a las 2, último turno 21:00
