@@ -112,6 +112,13 @@ def _build_panel_data(fecha=None):
             except Exception:
                 pass
 
+    # Excluir de fijo_slots a los clientes fijos que cancelaron hoy
+    citas_canceladas_hoy = Cita.query.filter(Cita.fecha == hoy, Cita.estado == "cancelada").all()
+    for cc in citas_canceladas_hoy:
+        cli_c = clientes_dict.get(cc.cliente_id)
+        if cli_c and cli_c.fijo and cc.hora in fijo_slots:
+            del fijo_slots[cc.hora]
+
     agenda = []
     bloques = obtener_horarios_dia(dia_semana)
     total_slots = 0
@@ -396,8 +403,14 @@ def cancelar_cita_panel():
     fecha_str2  = str(cita.fecha)
     hora_str    = cita.hora.strftime("%H:%M")
     try:
-        db.session.delete(cita)
-        db.session.commit()
+        # Si es cliente fijo, marcar como cancelada (no borrar) para que el slot
+        # quede libre en el panel en lugar de seguir mostrándose como ocupado.
+        if cliente_obj and cliente_obj.fijo:
+            cita.estado = "cancelada"
+            db.session.commit()
+        else:
+            db.session.delete(cita)
+            db.session.commit()
         try:
             from app.services.recordatorio_service import notificar_barbero
             notificar_barbero(nombre_cliente=nombre_cli, fecha=fecha_str2, hora=hora_str, accion="cancelada")
