@@ -1,204 +1,139 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from datetime import date, datetime, timedelta
-
-from app.models.cita import Cita
-from app.models.cliente import Cliente
 from app.extensions import db
+from app.models import Cita, Cliente
+from datetime import datetime, timedelta
 
-from app.services.recordatorio_service import enviar_recordatorio
-
-
-# ------------------------------------------------
-# OBTENER CITAS DE MAÑANA
-# ------------------------------------------------
-
-def obtener_citas_de_manana():
-
-    manana = (datetime.utcnow() - timedelta(hours=5)).date() + timedelta(days=1)
-
-    citas = Cita.query.filter(
-        Cita.fecha == manana,
-        Cita.estado == "confirmada"
-    ).all()
-
-    lista = []
-
-    for cita in citas:
-
-        cliente = Cliente.query.get(cita.cliente_id)
-
-        if not cliente:
-            continue
-
-        lista.append({
-            "telefono": cliente.telefono,
-            "nombre": cliente.nombre,
-            "fecha": cita.fecha.strftime("%Y-%m-%d"),
-            "hora": cita.hora.strftime("%H:%M")
-        })
-
-    return lista
-
-
-# ------------------------------------------------
-# ENVIAR RECORDATORIOS
-# ------------------------------------------------
-
-def enviar_recordatorios(app):
-
-    with app.app_context():
-
-        print("📅 Buscando citas para enviar recordatorios...")
-
-        citas = obtener_citas_de_manana()
-
-        enviados = 0
-
-        for cita in citas:
-
-            ok = enviar_recordatorio(
-                cita["telefono"],
-                cita["nombre"],
-                cita["fecha"],
-                cita["hora"]
-            )
-
-            if ok:
-                enviados += 1
-
-        print(f"📲 Recordatorios enviados: {enviados}")
-
-
-# ------------------------------------------------
-# INICIAR SCHEDULER
-# ------------------------------------------------
 
 def enviar_recordatorios_fijos(app):
     with app.app_context():
+        from app.models.barberia import Barberia
         from app.services.recordatorio_service import enviar_recordatorio_fijo
-        clientes = Cliente.query.filter_by(fijo=True).all()
-        enviados = 0
-        for c in clientes:
-            if c.telefono and c.horario_fijo:
-                ok = enviar_recordatorio_fijo(c.telefono, c.nombre, c.horario_fijo)
-                if ok:
-                    enviados += 1
-        print(f"📲 Recordatorios fijos enviados: {enviados}/{len(clientes)}")
+
+        for barberia in Barberia.query.all():
+            clientes = Cliente.query.filter_by(fijo=True, barberia_id=barberia.id).all()
+            enviados = 0
+            for c in clientes:
+                if c.telefono and c.horario_fijo:
+                    ok = enviar_recordatorio_fijo(c.telefono, c.nombre, c.horario_fijo, barberia)
+                    if ok:
+                        enviados += 1
+            if clientes:
+                print(f"📲 [{barberia.nombre}] Recordatorios fijos enviados: {enviados}/{len(clientes)}")
 
 
 def crear_citas_fijos(app):
     """
-    Crea citas reales en la BD para clientes fijos para la semana en curso.
-    Se ejecuta cada lunes. Así los clientes fijos pueden usar el flujo
-    normal de reagendar/cancelar y sus turnos quedan protegidos en la BD.
+    Crea citas reales en la BD para clientes fijos de cada barbería.
+    Se ejecuta diariamente. Itera por barbería para respetar el aislamiento multi-tenant.
     """
     with app.app_context():
         from app.models.barbero import Barbero
+        from app.models.barberia import Barberia
         from app.services.disponibilidad_service import _parsear_horario_fijo, FESTIVOS
 
-        barbero_default = Barbero.query.order_by(Barbero.id).first()
-        if not barbero_default:
-            print("⚠ No hay barberos registrados, no se crean citas fijas")
-            return
-
         hoy = (datetime.utcnow() - timedelta(hours=5)).date()
-        clientes_fijos = Cliente.query.filter_by(fijo=True).all()
-        creadas = 0
 
-        for cf in clientes_fijos:
-            if not cf.horario_fijo or not cf.telefono:
+        for barberia in Barberia.query.all():
+
+            barbero_default = Barbero.query.filter_by(
+                barberia_id=barberia.id
+            ).order_by(Barbero.id).first()
+
+            if not barbero_default:
                 continue
 
-            for dias_ahead in range(7):
-                fecha_cita = hoy + timedelta(days=dias_ahead)
-                fecha_str = fecha_cita.strftime("%Y-%m-%d")
+            clientes_fijos = Cliente.query.filter_by(fijo=True, barberia_id=barberia.id).all()
+            creadas = 0
 
-                # Saltar festivos y domingos
-                if fecha_cita.weekday() == 6 or fecha_str in FESTIVOS:
+            for cf in clientes_fijos:
+                if not cf.horario_fijo or not cf.telefono:
                     continue
 
-                dia_semana = fecha_cita.weekday()
-                hora_str = _parsear_horario_fijo(cf.horario_fijo, dia_semana)
-                if not hora_str:
-                    continue
+                for dias_ahead in range(7):
+                    fecha_cita = hoy + timedelta(days=dias_ahead)
+                    fecha_str  = fecha_cita.strftime("%Y-%m-%d")
 
-                hora = datetime.strptime(hora_str, "%H:%M").time()
+                    if fecha_cita.weekday() == 6 or fecha_str in FESTIVOS:
+                        continue
 
-                # Buscar si ya existe una cita del cliente en esa fecha/hora
-                ya_existe = Cita.query.filter_by(
-                    cliente_id=cf.id,
-                    fecha=fecha_cita,
-                    hora=hora
-                ).first()
+                    dia_semana = fecha_cita.weekday()
+                    hora_str   = _parsear_horario_fijo(cf.horario_fijo, dia_semana)
+                    if not hora_str:
+                        continue
 
-                if ya_existe:
-                    if ya_existe.estado == "cancelada":
-                        # El cliente canceló este turno fijo intencionalmente.
-                        # Recrear SOLO si la fecha ya pasó (nueva semana).
-                        hoy_co = (datetime.utcnow() - timedelta(hours=5)).date()
-                        if fecha_cita >= hoy_co:
-                            continue  # sigue cancelada esta semana, no recrear
+                    hora = datetime.strptime(hora_str, "%H:%M").time()
+
+                    ya_existe = Cita.query.filter_by(
+                        cliente_id=cf.id,
+                        fecha=fecha_cita,
+                        hora=hora
+                    ).first()
+
+                    if ya_existe:
+                        if ya_existe.estado == "cancelada":
+                            hoy_co = (datetime.utcnow() - timedelta(hours=5)).date()
+                            if fecha_cita >= hoy_co:
+                                continue
+                            else:
+                                db.session.delete(ya_existe)
+                                db.session.flush()
                         else:
-                            # Fecha pasada y cancelada → limpiar para que no bloquee
-                            db.session.delete(ya_existe)
-                            db.session.flush()
-                    else:
-                        continue  # ya confirmada, nada que hacer
+                            continue
 
-                # No crear si el cliente ya reagendó a otro horario ese día
-                reagendo = Cita.query.filter(
-                    Cita.cliente_id == cf.id,
-                    Cita.fecha == fecha_cita,
-                    Cita.hora != hora,
-                    Cita.estado != "cancelada"
-                ).first()
-                if reagendo:
-                    continue
+                    # No crear si el cliente ya reagendó ese día
+                    reagendo = Cita.query.filter(
+                        Cita.cliente_id == cf.id,
+                        Cita.fecha == fecha_cita,
+                        Cita.hora != hora,
+                        Cita.estado != "cancelada"
+                    ).first()
+                    if reagendo:
+                        continue
 
-                # No crear si el slot fue tomado por otro cliente
-                conflicto = Cita.query.filter(
-                    Cita.barbero_id == barbero_default.id,
-                    Cita.fecha == fecha_cita,
-                    Cita.hora == hora,
-                    Cita.estado != "cancelada"
-                ).first()
-                if conflicto:
-                    print(f"⚠ Slot fijo {cf.nombre} {fecha_str} {hora_str} ocupado por otro cliente")
-                    continue
+                    # No crear si el slot fue tomado por otro
+                    conflicto = Cita.query.filter(
+                        Cita.barbero_id == barbero_default.id,
+                        Cita.fecha == fecha_cita,
+                        Cita.hora == hora,
+                        Cita.estado != "cancelada"
+                    ).first()
+                    if conflicto:
+                        print(f"⚠ [{barberia.nombre}] Slot fijo {cf.nombre} {fecha_str} {hora_str} ocupado")
+                        continue
 
-                nueva = Cita(
-                    cliente_id=cf.id,
-                    barbero_id=barbero_default.id,
-                    fecha=fecha_cita,
-                    hora=hora,
-                    servicio="📌 Turno fijo"
-                )
-                db.session.add(nueva)
-                creadas += 1
+                    nueva = Cita(
+                        cliente_id  = cf.id,
+                        barbero_id  = barbero_default.id,
+                        fecha       = fecha_cita,
+                        hora        = hora,
+                        servicio    = "📌 Turno fijo",
+                        barberia_id = barberia.id,
+                    )
+                    db.session.add(nueva)
+                    creadas += 1
 
-        try:
-            db.session.commit()
-            print(f"📌 Citas fijas creadas: {creadas}")
-        except Exception as e:
-            db.session.rollback()
-            print(f"⚠ Error creando citas fijas: {e}")
+            try:
+                db.session.commit()
+                if creadas:
+                    print(f"📌 [{barberia.nombre}] Citas fijas creadas: {creadas}")
+            except Exception as e:
+                db.session.rollback()
+                print(f"⚠ [{barberia.nombre}] Error creando citas fijas: {e}")
 
 
 def iniciar_scheduler(app):
-
     scheduler = BackgroundScheduler()
 
-    # Recordatorio citas de mañana — cada día a las 18:00 UTC (13:00 Colombia)
+    # Recordatorios diarios a las 08:00 Colombia (13:00 UTC)
     scheduler.add_job(
-        enviar_recordatorios,
+        enviar_recordatorios_fijos,
         "cron",
-        hour=18,
+        hour=13,
         minute=0,
         args=[app]
     )
 
-    # Crear citas reales para clientes fijos — cada día a las 11:00 UTC (06:00 Colombia)
-    # Corre diariamente para garantizar que los turnos fijos estén siempre en BD
+    # Crear citas fijos — cada día a las 06:00 Colombia (11:00 UTC)
     scheduler.add_job(
         crear_citas_fijos,
         "cron",
@@ -207,7 +142,7 @@ def iniciar_scheduler(app):
         args=[app]
     )
 
-    # Recordatorio clientes fijos — cada lunes a las 13:00 UTC (08:00 Colombia)
+    # Recordatorio clientes fijos — cada lunes a las 08:00 Colombia (13:00 UTC)
     scheduler.add_job(
         enviar_recordatorios_fijos,
         "cron",
@@ -218,5 +153,4 @@ def iniciar_scheduler(app):
     )
 
     scheduler.start()
-
-    print("⏰ Scheduler de recordatorios iniciado")
+    print("⏰ Scheduler iniciado")

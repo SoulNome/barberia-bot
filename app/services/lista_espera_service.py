@@ -4,38 +4,36 @@ from app.models.cliente import Cliente
 from app.services.agenda_service import normalizar_fecha
 
 
-# ------------------------------------------------
-# AGREGAR A LISTA DE ESPERA
-# ------------------------------------------------
-
-def agregar_a_espera(telefono, barbero_id, fecha, servicio=None):
+def agregar_a_espera(telefono, barbero_id, fecha, servicio=None, barberia_id=None):
     """
     Inscribe al cliente en la lista de espera para una fecha/barbero.
     Evita duplicados: un cliente no puede estar dos veces para el mismo día.
     """
     try:
-        cliente = Cliente.query.filter_by(telefono=telefono).first()
+        q = Cliente.query.filter_by(telefono=telefono)
+        if barberia_id:
+            q = q.filter_by(barberia_id=barberia_id)
+        cliente = q.first()
         if not cliente:
             return False, "No encontramos tu número en el sistema."
 
         fecha_obj = normalizar_fecha(fecha)
 
-        # Evitar duplicado
         existente = ListaEspera.query.filter_by(
-            cliente_id = cliente.id,
-            barbero_id = barbero_id,
-            fecha      = fecha_obj,
-            notificado = False,
+            cliente_id=cliente.id,
+            barbero_id=barbero_id,
+            fecha=fecha_obj,
+            notificado=False,
         ).first()
-
         if existente:
             return False, "Ya estás en la lista de espera para ese día."
 
         entrada = ListaEspera(
-            cliente_id = cliente.id,
-            barbero_id = barbero_id,
-            fecha      = fecha_obj,
-            servicio   = servicio,
+            cliente_id  = cliente.id,
+            barbero_id  = barbero_id,
+            fecha       = fecha_obj,
+            servicio    = servicio,
+            barberia_id = barberia_id,
         )
         db.session.add(entrada)
         db.session.commit()
@@ -46,25 +44,22 @@ def agregar_a_espera(telefono, barbero_id, fecha, servicio=None):
         return False, str(e)
 
 
-# ------------------------------------------------
-# NOTIFICAR LISTA DE ESPERA
-# Llamar cuando se cancela una cita
-# ------------------------------------------------
-
-def notificar_lista_espera(barbero_id, fecha):
+def notificar_lista_espera(barbero_id, fecha, barberia_id=None, barberia=None):
     """
-    Busca el primer cliente en espera para ese barbero/fecha
-    y le envía un WhatsApp avisando que hay turno disponible.
-    Marca la entrada como notificada.
+    Busca el primer cliente en espera para ese barbero/fecha y le avisa.
+    barberia: objeto Barberia opcional para credenciales de WhatsApp.
     """
     try:
         from app.services.recordatorio_service import _enviar_whatsapp
 
-        entrada = ListaEspera.query.filter_by(
-            barbero_id = barbero_id,
-            fecha      = fecha,
-            notificado = False,
-        ).order_by(ListaEspera.creado_en.asc()).first()
+        q = ListaEspera.query.filter_by(
+            barbero_id=barbero_id,
+            fecha=fecha,
+            notificado=False,
+        )
+        if barberia_id:
+            q = q.filter_by(barberia_id=barberia_id)
+        entrada = q.order_by(ListaEspera.creado_en.asc()).first()
 
         if not entrada:
             return
@@ -76,7 +71,6 @@ def notificar_lista_espera(barbero_id, fecha):
         from app.models.barbero import Barbero
         barbero = Barbero.query.get(barbero_id)
 
-        import locale
         DIAS_ES  = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"]
         MESES_ES = ["enero","febrero","marzo","abril","mayo","junio",
                     "julio","agosto","septiembre","octubre","noviembre","diciembre"]
@@ -92,8 +86,7 @@ def notificar_lista_espera(barbero_id, fecha):
             f"Escribe *1* para agendar antes de que se llene."
         )
 
-        ok = _enviar_whatsapp(cliente.telefono, msg)
-
+        ok = _enviar_whatsapp(cliente.telefono, msg, barberia)
         if ok:
             entrada.notificado = True
             db.session.commit()

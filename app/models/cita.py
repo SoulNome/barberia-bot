@@ -11,6 +11,8 @@ class Cita(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
+    barberia_id = db.Column(db.Integer, db.ForeignKey("barberias.id"), nullable=True, index=True)
+
     cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=False, index=True)
 
     barbero_id = db.Column(db.Integer, db.ForeignKey("barberos.id"), nullable=False, index=True)

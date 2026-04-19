@@ -1,20 +1,35 @@
 import os
 import requests
 
-EVOLUTION_API_URL      = os.getenv("EVOLUTION_API_URL", "")
-EVOLUTION_API_KEY      = os.getenv("EVOLUTION_API_KEY", "")
-EVOLUTION_INSTANCE     = os.getenv("EVOLUTION_INSTANCE", "")
-HERMES_PHONE           = os.getenv("HERMES_PHONE", "")
+# Credenciales globales (fallback para barbería por defecto)
+_DEFAULT_EVO_URL      = os.getenv("EVOLUTION_API_URL", "")
+_DEFAULT_EVO_KEY      = os.getenv("EVOLUTION_API_KEY", "")
+_DEFAULT_EVO_INSTANCE = os.getenv("EVOLUTION_INSTANCE", "")
+_DEFAULT_HERMES_PHONE = os.getenv("HERMES_PHONE", "")
 
 
-def _enviar_whatsapp(numero, texto):
-    """Envía un mensaje via Evolution API."""
-    if not EVOLUTION_API_URL or not EVOLUTION_INSTANCE:
+def _enviar_whatsapp(numero, texto, barberia=None):
+    """
+    Envía un mensaje via Evolution API.
+    Si se pasa un objeto Barberia, usa sus credenciales; si no, usa las env vars globales.
+    """
+    if barberia:
+        api_url  = barberia.evolution_api_url  or _DEFAULT_EVO_URL
+        api_key  = barberia.evolution_api_key  or _DEFAULT_EVO_KEY
+        instance = barberia.evolution_instance or _DEFAULT_EVO_INSTANCE
+    else:
+        api_url  = _DEFAULT_EVO_URL
+        api_key  = _DEFAULT_EVO_KEY
+        instance = _DEFAULT_EVO_INSTANCE
+
+    if not api_url or not instance:
         print("⚠ Evolution API no configurada, no se envió mensaje")
         return False
-    url = f"{EVOLUTION_API_URL}/message/sendText/{EVOLUTION_INSTANCE}"
-    headers = {"apikey": EVOLUTION_API_KEY, "Content-Type": "application/json"}
+
+    url     = f"{api_url}/message/sendText/{instance}"
+    headers = {"apikey": api_key, "Content-Type": "application/json"}
     payload = {"number": numero, "text": texto}
+
     try:
         r = requests.post(url, json=payload, headers=headers, timeout=10)
         r.raise_for_status()
@@ -23,10 +38,6 @@ def _enviar_whatsapp(numero, texto):
         print(f"⚠ Error enviando mensaje a {numero}: {e}")
         return False
 
-
-# ------------------------------------------------
-# MENSAJE RECORDATORIO
-# ------------------------------------------------
 
 def construir_mensaje(nombre, fecha, hora):
     return (
@@ -41,23 +52,18 @@ def construir_mensaje(nombre, fecha, hora):
     )
 
 
-# ------------------------------------------------
-# ENVIAR RECORDATORIO INDIVIDUAL
-# ------------------------------------------------
-
-def enviar_recordatorio(telefono, nombre, fecha, hora):
+def enviar_recordatorio(telefono, nombre, fecha, hora, barberia=None):
     if not telefono:
         return False
     mensaje = construir_mensaje(nombre, fecha, hora)
-    return _enviar_whatsapp(telefono, mensaje)
+    return _enviar_whatsapp(telefono, mensaje, barberia)
 
 
-# ------------------------------------------------
-# NOTIFICAR AL BARBERO
-# ------------------------------------------------
-
-def notificar_barbero(nombre_cliente, fecha, hora, servicio=None, barbero_nombre=None, accion="nueva"):
-    if not HERMES_PHONE:
+def notificar_barbero(nombre_cliente, fecha, hora, servicio=None, barbero_nombre=None,
+                      accion="nueva", barberia=None):
+    # Número del barbero: primero del objeto barbería, luego env var global
+    phone = (barberia.whatsapp_barbero if barberia else None) or _DEFAULT_HERMES_PHONE
+    if not phone:
         return
     if accion == "nueva":
         svc  = f"\n✂️ {servicio}"      if servicio       else ""
@@ -65,14 +71,10 @@ def notificar_barbero(nombre_cliente, fecha, hora, servicio=None, barbero_nombre
         msg  = f"💈 *Nueva cita agendada*\n\n👤 {nombre_cliente}\n📅 {fecha}\n⏰ {hora}{svc}{barb}"
     else:
         msg = f"❌ *Cita cancelada*\n\n👤 {nombre_cliente}\n📅 {fecha}\n⏰ {hora}"
-    _enviar_whatsapp(HERMES_PHONE, msg)
+    _enviar_whatsapp(phone, msg, barberia)
 
 
-# ------------------------------------------------
-# RECORDATORIO FIJO (SEMANAL)
-# ------------------------------------------------
-
-def enviar_recordatorio_fijo(telefono, nombre, horario):
+def enviar_recordatorio_fijo(telefono, nombre, horario, barberia=None):
     if not telefono:
         return False
     mensaje = (
@@ -83,14 +85,10 @@ def enviar_recordatorio_fijo(telefono, nombre, horario):
         f"Si necesitas cambiarla escribe *reagendar*.\n\n"
         f"¡Te esperamos!"
     )
-    return _enviar_whatsapp(telefono, mensaje)
+    return _enviar_whatsapp(telefono, mensaje, barberia)
 
 
-# ------------------------------------------------
-# ENVIAR RECORDATORIOS MASIVOS
-# ------------------------------------------------
-
-def enviar_recordatorios(lista_citas):
+def enviar_recordatorios(lista_citas, barberia=None):
     enviados = 0
     for cita in lista_citas:
         ok = enviar_recordatorio(
@@ -98,6 +96,7 @@ def enviar_recordatorios(lista_citas):
             cita.get("nombre"),
             cita.get("fecha"),
             cita.get("hora"),
+            barberia,
         )
         if ok:
             enviados += 1

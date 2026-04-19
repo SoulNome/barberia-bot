@@ -10,25 +10,21 @@ import unicodedata
 # ------------------------------------------------
 
 def _colombia_now():
-    """Hora actual en Colombia (UTC-5)."""
     return datetime.utcnow() - timedelta(hours=5)
 
 
 def _sin_tildes(s):
-    """miércoles → miercoles, sábado → sabado"""
     return ''.join(
         c for c in unicodedata.normalize('NFD', s)
         if unicodedata.category(c) != 'Mn'
     )
 
 
-# Mapa sin tildes para comparación segura
 _DIAS_A_NUM = {
     "lunes": 0, "martes": 1, "miercoles": 2,
     "jueves": 3, "viernes": 4, "sabado": 5, "domingo": 6
 }
 
-# Mapa original con tildes (para _parsear_horario_fijo)
 _DIAS_NUM = {
     "lunes": 0, "martes": 1,
     "miércoles": 2, "miercoles": 2,
@@ -38,20 +34,12 @@ _DIAS_NUM = {
 
 
 def _dia_nombre_a_fecha(texto):
-    """
-    Convierte un nombre de día en español a la próxima fecha con ese weekday.
-    Usa aritmética de Python pura — NO depende de dateparser.
-    Ejemplos: "miércoles" → próximo miércoles, "próximo viernes" → el de la semana siguiente.
-    Devuelve datetime en hora Colombia, o None si no reconoce ningún día.
-    """
     t = _sin_tildes(texto.strip().lower())
     es_proximo = "proximo" in t or "siguiente" in t
-
     for nombre, num in _DIAS_A_NUM.items():
         if nombre in t:
             hoy = _colombia_now()
             dias_diff = (num - hoy.weekday()) % 7
-            # "próximo lunes" cuando hoy es lunes → semana siguiente
             if es_proximo and dias_diff == 0:
                 dias_diff = 7
             return hoy + timedelta(days=dias_diff)
@@ -59,13 +47,6 @@ def _dia_nombre_a_fecha(texto):
 
 
 def _parsear_horario_fijo(horario_str, dia_semana):
-    """
-    Dado un string como 'Lunes 10:00', 'Martes y Jueves 16:00',
-    o 'Miercoles 6:00 am y Sabados 6:30 pm',
-    devuelve la hora (str HH:MM) si el dia_semana coincide, si no None.
-    Soporta am/pm, múltiples entradas separadas por 'y', y horas
-    ambiguas 1-8 sin indicador (asume PM).
-    """
     if not horario_str:
         return None
     texto = horario_str.lower()
@@ -87,7 +68,6 @@ def _parsear_horario_fijo(horario_str, dia_semana):
         elif ampm == "am" and h == 12:
             h = 0
         elif ampm is None and 1 <= h <= 8:
-            # Sin indicador, horas 1-8 → asumir PM (tarde/noche)
             h += 12
         return f"{h:02d}:{mins:02d}"
     return None
@@ -100,103 +80,26 @@ def _parsear_horario_fijo(horario_str, dia_semana):
 INTERVALO_MINUTOS = 30
 DOMINGO = 6
 
-
-# ------------------------------------------------
-# HORARIOS POR DÍA
-# ------------------------------------------------
-# 0 lunes
-# 1 martes
-# 2 miércoles
-# 3 jueves
-# 4 viernes
-# 5 sábado
-# 6 domingo
-
 HORARIOS = {
-
-    # lunes — último turno 21:00
-    0: [
-        ("10:00", "12:00"),
-        ("16:00", "21:30")
-    ],
-
-    # martes — último turno 21:00
-    1: [
-        ("10:00", "12:00"),
-        ("16:00", "21:30")
-    ],
-
-    # miércoles — último turno 21:00
-    2: [
-        ("10:00", "12:00"),
-        ("16:00", "21:30")
-    ],
-
-    # jueves — hasta la 1, arranca a las 2, último turno 21:00
-    3: [
-        ("10:00", "13:00"),
-        ("14:00", "21:30")
-    ],
-
-    # viernes — hasta la 1, arranca a las 2, último turno 16:30 (17:00-22:00 reservado)
-    4: [
-        ("09:00", "13:00"),
-        ("14:00", "17:00")
-    ],
-
-    # sábado — hasta la 1, arranca a las 2, último turno 21:00
-    5: [
-        ("09:00", "13:00"),
-        ("14:00", "21:30")
-    ]
-
+    0: [("10:00", "12:00"), ("16:00", "21:30")],
+    1: [("10:00", "12:00"), ("16:00", "21:30")],
+    2: [("10:00", "12:00"), ("16:00", "21:30")],
+    3: [("10:00", "13:00"), ("14:00", "21:30")],
+    4: [("09:00", "13:00"), ("14:00", "17:00")],
+    5: [("09:00", "13:00"), ("14:00", "21:30")],
 }
-
-
-# ------------------------------------------------
-# FESTIVOS COLOMBIA
-# Incluye fijos y los movibles (Ley Emiliani) para 2025 y 2026
-# ------------------------------------------------
 
 FESTIVOS = {
     # ── 2025 ─────────────────────────────────────
-    "2025-01-01",  # Año Nuevo
-    "2025-01-06",  # Reyes Magos
-    "2025-03-24",  # San José (movido a lunes)
-    "2025-04-17",  # Jueves Santo
-    "2025-04-18",  # Viernes Santo
-    "2025-05-01",  # Día del Trabajo
-    "2025-06-02",  # Ascensión del Señor (movido a lunes)
-    "2025-06-23",  # Corpus Christi (movido a lunes)
-    "2025-06-30",  # Sagrado Corazón / San Pedro y San Pablo
-    "2025-07-20",  # Independencia
-    "2025-08-07",  # Batalla de Boyacá
-    "2025-08-18",  # Asunción (movido a lunes)
-    "2025-10-13",  # Día de la Raza (movido a lunes)
-    "2025-11-03",  # Todos los Santos (movido a lunes)
-    "2025-11-17",  # Independencia de Cartagena (movido a lunes)
-    "2025-12-08",  # Inmaculada Concepción
-    "2025-12-25",  # Navidad
-
+    "2025-01-01", "2025-01-06", "2025-03-24", "2025-04-17", "2025-04-18",
+    "2025-05-01", "2025-06-02", "2025-06-23", "2025-06-30", "2025-07-20",
+    "2025-08-07", "2025-08-18", "2025-10-13", "2025-11-03", "2025-11-17",
+    "2025-12-08", "2025-12-25",
     # ── 2026 ─────────────────────────────────────
-    "2026-01-01",  # Año Nuevo
-    "2026-01-12",  # Reyes Magos (movido a lunes)
-    "2026-03-23",  # San José (movido a lunes)
-    "2026-04-02",  # Jueves Santo
-    "2026-04-03",  # Viernes Santo
-    "2026-05-01",  # Día del Trabajo
-    "2026-05-18",  # Ascensión del Señor (movido a lunes)
-    "2026-06-08",  # Corpus Christi (movido a lunes)
-    "2026-06-15",  # Sagrado Corazón (movido a lunes)
-    "2026-06-29",  # San Pedro y San Pablo
-    "2026-07-20",  # Independencia
-    "2026-08-07",  # Batalla de Boyacá
-    "2026-08-17",  # Asunción (movido a lunes)
-    "2026-10-12",  # Día de la Raza
-    "2026-11-02",  # Todos los Santos (movido a lunes)
-    "2026-11-16",  # Independencia de Cartagena (movido a lunes)
-    "2026-12-08",  # Inmaculada Concepción
-    "2026-12-25",  # Navidad
+    "2026-01-01", "2026-01-12", "2026-03-23", "2026-04-02", "2026-04-03",
+    "2026-05-01", "2026-05-18", "2026-06-08", "2026-06-15", "2026-06-29",
+    "2026-07-20", "2026-08-07", "2026-08-17", "2026-10-12", "2026-11-02",
+    "2026-11-16", "2026-12-08", "2026-12-25",
 }
 
 
@@ -205,41 +108,27 @@ FESTIVOS = {
 # ------------------------------------------------
 
 def normalizar_fecha(fecha):
-
     if isinstance(fecha, str):
-
         f = fecha.strip().lower()
-
         if f == "hoy":
             return _colombia_now()
-
         if f in ("mañana", "manana"):
             return _colombia_now() + timedelta(days=1)
-
         if f in ("pasado mañana", "pasado manana"):
             return _colombia_now() + timedelta(days=2)
-
-        # Formato ISO exacto
         try:
             return datetime.strptime(f, "%Y-%m-%d")
         except ValueError:
             pass
-
-        # Nombre de día en español — parser propio, nunca dateparser
         por_nombre = _dia_nombre_a_fecha(f)
         if por_nombre:
             return por_nombre
-
-        # Último recurso: dateparser solo para fechas absolutas ("15 de abril", etc.)
         parsed = dateparser.parse(f, languages=["es"], settings={"PREFER_DATES_FROM": "future"})
         if parsed:
             return parsed
-
         return None
-
     if isinstance(fecha, datetime):
         return fecha
-
     try:
         return datetime.combine(fecha, time())
     except Exception:
@@ -247,24 +136,15 @@ def normalizar_fecha(fecha):
 
 
 # ------------------------------------------------
-# GENERAR SLOTS DE HORARIO
+# GENERAR SLOTS
 # ------------------------------------------------
 
 def generar_slots(inicio, fin):
-
-    """
-    Genera slots cada INTERVALO_MINUTOS
-    """
-
     slots = []
     actual = inicio
-
     while actual < fin:
-
         slots.append(actual.time())
-
         actual += timedelta(minutes=INTERVALO_MINUTOS)
-
     return slots
 
 
@@ -272,129 +152,85 @@ def generar_slots(inicio, fin):
 # OBTENER HORARIOS DISPONIBLES
 # ------------------------------------------------
 
-def obtener_horarios_disponibles(barbero_id, fecha):
-
+def obtener_horarios_disponibles(barbero_id, fecha, barberia_id=None):
     try:
-
-        # ------------------------------------------------
-        # NORMALIZAR FECHA
-        # ------------------------------------------------
-
         fecha_obj = normalizar_fecha(fecha)
-
         if not fecha_obj:
             return []
 
         fecha_date = fecha_obj.date()
-
-        hoy = datetime.utcnow() - timedelta(hours=5)  # Colombia UTC-5
-
+        hoy        = datetime.utcnow() - timedelta(hours=5)
         dia_semana = fecha_obj.weekday()
-
-        fecha_str = fecha_obj.strftime("%Y-%m-%d")
-
-
-        # ------------------------------------------------
-        # FESTIVOS
-        # ------------------------------------------------
+        fecha_str  = fecha_obj.strftime("%Y-%m-%d")
 
         if fecha_str in FESTIVOS:
             return "festivo"
-
-        # ------------------------------------------------
-        # DOMINGO CERRADO
-        # ------------------------------------------------
-
         if dia_semana == DOMINGO:
             return "domingo"
 
+        # Usar horarios propios de la barbería si tiene config; si no, los globales
+        horarios_config = HORARIOS
+        if barberia_id:
+            try:
+                from app.models.barberia import Barberia
+                b = Barberia.query.get(barberia_id)
+                if b:
+                    horarios_config = b.get_horarios()
+            except Exception:
+                pass
 
-        # ------------------------------------------------
-        # OBTENER BLOQUES DEL DÍA
-        # ------------------------------------------------
-
-        bloques = HORARIOS.get(dia_semana)
-
+        bloques = horarios_config.get(dia_semana)
         if not bloques:
             return []
 
-
         slots = []
-
-
-        # ------------------------------------------------
-        # GENERAR SLOTS DE LOS BLOQUES
-        # ------------------------------------------------
-
         for inicio_str, fin_str in bloques:
-
             inicio_time = datetime.strptime(inicio_str, "%H:%M").time()
-            fin_time = datetime.strptime(fin_str, "%H:%M").time()
-
+            fin_time    = datetime.strptime(fin_str,    "%H:%M").time()
             inicio = datetime.combine(fecha_date, inicio_time)
-            fin = datetime.combine(fecha_date, fin_time)
-
-            slots_bloque = generar_slots(inicio, fin)
-
-            slots.extend(slots_bloque)
-
-
-        # ------------------------------------------------
-        # BLOQUEAR HORAS PASADAS
-        # ------------------------------------------------
+            fin    = datetime.combine(fecha_date, fin_time)
+            slots.extend(generar_slots(inicio, fin))
 
         if fecha_date == hoy.date():
-
-            slots = [
-                s for s in slots
-                if datetime.combine(fecha_date, s) > hoy
-            ]
-
-
-        # ------------------------------------------------
-        # OBTENER CITAS OCUPADAS
-        # ------------------------------------------------
+            slots = [s for s in slots if datetime.combine(fecha_date, s) > hoy]
 
         citas = Cita.query.filter(
             Cita.barbero_id == int(barbero_id),
             Cita.fecha == fecha_date,
             Cita.estado != "cancelada"
         ).all()
-
         ocupadas = {c.hora for c in citas}
 
-        # Bloquear horarios de clientes fijos aunque no tengan cita en DB
+        # Bloquear horarios de clientes fijos (filtrado por barbería)
         try:
-            clientes_fijos = Cliente.query.filter_by(fijo=True).all()
-            for cf in clientes_fijos:
+            q_fijos = Cliente.query.filter_by(fijo=True)
+            if barberia_id:
+                q_fijos = q_fijos.filter_by(barberia_id=barberia_id)
+            for cf in q_fijos.all():
                 hora_fija_str = _parsear_horario_fijo(cf.horario_fijo, dia_semana)
                 if hora_fija_str:
                     t = datetime.strptime(hora_fija_str, "%H:%M").time()
-                    ocupadas.add(t)
+                    # Solo bloquear si NO hay una cita cancelada de ese cliente en ese slot
+                    cita_cancelada = Cita.query.filter_by(
+                        cliente_id=cf.id,
+                        fecha=fecha_date,
+                        hora=t,
+                        estado="cancelada"
+                    ).first()
+                    if not cita_cancelada:
+                        ocupadas.add(t)
         except Exception as e:
             print("⚠ Error bloqueando horarios fijos:", e)
 
-
-        # ------------------------------------------------
-        # GENERAR RESPUESTA FINAL
-        # ------------------------------------------------
-
         horarios = []
-
         for slot in slots:
-
-            disponible = slot not in ocupadas
-
             horarios.append({
                 "hora": slot.strftime("%H:%M"),
-                "disponible": disponible
+                "disponible": slot not in ocupadas
             })
-
 
         return horarios
 
-
     except Exception as e:
-
         print("⚠ Error obteniendo horarios:", e)
         return None

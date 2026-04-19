@@ -10,13 +10,11 @@ import re
 # ------------------------------------------------
 
 def normalizar_fecha(fecha):
-
     if isinstance(fecha, str):
         try:
             return datetime.strptime(fecha, "%Y-%m-%d").date()
         except ValueError:
             pass
-        # Fallback: usar el mismo parser confiable de disponibilidad_service
         from app.services.disponibilidad_service import _dia_nombre_a_fecha
         por_nombre = _dia_nombre_a_fecha(fecha)
         if por_nombre:
@@ -26,143 +24,101 @@ def normalizar_fecha(fecha):
         if parsed:
             return parsed.date()
         return None
-
     return fecha
 
 
 def normalizar_hora(hora):
-
     if isinstance(hora, str):
-
         hora = hora.strip().lower()
-
-        # aceptar formato 13:30:00
         if len(hora) == 8:
             hora = hora[:5]
-
-        # aceptar formato 1pm
         match = re.match(r"(\d{1,2})\s*pm", hora)
         if match:
             h = int(match.group(1))
             if h != 12:
                 h += 12
             return datetime.strptime(f"{h}:00", "%H:%M").time()
-
-        # aceptar formato 1am
         match = re.match(r"(\d{1,2})\s*am", hora)
         if match:
             h = int(match.group(1))
             if h == 12:
                 h = 0
             return datetime.strptime(f"{h}:00", "%H:%M").time()
-
         return datetime.strptime(hora, "%H:%M").time()
-
     return hora
 
 
 def formatear_hora(hora):
-
     if isinstance(hora, str):
         hora = normalizar_hora(hora)
-
     return hora.strftime("%H:%M")
 
 
-def _buscar_cliente(telefono):
+def _buscar_cliente(telefono, barberia_id=None):
     """
     Busca un cliente normalizando el formato del teléfono.
-    El panel guarda "573001234567" y el bot llega con "+573001234567".
-    Prueba el valor exacto y luego con/sin el prefijo '+'.
+    Filtra por barberia_id si se indica.
     """
     tel = telefono.strip()
-    c = Cliente.query.filter_by(telefono=tel).first()
-    if c:
-        return c
     alt = tel[1:] if tel.startswith('+') else ('+' + tel)
-    return Cliente.query.filter_by(telefono=alt).first()
 
-
-def obtener_o_crear_cliente(nombre, telefono):
-
-    cliente = _buscar_cliente(telefono)
-
-    if not cliente:
-
-        cliente = Cliente(
-            nombre=nombre,
-            telefono=telefono
-        )
-
-        db.session.add(cliente)
-        db.session.commit()
-
-    return cliente
+    for t in (tel, alt):
+        q = Cliente.query.filter_by(telefono=t)
+        if barberia_id:
+            q = q.filter_by(barberia_id=barberia_id)
+        c = q.first()
+        if c:
+            return c
+    return None
 
 
 # ------------------------------------------------
 # CREAR CITA
 # ------------------------------------------------
 
-def crear_cita(nombre, telefono, barbero_id, fecha, hora, servicio=None, skip_client_check=False):
-
+def crear_cita(nombre, telefono, barbero_id, fecha, hora, servicio,
+               skip_client_check=False, barberia_id=None):
     try:
-
         fecha = normalizar_fecha(fecha)
-        if not fecha:
-            return False, "❌ Fecha inválida. Intenta con un formato como 2026-04-15."
+        hora  = normalizar_hora(hora)
 
-        hora = normalizar_hora(hora)
+        if not fecha or not hora:
+            return False, "❌ Fecha u hora inválida."
 
-        cliente = obtener_o_crear_cliente(nombre, telefono)
+        # ── Obtener o crear cliente ───────────────────────────────────────────
+        from app.services.clientes_service import obtener_o_crear_cliente
+        cliente = obtener_o_crear_cliente(nombre, telefono, barberia_id)
 
-        # ------------------------------------------------
-        # VERIFICAR SI CLIENTE YA TIENE CITA
-        # ------------------------------------------------
-
+        # ── Verificar cita existente del cliente ──────────────────────────────
         if not skip_client_check:
-            cita_cliente = Cita.query.filter(
+            cita_existente_cliente = Cita.query.filter(
                 Cita.cliente_id == cliente.id,
-                Cita.fecha >= (datetime.utcnow() - timedelta(hours=5)).date(),
+                Cita.fecha == fecha,
                 Cita.estado != "cancelada"
             ).first()
+            if cita_existente_cliente:
+                return False, "❌ Ya tienes una cita ese día. Cancela la anterior o elige otro día."
 
-            if cita_cliente:
-
-                return False, f"""
-❌ Ya tienes una cita registrada:
-
-📅 {cita_cliente.fecha}
-⏰ {formatear_hora(cita_cliente.hora)}
-
-Si deseas cancelarla escribe:
-
-cancelar {cita_cliente.fecha} {formatear_hora(cita_cliente.hora)}
-"""
-
-        # ------------------------------------------------
-        # VERIFICAR SI HORARIO OCUPADO (primera barrera)
-        # ------------------------------------------------
-
-        cita_existente = Cita.query.filter_by(
-            barbero_id=barbero_id,
-            fecha=fecha,
-            hora=hora
+        # ── Verificar slot disponible ─────────────────────────────────────────
+        cita_existente = Cita.query.filter(
+            Cita.barbero_id == int(barbero_id),
+            Cita.fecha == fecha,
+            Cita.hora == hora,
+            Cita.estado != "cancelada"
         ).first()
-
         if cita_existente:
             return False, "❌ Ese horario ya está ocupado. Por favor elige otro."
 
-        # ------------------------------------------------
-        # VERIFICAR SI HORARIO ES DE CLIENTE FIJO (segunda barrera)
-        # ------------------------------------------------
-
+        # ── Verificar slot de cliente fijo ────────────────────────────────────
         try:
             from app.services.disponibilidad_service import _parsear_horario_fijo as _chk_fijo
             dia_semana = fecha.weekday()
-            for cf in Cliente.query.filter_by(fijo=True).all():
+            q_fijos = Cliente.query.filter_by(fijo=True)
+            if barberia_id:
+                q_fijos = q_fijos.filter_by(barberia_id=barberia_id)
+            for cf in q_fijos.all():
                 if cf.telefono == telefono:
-                    continue  # el mismo cliente fijo puede confirmar su propio turno
+                    continue
                 hora_fija_str = _chk_fijo(cf.horario_fijo, dia_semana)
                 if hora_fija_str:
                     t_fijo = datetime.strptime(hora_fija_str, "%H:%M").time()
@@ -171,64 +127,37 @@ cancelar {cita_cliente.fecha} {formatear_hora(cita_cliente.hora)}
         except Exception as e:
             print(f"⚠ Error verificando fijos en crear_cita: {e}")
 
-        # ------------------------------------------------
-        # CREAR CITA
-        # ------------------------------------------------
-
-        nueva_cita = Cita(
-            cliente_id=cliente.id,
-            barbero_id=barbero_id,
-            fecha=fecha,
-            hora=hora,
-            servicio=servicio
+        # ── Crear cita ────────────────────────────────────────────────────────
+        nueva = Cita(
+            cliente_id  = cliente.id,
+            barbero_id  = int(barbero_id),
+            fecha       = fecha,
+            hora        = hora,
+            servicio    = servicio,
+            barberia_id = barberia_id,
         )
+        db.session.add(nueva)
+        db.session.commit()
+        return True, "✅ Cita creada correctamente."
 
-        db.session.add(nueva_cita)
-
-        try:
-            db.session.commit()
-        except IntegrityError:
-            # Segunda barrera: la BD rechazó el turno duplicado
-            db.session.rollback()
-            return False, "❌ Ese horario acaba de ser tomado por otro cliente. Por favor elige otro turno."
-
-        try:
-            from app.models import Barbero
-            from app.services.recordatorio_service import notificar_barbero
-            barbero = Barbero.query.get(barbero_id)
-            notificar_barbero(
-                nombre_cliente=nombre,
-                fecha=str(fecha),
-                hora=hora.strftime("%H:%M"),
-                servicio=servicio,
-                barbero_nombre=barbero.nombre if barbero else None,
-                accion="nueva"
-            )
-        except Exception:
-            pass
-
-        return True, "Cita creada correctamente"
-
-    except Exception as e:
-
+    except IntegrityError:
         db.session.rollback()
-
-        return False, f"Error creando cita: {str(e)}"
+        return False, "❌ Ese horario ya está ocupado. Por favor elige otro."
+    except Exception as e:
+        db.session.rollback()
+        return False, f"Error al crear cita: {str(e)}"
 
 
 # ------------------------------------------------
 # CANCELAR CITA
 # ------------------------------------------------
 
-def cancelar_cita(telefono, fecha, hora):
-
+def cancelar_cita(telefono, fecha, hora, barberia_id=None):
     try:
-
         fecha = normalizar_fecha(fecha)
-        hora = normalizar_hora(hora)
+        hora  = normalizar_hora(hora)
 
-        cliente = _buscar_cliente(telefono)
-
+        cliente = _buscar_cliente(telefono, barberia_id)
         if not cliente:
             return False, "❌ No encontramos un cliente con ese número."
 
@@ -237,7 +166,6 @@ def cancelar_cita(telefono, fecha, hora):
             fecha=fecha,
             hora=hora
         ).first()
-
         if not cita:
             return False, "❌ No encontramos esa cita."
 
@@ -246,30 +174,23 @@ def cancelar_cita(telefono, fecha, hora):
         es_turno_fijo       = (cita.servicio or "").startswith("📌")
 
         if es_turno_fijo:
-            # Para turnos fijos: marcar como cancelada SIN borrar el registro.
-            # Así el scheduler no la recrea el día siguiente.
-            # La UniqueConstraint se libera cambiando barbero_id a NULL-safe vía estado.
-            # Usamos delete igual pero bloqueamos la recreación via check en scheduler.
             cita.estado = "cancelada"
             db.session.commit()
         else:
             db.session.delete(cita)
             db.session.commit()
 
-        # Notificar lista de espera si alguien está esperando (solo citas borradas)
         if not es_turno_fijo:
             try:
                 from app.services.lista_espera_service import notificar_lista_espera
-                notificar_lista_espera(barbero_id_guardado, fecha_guardada)
+                notificar_lista_espera(barbero_id_guardado, fecha_guardada, barberia_id)
             except Exception:
                 pass
 
         return True, "✅ Tu cita fue cancelada correctamente."
 
     except Exception as e:
-
         db.session.rollback()
-
         return False, f"Error cancelando cita: {str(e)}"
 
 
@@ -277,33 +198,16 @@ def cancelar_cita(telefono, fecha, hora):
 # VER PRÓXIMA CITA
 # ------------------------------------------------
 
-def obtener_cita_cliente(telefono):
-
-    cliente = _buscar_cliente(telefono)
-
+def obtener_cita_cliente(telefono, barberia_id=None):
+    cliente = _buscar_cliente(telefono, barberia_id)
     if not cliente:
         return None
 
-    cita = Cita.query.filter(
+    hoy = (datetime.utcnow() - timedelta(hours=5)).date()
+
+    q = Cita.query.filter(
         Cita.cliente_id == cliente.id,
-        Cita.fecha >= (datetime.utcnow() - timedelta(hours=5)).date(),
+        Cita.fecha >= hoy,
         Cita.estado != "cancelada"
-    ).order_by(Cita.fecha.asc()).first()
-
-    return cita
-
-
-# ------------------------------------------------
-# VERIFICAR SI EXISTE CITA
-# ------------------------------------------------
-
-def cita_existente(barbero_id, fecha, hora):
-
-    fecha = normalizar_fecha(fecha)
-    hora = normalizar_hora(hora)
-
-    return Cita.query.filter_by(
-        barbero_id=barbero_id,
-        fecha=fecha,
-        hora=hora
-    ).first()
+    )
+    return q.order_by(Cita.fecha, Cita.hora).first()
