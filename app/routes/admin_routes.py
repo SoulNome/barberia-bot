@@ -15,11 +15,10 @@ from datetime import datetime, timedelta, date
 
 admin_bp = Blueprint("admin", __name__)
 
-ADMIN_KEY = os.getenv("ADMIN_KEY")
-
 
 def _check_key(key):
-    return ADMIN_KEY and key == ADMIN_KEY
+    admin_key = os.getenv("ADMIN_KEY")
+    return admin_key and key == admin_key
 
 
 def _colombia_today():
@@ -55,9 +54,14 @@ def admin_panel():
     barberias = Barberia.query.order_by(Barberia.id).all()
     datos = []
     for b in barberias:
+        try:
+            stats = _stats_barberia(b.id)
+        except Exception as e:
+            print(f"[ADMIN] Error al cargar stats de barbería {b.id}: {e}")
+            stats = {"clientes": 0, "barberos": 0, "citas_hoy": 0, "citas_semana": 0}
         datos.append({
             "barberia": b,
-            "stats":    _stats_barberia(b.id),
+            "stats":    stats,
         })
 
     return render_template(

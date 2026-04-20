@@ -48,7 +48,7 @@ def _run_startup_migrations(app):
                     changes.append(f"barberias.{col}")
 
             # ── barberia_id en tablas de datos ────────────────────────────────
-            for table in ("clientes", "citas", "user_states", "lista_espera"):
+            for table in ("clientes", "citas", "user_states", "lista_espera", "barberos"):
                 if not col_exists(table, "barberia_id"):
                     conn.execute(text(
                         f"ALTER TABLE {table} ADD COLUMN barberia_id INTEGER REFERENCES barberias(id)"
@@ -85,7 +85,7 @@ def _run_startup_migrations(app):
                 text("SELECT id FROM barberias ORDER BY id LIMIT 1")
             ).scalar()
             if first_id:
-                for table in ("clientes", "citas", "user_states", "lista_espera"):
+                for table in ("clientes", "citas", "user_states", "lista_espera", "barberos"):
                     conn.execute(text(
                         f"UPDATE {table} SET barberia_id = :bid WHERE barberia_id IS NULL"
                     ), {"bid": first_id})
