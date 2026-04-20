@@ -19,23 +19,23 @@ Arquitectura multi-tenant: cada barbería tiene sus propios datos, credenciales 
 - Permite: crear barbería, asignar slug/panel_key/credenciales Evolution, configurar horarios y precios
 - También: ver lista de barberías activas y sus métricas básicas
 
-### 3. Recordatorios automáticos para citas regulares (no solo fijos) ⬅ SIGUIENTE
+### 3. Recordatorios automáticos para citas regulares (no solo fijos) ✅ COMPLETADO
 - Los clientes normales no reciben recordatorio el día anterior a su cita
 - El scheduler ya corre diariamente; agregar job que envíe WhatsApp a todos con cita mañana
 - Por barbería, usando sus propias credenciales de Evolution
 
-### 4. Actualizar Evolution API a v2 (fix @lid)
+### 4. Actualizar Evolution API a v2 (fix @lid) ⬅ SIGUIENTE
 - Usuarios con "confirmaciones de lectura" desactivadas generan JIDs `@lid`
 - Evolution API v1.8.6 no puede enviarles mensajes
 - v2 lo soporta nativamente
 - Requiere actualizar el servicio en Railway y ajustar el webhook si cambia el formato
 
-### 5. Autenticación real del panel
+### 5. Autenticación real del panel ✅ COMPLETADO
 - La `panel_key` en la URL es débil: cualquiera que la vea puede entrar
 - Implementar login con usuario/contraseña + sesión (Flask-Login o JWT)
 - Antes de tener más de 2-3 clientes esto se vuelve un riesgo
 
-### 6. Métricas e informes históricos
+### 6. Métricas e informes históricos ⬅ SIGUIENTE
 - El panel solo muestra el día actual
 - Agregar vista de: ingresos por mes, citas por semana, clientes más frecuentes, días más ocupados
 - Diferenciador clave a la hora de vender ("ve cómo está tu negocio")

@@ -1,7 +1,7 @@
 import json
 import re
 import time as time_module
-from flask import Blueprint, request, render_template, Response, stream_with_context, jsonify
+from flask import Blueprint, request, render_template, Response, stream_with_context, jsonify, session, redirect, url_for
 from app.models import Cita, Cliente, Barbero
 from app.models.barberia import Barberia
 from app.extensions import db
@@ -32,6 +32,36 @@ def _get_barberia(key):
     if _PANEL_KEY_ENV and key == _PANEL_KEY_ENV:
         return Barberia.query.order_by(Barberia.id).first()
     return None
+
+
+def _check_auth(key=None):
+    """
+    Devuelve Barberia si el usuario está autenticado (sesión o key).
+    Prioridad: sesión → key en URL/body.
+    Si valida por key, guarda en sesión para futuras peticiones.
+    """
+    barberia_id = session.get("panel_barberia_id")
+    if barberia_id:
+        b = Barberia.query.get(barberia_id)
+        if b:
+            return b
+        session.pop("panel_barberia_id", None)
+        session.pop("panel_key", None)
+
+    if key:
+        b = _get_barberia(key)
+        if b:
+            session["panel_barberia_id"] = b.id
+            session["panel_key"] = b.panel_key or ""
+            return b
+
+    return None
+
+
+def _get_barberia_api():
+    """Para endpoints de API: verifica sesión, luego key en args o body JSON."""
+    key = request.args.get("key") or (request.get_json(silent=True) or {}).get("key")
+    return _check_auth(key)
 
 
 def _colombia_today():
@@ -254,12 +284,44 @@ def _build_panel_data(barberia_id, fecha=None):
 # RUTAS DEL PANEL
 # ──────────────────────────────────────────────────────────────────────────────
 
+@panel_bp.route("/panel/login", methods=["GET", "POST"])
+def panel_login():
+    # Si ya está autenticado, ir directo al panel
+    if session.get("panel_barberia_id"):
+        b = Barberia.query.get(session["panel_barberia_id"])
+        if b:
+            return redirect(url_for("panel.panel"))
+
+    error = None
+    if request.method == "POST":
+        key = (request.form.get("key") or "").strip()
+        b = _get_barberia(key)
+        if b:
+            session["panel_barberia_id"] = b.id
+            session["panel_key"] = b.panel_key or ""
+            return redirect(url_for("panel.panel"))
+        error = "Clave incorrecta. Intenta de nuevo."
+
+    return render_template("login.html", error=error)
+
+
+@panel_bp.route("/panel/logout")
+def panel_logout():
+    session.pop("panel_barberia_id", None)
+    session.pop("panel_key", None)
+    return redirect(url_for("panel.panel_login"))
+
+
 @panel_bp.route("/panel")
 def panel():
+    # Soportar ?key= en URL para compatibilidad (sesión tiene prioridad)
     key = request.args.get("key")
-    barberia = _get_barberia(key)
+    barberia = _check_auth(key)
     if not barberia:
-        return "No autorizado"
+        return redirect(url_for("panel.panel_login"))
+
+    # Leer key desde sesión (para que el JS del template pueda hacer llamadas API)
+    key = session.get("panel_key", "")
 
     fecha_str = request.args.get("fecha", "")
     try:
@@ -292,8 +354,7 @@ def panel():
 
 @panel_bp.route("/panel-stream")
 def panel_stream():
-    key = request.args.get("key")
-    barberia = _get_barberia(key)
+    barberia = _get_barberia_api()
     if not barberia:
         return "No autorizado", 401
 
@@ -327,8 +388,7 @@ def panel_stream():
 
 @panel_bp.route("/run-import", methods=["POST"])
 def run_import():
-    key = request.args.get("key")
-    barberia = _get_barberia(key)
+    barberia = _get_barberia_api()
     if not barberia:
         return jsonify({"success": False, "mensaje": "No autorizado"}), 401
     try:
@@ -344,8 +404,7 @@ def run_import():
 
 @panel_bp.route("/crear-cliente", methods=["POST"])
 def crear_cliente():
-    key = request.args.get("key") or (request.get_json(silent=True) or {}).get("key")
-    barberia = _get_barberia(key)
+    barberia = _get_barberia_api()
     if not barberia:
         return jsonify({"success": False, "mensaje": "No autorizado"}), 401
 
@@ -386,8 +445,7 @@ def crear_cliente():
 
 @panel_bp.route("/editar-cliente", methods=["POST"])
 def editar_cliente():
-    key = request.args.get("key") or (request.get_json(silent=True) or {}).get("key")
-    barberia = _get_barberia(key)
+    barberia = _get_barberia_api()
     if not barberia:
         return jsonify({"success": False, "mensaje": "No autorizado"}), 401
 
@@ -417,8 +475,7 @@ def editar_cliente():
 
 @panel_bp.route("/crear-cita-panel", methods=["POST"])
 def crear_cita_panel():
-    key = request.args.get("key") or (request.get_json(silent=True) or {}).get("key")
-    barberia = _get_barberia(key)
+    barberia = _get_barberia_api()
     if not barberia:
         return jsonify({"success": False, "mensaje": "No autorizado"}), 401
 
@@ -443,8 +500,7 @@ def crear_cita_panel():
 
 @panel_bp.route("/cancelar-cita-panel", methods=["POST"])
 def cancelar_cita_panel():
-    key = request.args.get("key")
-    barberia = _get_barberia(key)
+    barberia = _get_barberia_api()
     if not barberia:
         return jsonify({"success": False, "mensaje": "No autorizado"}), 401
 
@@ -488,8 +544,7 @@ def cancelar_cita_panel():
 @panel_bp.route("/reparar-fijos", methods=["POST"])
 def reparar_fijos():
     """Detecta y resuelve conflictos entre clientes regulares y slots de fijos."""
-    key = request.args.get("key") or (request.get_json(silent=True) or {}).get("key")
-    barberia = _get_barberia(key)
+    barberia = _get_barberia_api()
     if not barberia:
         return jsonify({"success": False, "mensaje": "No autorizado"}), 401
 
@@ -609,8 +664,7 @@ def reparar_fijos():
 
 @panel_bp.route("/confirmar-citas", methods=["POST"])
 def confirmar_citas():
-    key = request.args.get("key") or (request.get_json(silent=True) or {}).get("key")
-    barberia = _get_barberia(key)
+    barberia = _get_barberia_api()
     if not barberia:
         return jsonify({"success": False, "mensaje": "No autorizado"}), 401
 
@@ -695,8 +749,7 @@ def confirmar_citas():
 
 @panel_bp.route("/notificar-dia", methods=["POST"])
 def notificar_dia():
-    key = request.args.get("key") or (request.get_json(silent=True) or {}).get("key")
-    barberia = _get_barberia(key)
+    barberia = _get_barberia_api()
     if not barberia:
         return jsonify({"success": False, "mensaje": "No autorizado"}), 401
 

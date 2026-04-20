@@ -1,7 +1,7 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.extensions import db
 from app.models import Cita, Cliente
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 
 def enviar_recordatorios_fijos(app):
@@ -121,6 +121,51 @@ def crear_citas_fijos(app):
                 print(f"⚠ [{barberia.nombre}] Error creando citas fijas: {e}")
 
 
+def enviar_recordatorios_regulares(app):
+    """
+    Envía recordatorio el día anterior a todos los clientes con cita
+    (no fijos — esos ya tienen su propio recordatorio semanal).
+    Se ejecuta cada día a las 17:00 Colombia (22:00 UTC).
+    """
+    with app.app_context():
+        from app.models.barberia import Barberia
+        from app.services.recordatorio_service import enviar_recordatorio
+
+        manana = (datetime.utcnow() - timedelta(hours=5)).date() + timedelta(days=1)
+
+        for barberia in Barberia.query.all():
+            citas = (
+                Cita.query
+                .filter(
+                    Cita.barberia_id == barberia.id,
+                    Cita.fecha == manana,
+                    Cita.estado != "cancelada",
+                )
+                .all()
+            )
+
+            enviados = 0
+            for cita in citas:
+                cliente = Cliente.query.get(cita.cliente_id)
+                if not cliente or not cliente.telefono:
+                    continue
+                # Los fijos ya reciben recordatorio semanal; no duplicar
+                if cliente.fijo:
+                    continue
+                fecha_str = manana.strftime("%d/%m/%Y")
+                hora_str  = cita.hora.strftime("%H:%M") if cita.hora else "—"
+                ok = enviar_recordatorio(
+                    cliente.telefono, cliente.nombre,
+                    fecha_str, hora_str,
+                    barberia,
+                )
+                if ok:
+                    enviados += 1
+
+            if citas:
+                print(f"📲 [{barberia.nombre}] Recordatorios mañana: {enviados}/{len(citas)}")
+
+
 def iniciar_scheduler(app):
     scheduler = BackgroundScheduler()
 
@@ -148,6 +193,15 @@ def iniciar_scheduler(app):
         "cron",
         day_of_week="mon",
         hour=13,
+        minute=0,
+        args=[app]
+    )
+
+    # Recordatorio citas regulares del día siguiente — cada día a las 17:00 Colombia (22:00 UTC)
+    scheduler.add_job(
+        enviar_recordatorios_regulares,
+        "cron",
+        hour=22,
         minute=0,
         args=[app]
     )
