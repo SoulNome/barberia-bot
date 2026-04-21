@@ -24,6 +24,9 @@
   --indigo:    #5856d6;
   --indigo-bg: rgba(88,86,214,0.08);
   --red:       #ff3b30;
+  --red-bg:    rgba(255,59,48,0.08);
+  --pink:      #ff2d55;
+  --teal:      #5ac8fa;
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.05);
   --r-md: 14px; --r-lg: 18px;
@@ -34,7 +37,7 @@ body {
   background: var(--bg); color: var(--label);
   min-height: 100vh; -webkit-font-smoothing: antialiased;
 }
-.wrap { max-width: 1100px; margin: auto; padding: 28px 20px 72px; }
+.wrap { max-width: 1140px; margin: auto; padding: 28px 16px 80px; }
 
 /* HEADER */
 .header {
@@ -48,7 +51,6 @@ body {
   display: flex; align-items: center; justify-content: center; font-size: 18px;
   box-shadow: 0 2px 8px rgba(0,122,255,0.30);
 }
-.header-right { display: flex; gap: 8px; flex-wrap: wrap; }
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 16px; border-radius: var(--r-md);
@@ -62,75 +64,127 @@ body {
 }
 .btn-neutral:hover { background: #f5f5f7; }
 
-/* STATS ROW */
-.stats-row {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px; margin-bottom: 24px;
+/* SECTION TITLE */
+.section-title {
+  font-size: 11px; font-weight: 700; color: var(--label3);
+  text-transform: uppercase; letter-spacing: 0.6px;
+  margin-bottom: 12px; padding: 0 2px;
+}
+
+/* STATS GRID */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px; margin-bottom: 10px;
 }
 .stat-card {
   background: var(--card); border-radius: var(--r-lg);
-  padding: 18px 20px; box-shadow: var(--shadow-sm);
+  padding: 18px 18px 16px; box-shadow: var(--shadow-sm);
   border: 1px solid var(--sep-light);
+  position: relative; overflow: hidden;
 }
-.stat-label { font-size: 12px; font-weight: 500; color: var(--label3); margin-bottom: 6px; }
-.stat-val { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; line-height: 1; }
-.stat-sub { font-size: 11px; color: var(--label3); margin-top: 4px; }
+.stat-accent {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 3px; border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+.stat-icon { font-size: 20px; margin-bottom: 10px; display: block; }
+.stat-label { font-size: 11px; font-weight: 600; color: var(--label3);
+  text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+.stat-val { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; line-height: 1; }
+.stat-sub { font-size: 11px; color: var(--label3); margin-top: 5px; }
 .stat-up   { color: var(--green); }
 .stat-down { color: var(--red); }
 .stat-eq   { color: var(--label3); }
-
-/* GRID */
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-.grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
 
 /* CHART CARD */
 .chart-card {
   background: var(--card); border-radius: var(--r-lg);
   box-shadow: var(--shadow-sm); border: 1px solid var(--sep-light);
-  padding: 20px 24px;
+  padding: 20px 22px;
 }
 .chart-title {
-  font-size: 14px; font-weight: 700; margin-bottom: 18px; color: var(--label);
+  font-size: 13px; font-weight: 700; margin-bottom: 16px; color: var(--label);
 }
-.chart-wrap { position: relative; height: 200px; }
-.chart-wrap-tall { position: relative; height: 260px; }
+.chart-wrap        { position: relative; height: 200px; }
+.chart-wrap-sm     { position: relative; height: 160px; }
+.chart-wrap-tall   { position: relative; height: 240px; }
+
+/* GRIDS */
+.grid-2  { display: grid; grid-template-columns: 1fr 1fr;       gap: 12px; margin-bottom: 12px; }
+.grid-3  { display: grid; grid-template-columns: 1fr 1fr 1fr;   gap: 12px; margin-bottom: 12px; }
+.grid-32 { display: grid; grid-template-columns: 3fr 2fr;       gap: 12px; margin-bottom: 12px; }
+.grid-23 { display: grid; grid-template-columns: 2fr 3fr;       gap: 12px; margin-bottom: 12px; }
+.mb12 { margin-bottom: 12px; }
+.mb24 { margin-bottom: 24px; }
 
 /* TOP CLIENTES */
-.top-list { display: flex; flex-direction: column; gap: 8px; }
+.top-list { display: flex; flex-direction: column; gap: 7px; }
 .top-item {
   display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px; border-radius: var(--r-md);
+  padding: 9px 12px; border-radius: var(--r-md);
   background: var(--bg);
 }
-.top-rank {
-  font-size: 12px; font-weight: 700; color: var(--label3);
-  min-width: 20px; text-align: center;
-}
+.top-rank { font-size: 12px; font-weight: 700; color: var(--label3); min-width: 22px; text-align: center; }
 .top-rank.gold   { color: #f0a500; }
 .top-rank.silver { color: #8e8e93; }
 .top-rank.bronze { color: #c47722; }
-.top-name { flex: 1; font-size: 13px; font-weight: 500; }
+.top-name { flex: 1; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .top-badge {
   font-size: 12px; font-weight: 700; color: var(--blue);
-  background: var(--blue-bg); padding: 2px 8px; border-radius: 100px;
+  background: var(--blue-bg); padding: 2px 8px; border-radius: 100px; flex-shrink: 0;
 }
 
-/* BAR CSS para día semana */
+/* BAR LIST (días semana) */
 .bar-list { display: flex; flex-direction: column; gap: 8px; }
 .bar-item { display: flex; align-items: center; gap: 10px; }
-.bar-day { font-size: 12px; font-weight: 600; color: var(--label2); min-width: 30px; }
-.bar-track {
-  flex: 1; height: 8px; background: var(--bg); border-radius: 100px; overflow: hidden;
+.bar-day { font-size: 12px; font-weight: 600; color: var(--label2); min-width: 32px; }
+.bar-track { flex: 1; height: 7px; background: var(--bg); border-radius: 100px; overflow: hidden; }
+.bar-fill  { height: 100%; border-radius: 100px; background: var(--blue); transition: width .6s ease; }
+.bar-num   { font-size: 12px; font-weight: 600; color: var(--label3); min-width: 28px; text-align: right; }
+
+/* RETENCIÓN DONUT ROW */
+.retention-row {
+  display: flex; align-items: center; gap: 20px; padding: 12px 0;
 }
-.bar-fill {
-  height: 100%; border-radius: 100px; background: var(--blue);
-  transition: width .6s ease;
+.retention-donut { position: relative; width: 90px; height: 90px; flex-shrink: 0; }
+.retention-donut canvas { width: 90px !important; height: 90px !important; }
+.retention-pct {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
-.bar-num { font-size: 12px; font-weight: 600; color: var(--label3); min-width: 28px; text-align: right; }
+.retention-pct-val { font-size: 18px; font-weight: 800; line-height: 1; color: var(--label); }
+.retention-pct-lbl { font-size: 9px; font-weight: 600; color: var(--label3); text-transform: uppercase; }
+.retention-legend { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.rl-item { display: flex; align-items: center; gap: 8px; }
+.rl-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.rl-label { font-size: 12px; font-weight: 500; color: var(--label2); flex: 1; }
+.rl-val   { font-size: 13px; font-weight: 700; color: var(--label); }
+
+/* CANCELACIÓN METER */
+.cancel-meter { margin-top: 8px; }
+.cancel-track {
+  height: 8px; background: var(--bg); border-radius: 100px; overflow: hidden; margin-bottom: 8px;
+}
+.cancel-fill {
+  height: 100%; border-radius: 100px;
+  background: linear-gradient(90deg, var(--green), var(--orange), var(--red));
+  transition: width .8s ease;
+}
+.cancel-labels {
+  display: flex; justify-content: space-between;
+  font-size: 10px; font-weight: 600; color: var(--label3);
+}
+
+/* EMPTY STATE */
+.empty { text-align: center; padding: 28px 16px; color: var(--label3); font-size: 13px; }
 
 @media (max-width: 700px) {
-  .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  .stats-row { grid-template-columns: 1fr 1fr; }
+  .grid-2, .grid-3, .grid-32, .grid-23 { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .retention-row { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 400px) {
+  .stats-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -141,72 +195,109 @@ body {
   <div class="header">
     <div class="logo">
       <div class="logo-icon">💈</div>
-      <span>{{ barberia_nombre }}</span>
-      <span style="font-size:13px;font-weight:500;color:var(--label3)">· Métricas</span>
+      <div>
+        <div>{{ barberia_nombre }}</div>
+        <div style="font-size:12px;font-weight:500;color:var(--label3);margin-top:1px">Métricas del negocio</div>
+      </div>
     </div>
-    <div class="header-right">
-      <a href="/panel" class="btn btn-neutral">← Volver al panel</a>
-    </div>
+    <a href="/panel" class="btn btn-neutral">← Volver al panel</a>
   </div>
 
-  <!-- STATS RESUMEN -->
-  <div class="stats-row">
+  <!-- ═══════════════════════════════════════
+       BLOQUE 1 — RESUMEN DEL MES
+  ═══════════════════════════════════════ -->
+  <div class="section-title">Resumen del mes</div>
+  <div class="stats-grid mb24">
+
     <div class="stat-card">
+      <div class="stat-accent" style="background:var(--blue)"></div>
+      <span class="stat-icon">📅</span>
       <div class="stat-label">Citas este mes</div>
       <div class="stat-val" style="color:var(--blue)">{{ citas_mes }}</div>
       {% set diff = citas_mes - citas_mes_ant %}
       {% if citas_mes_ant > 0 %}
         {% set pct = ((diff / citas_mes_ant) * 100) | int %}
         <div class="stat-sub {% if diff > 0 %}stat-up{% elif diff < 0 %}stat-down{% else %}stat-eq{% endif %}">
-          {% if diff > 0 %}↑{% elif diff < 0 %}↓{% endif %}
-          {{ pct | abs }}% vs mes anterior
+          {% if diff > 0 %}↑{% elif diff < 0 %}↓{% endif %} {{ pct | abs }}% vs mes ant.
         </div>
       {% else %}
-        <div class="stat-sub stat-eq">Sin datos mes anterior</div>
+        <div class="stat-sub stat-eq">Sin datos anteriores</div>
       {% endif %}
     </div>
 
     <div class="stat-card">
+      <div class="stat-accent" style="background:var(--green)"></div>
+      <span class="stat-icon">💵</span>
       <div class="stat-label">Ingresos este mes</div>
-      <div class="stat-val" style="color:var(--green)">
+      <div class="stat-val" style="color:var(--green);font-size:20px">
         ${{ "{:,}".format(ingresos_mes).replace(",", ".") }}
       </div>
       <div class="stat-sub stat-eq">Basado en servicios</div>
     </div>
 
     <div class="stat-card">
-      <div class="stat-label">Clientes totales</div>
-      <div class="stat-val" style="color:var(--indigo)">{{ total_clientes }}</div>
-      <div class="stat-sub stat-up">+{{ clientes_nuevos_mes }} este mes</div>
+      <div class="stat-accent" style="background:var(--orange)"></div>
+      <span class="stat-icon">🎯</span>
+      <div class="stat-label">Ticket promedio</div>
+      <div class="stat-val" style="color:var(--orange);font-size:20px">
+        ${{ "{:,}".format(ticket_promedio).replace(",", ".") }}
+      </div>
+      <div class="stat-sub stat-eq">Por cita este mes</div>
     </div>
 
     <div class="stat-card">
-      <div class="stat-label">Citas mes anterior</div>
-      <div class="stat-val" style="color:var(--orange)">{{ citas_mes_ant }}</div>
-      <div class="stat-sub stat-eq">Referencia comparación</div>
+      <div class="stat-accent" style="background:var(--indigo)"></div>
+      <span class="stat-icon">👥</span>
+      <div class="stat-label">Clientes totales</div>
+      <div class="stat-val" style="color:var(--indigo)">{{ total_clientes }}</div>
+      <div class="stat-sub stat-up">+{{ clientes_nuevos_mes }} nuevos este mes</div>
     </div>
+
+    <div class="stat-card">
+      <div class="stat-accent" style="background:var(--red)"></div>
+      <span class="stat-icon">❌</span>
+      <div class="stat-label">Cancelaciones</div>
+      <div class="stat-val" style="color:{% if tasa_cancelacion > 20 %}var(--red){% elif tasa_cancelacion > 10 %}var(--orange){% else %}var(--green){% endif %}">
+        {{ tasa_cancelacion }}%
+      </div>
+      <div class="stat-sub stat-eq">Últimos 30 días</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-accent" style="background:var(--teal)"></div>
+      <span class="stat-icon">🔄</span>
+      <div class="stat-label">Retención</div>
+      <div class="stat-val" style="color:var(--teal)">{{ tasa_retencion }}%</div>
+      <div class="stat-sub stat-eq">Clientes que volvieron</div>
+    </div>
+
   </div>
 
-  <!-- CITAS ÚLTIMOS 30 DÍAS -->
-  <div class="chart-card" style="margin-bottom:16px">
+  <!-- ═══════════════════════════════════════
+       BLOQUE 2 — CITAS 30 DÍAS
+  ═══════════════════════════════════════ -->
+  <div class="section-title">Actividad reciente</div>
+  <div class="chart-card mb12">
     <div class="chart-title">Citas · últimos 30 días</div>
     <div class="chart-wrap-tall">
       <canvas id="chartDias"></canvas>
     </div>
   </div>
 
-  <!-- FILA 2: CITAS POR MES + DÍA DE SEMANA -->
-  <div class="grid-2" style="margin-bottom:16px">
+  <!-- ═══════════════════════════════════════
+       BLOQUE 3 — HORAS PICO + DÍAS SEMANA
+  ═══════════════════════════════════════ -->
+  <div class="grid-2">
     <div class="chart-card">
-      <div class="chart-title">Citas por mes · últimos 6 meses</div>
+      <div class="chart-title">🕐 Horas pico · últimos 30 días</div>
       <div class="chart-wrap">
-        <canvas id="chartMeses"></canvas>
+        <canvas id="chartHoras"></canvas>
       </div>
     </div>
     <div class="chart-card">
-      <div class="chart-title">Días más ocupados</div>
+      <div class="chart-title">📆 Días más ocupados</div>
       {% set max_dia = semana_data | max %}
-      <div class="bar-list" style="margin-top:8px">
+      <div class="bar-list" style="margin-top:4px">
         {% for i in range(7) %}
         <div class="bar-item">
           <span class="bar-day">{{ semana_labels[i] }}</span>
@@ -220,114 +311,252 @@ body {
     </div>
   </div>
 
-  <!-- FILA 3: INGRESOS + TOP CLIENTES -->
-  <div class="grid-3">
+  <!-- ═══════════════════════════════════════
+       BLOQUE 4 — MESES + SERVICIOS
+  ═══════════════════════════════════════ -->
+  <div class="section-title">Tendencias</div>
+  <div class="grid-2">
     <div class="chart-card">
-      <div class="chart-title">Ingresos por mes · últimos 6 meses</div>
+      <div class="chart-title">📊 Citas por mes · 6 meses</div>
+      <div class="chart-wrap">
+        <canvas id="chartMeses"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">💵 Ingresos por mes · 6 meses</div>
       <div class="chart-wrap">
         <canvas id="chartIngresos"></canvas>
       </div>
     </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       BLOQUE 5 — SERVICIOS + CLIENTES
+  ═══════════════════════════════════════ -->
+  <div class="section-title">Servicios y clientes</div>
+  <div class="grid-23">
+
+    <!-- Servicios más pedidos -->
     <div class="chart-card">
-      <div class="chart-title">Top clientes</div>
-      <div class="top-list" style="margin-top:4px">
-        {% for c in top_clientes %}
-        <div class="top-item">
-          <span class="top-rank {% if loop.index0==0 %}gold{% elif loop.index0==1 %}silver{% elif loop.index0==2 %}bronze{% endif %}">
-            {% if loop.index0==0 %}🥇{% elif loop.index0==1 %}🥈{% elif loop.index0==2 %}🥉{% else %}{{ loop.index }}{% endif %}
-          </span>
-          <span class="top-name">{{ c.nombre }}</span>
-          <span class="top-badge">{{ c.total }} citas</span>
-        </div>
-        {% endfor %}
-        {% if not top_clientes %}
-        <p style="font-size:13px;color:var(--label3);text-align:center;padding:20px">Sin datos aún</p>
-        {% endif %}
+      <div class="chart-title">✂️ Servicios más pedidos · 6 meses</div>
+      {% if servicios_labels %}
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="chartServicios"></canvas>
       </div>
+      {% else %}
+      <div class="empty">Sin datos de servicios aún</div>
+      {% endif %}
+    </div>
+
+    <!-- Columna derecha: retención + cancelación + top clientes -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+
+      <!-- Nuevos vs recurrentes -->
+      <div class="chart-card">
+        <div class="chart-title">👤 Clientes este mes</div>
+        <div class="retention-row">
+          <div class="retention-donut">
+            <canvas id="chartRetencion"></canvas>
+            <div class="retention-pct">
+              <span class="retention-pct-val">{{ tasa_retencion }}%</span>
+              <span class="retention-pct-lbl">vuelven</span>
+            </div>
+          </div>
+          <div class="retention-legend">
+            <div class="rl-item">
+              <div class="rl-dot" style="background:var(--blue)"></div>
+              <span class="rl-label">Recurrentes</span>
+              <span class="rl-val">{{ recurrentes_mes }}</span>
+            </div>
+            <div class="rl-item">
+              <div class="rl-dot" style="background:var(--green)"></div>
+              <span class="rl-label">Nuevos</span>
+              <span class="rl-val">{{ nuevos_mes_real }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tasa de cancelación -->
+      <div class="chart-card">
+        <div class="chart-title">🚫 Tasa de cancelación · 30 días</div>
+        <div style="margin-top:8px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+            <span style="font-size:32px;font-weight:800;color:{% if tasa_cancelacion > 20 %}var(--red){% elif tasa_cancelacion > 10 %}var(--orange){% else %}var(--green){% endif %}">
+              {{ tasa_cancelacion }}%
+            </span>
+            <span style="font-size:12px;color:var(--label3)">
+              {% if tasa_cancelacion <= 10 %}Excelente 👍{% elif tasa_cancelacion <= 20 %}Aceptable{% else %}Alta ⚠️{% endif %}
+            </span>
+          </div>
+          <div class="cancel-track">
+            <div class="cancel-fill" style="width:{{ [tasa_cancelacion, 100] | min }}%"></div>
+          </div>
+          <div class="cancel-labels">
+            <span>0%</span><span>10%</span><span>20%</span><span>+30%</span>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
-</div>
+  <!-- ═══════════════════════════════════════
+       BLOQUE 6 — TOP CLIENTES
+  ═══════════════════════════════════════ -->
+  <div class="section-title">Top clientes</div>
+  <div class="chart-card">
+    <div class="chart-title">🏆 Los que más visitan</div>
+    <div class="top-list">
+      {% for c in top_clientes %}
+      <div class="top-item">
+        <span class="top-rank {% if loop.index0==0 %}gold{% elif loop.index0==1 %}silver{% elif loop.index0==2 %}bronze{% endif %}">
+          {% if loop.index0==0 %}🥇{% elif loop.index0==1 %}🥈{% elif loop.index0==2 %}🥉{% else %}{{ loop.index }}{% endif %}
+        </span>
+        <span class="top-name">{{ c.nombre }}</span>
+        <span class="top-badge">{{ c.total }} citas</span>
+      </div>
+      {% endfor %}
+      {% if not top_clientes %}
+      <div class="empty">Sin datos aún — las citas aparecerán aquí</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div><!-- /wrap -->
 
 <script>
-const diasLabels    = {{ dias_labels | tojson }};
-const diasData      = {{ dias_data | tojson }};
-const mesesLabels   = {{ meses_labels | tojson }};
-const mesesCitas    = {{ meses_citas | tojson }};
+const diasLabels    = {{ dias_labels    | tojson }};
+const diasData      = {{ dias_data      | tojson }};
+const mesesLabels   = {{ meses_labels   | tojson }};
+const mesesCitas    = {{ meses_citas    | tojson }};
 const mesesIngresos = {{ meses_ingresos | tojson }};
+const horasLabels   = {{ horas_labels   | tojson }};
+const horasData     = {{ horas_data     | tojson }};
+const svcLabels     = {{ servicios_labels | tojson }};
+const svcData       = {{ servicios_data   | tojson }};
+const nuevos        = {{ nuevos_mes_real  | tojson }};
+const recurrentes   = {{ recurrentes_mes  | tojson }};
 
 const baseOpts = {
   responsive: true, maintainAspectRatio: false,
   plugins: { legend: { display: false } },
   scales: {
-    x: { grid: { display: false }, ticks: { font: { size: 11, family: 'Inter' }, color: '#8e8e93' } },
-    y: { grid: { color: 'rgba(60,60,67,0.08)' }, ticks: { font: { size: 11, family: 'Inter' }, color: '#8e8e93' }, beginAtZero: true }
+    x: { grid: { display: false }, ticks: { font: { size: 10, family:'Inter' }, color:'#8e8e93' } },
+    y: { grid: { color:'rgba(60,60,67,0.07)' }, ticks: { font: { size: 10, family:'Inter' }, color:'#8e8e93' }, beginAtZero: true }
   }
 };
 
-// Citas últimos 30 días
+/* Citas 30 días */
 new Chart(document.getElementById('chartDias'), {
   type: 'bar',
   data: {
-    labels: diasLabels.map(d => {
-      const [,m,day] = d.split('-');
-      return `${parseInt(day)}/${parseInt(m)}`;
-    }),
-    datasets: [{
-      data: diasData,
-      backgroundColor: 'rgba(0,122,255,0.15)',
-      borderColor: '#007aff',
-      borderWidth: 2,
-      borderRadius: 6,
-    }]
+    labels: diasLabels.map(d => { const [,m,day]=d.split('-'); return `${parseInt(day)}/${parseInt(m)}`; }),
+    datasets: [{ data: diasData,
+      backgroundColor:'rgba(0,122,255,0.15)', borderColor:'#007aff',
+      borderWidth:2, borderRadius:5 }]
   },
   options: { ...baseOpts }
 });
 
-// Citas por mes
-new Chart(document.getElementById('chartMeses'), {
+/* Horas pico */
+new Chart(document.getElementById('chartHoras'), {
   type: 'bar',
   data: {
-    labels: mesesLabels,
-    datasets: [{
-      data: mesesCitas,
-      backgroundColor: 'rgba(88,86,214,0.15)',
-      borderColor: '#5856d6',
-      borderWidth: 2,
-      borderRadius: 6,
-    }]
-  },
-  options: { ...baseOpts }
-});
-
-// Ingresos por mes
-new Chart(document.getElementById('chartIngresos'), {
-  type: 'line',
-  data: {
-    labels: mesesLabels,
-    datasets: [{
-      data: mesesIngresos,
-      borderColor: '#34c759',
-      backgroundColor: 'rgba(52,199,89,0.10)',
-      borderWidth: 2.5,
-      pointBackgroundColor: '#34c759',
-      pointRadius: 4,
-      tension: 0.3,
-      fill: true,
-    }]
+    labels: horasLabels,
+    datasets: [{ data: horasData,
+      backgroundColor: horasData.map(v => {
+        const m = Math.max(...horasData);
+        return v === m ? 'rgba(255,159,10,0.85)' : 'rgba(255,159,10,0.20)';
+      }),
+      borderColor:'#ff9f0a', borderWidth:1.5, borderRadius:4 }]
   },
   options: {
     ...baseOpts,
     scales: {
-      ...baseOpts.scales,
-      y: {
-        ...baseOpts.scales.y,
-        ticks: {
-          ...baseOpts.scales.y.ticks,
-          callback: v => '$' + v.toLocaleString('es-CO')
+      x: { ...baseOpts.scales.x, ticks: { ...baseOpts.scales.x.ticks, maxRotation:0 } },
+      y: { ...baseOpts.scales.y }
+    }
+  }
+});
+
+/* Citas por mes */
+new Chart(document.getElementById('chartMeses'), {
+  type: 'bar',
+  data: {
+    labels: mesesLabels,
+    datasets: [{ data: mesesCitas,
+      backgroundColor:'rgba(88,86,214,0.15)', borderColor:'#5856d6',
+      borderWidth:2, borderRadius:5 }]
+  },
+  options: { ...baseOpts }
+});
+
+/* Ingresos por mes */
+new Chart(document.getElementById('chartIngresos'), {
+  type: 'line',
+  data: {
+    labels: mesesLabels,
+    datasets: [{ data: mesesIngresos,
+      borderColor:'#34c759', backgroundColor:'rgba(52,199,89,0.10)',
+      borderWidth:2.5, pointBackgroundColor:'#34c759', pointRadius:4,
+      tension:0.35, fill:true }]
+  },
+  options: {
+    ...baseOpts,
+    scales: {
+      x: { ...baseOpts.scales.x },
+      y: { ...baseOpts.scales.y,
+        ticks: { ...baseOpts.scales.y.ticks,
+          callback: v => '$' + v.toLocaleString('es-CO') } }
+    }
+  }
+});
+
+/* Servicios (donut) */
+if (document.getElementById('chartServicios')) {
+  const COLORS = ['#007aff','#34c759','#ff9f0a','#5856d6','#ff2d55','#5ac8fa'];
+  new Chart(document.getElementById('chartServicios'), {
+    type: 'doughnut',
+    data: {
+      labels: svcLabels,
+      datasets: [{ data: svcData,
+        backgroundColor: COLORS.slice(0, svcLabels.length),
+        borderWidth: 2, borderColor: '#fff',
+        hoverOffset: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '62%',
+      plugins: {
+        legend: {
+          display: true, position: 'bottom',
+          labels: { font: { size:11, family:'Inter' }, color:'#3c3c43',
+            padding:12, boxWidth:10, boxHeight:10, borderRadius:3 }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.parsed} citas`
+          }
         }
       }
     }
+  });
+}
+
+/* Nuevos vs recurrentes (donut pequeño) */
+new Chart(document.getElementById('chartRetencion'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Recurrentes','Nuevos'],
+    datasets: [{ data: [recurrentes, nuevos],
+      backgroundColor:['#007aff','#34c759'],
+      borderWidth:2, borderColor:'#fff' }]
+  },
+  options: {
+    responsive: false, maintainAspectRatio: false,
+    cutout: '72%',
+    plugins: { legend: { display:false }, tooltip: { enabled:false } }
   }
 });
 </script>

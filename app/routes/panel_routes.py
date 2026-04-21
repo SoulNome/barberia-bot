@@ -855,21 +855,120 @@ def panel_metricas():
         func.date_trunc("month", Cliente.creado_en) == func.date_trunc("month", func.now()),
     ).count()
 
+    # ── Tasa de cancelación (últimos 30 días) ────────────────────────────────
+    total_30d = Cita.query.filter(
+        Cita.barberia_id == barberia.id,
+        Cita.fecha >= hace30,
+        Cita.fecha <= hoy,
+    ).count()
+    canceladas_30d = Cita.query.filter(
+        Cita.barberia_id == barberia.id,
+        Cita.fecha >= hace30,
+        Cita.fecha <= hoy,
+        Cita.estado == "cancelada",
+    ).count()
+    tasa_cancelacion = int((canceladas_30d / total_30d) * 100) if total_30d > 0 else 0
+
+    # ── Ticket promedio (mes actual) ─────────────────────────────────────────
+    ticket_promedio = int(ingresos_mes / citas_mes) if citas_mes > 0 else 0
+
+    # ── Horas pico (últimos 30 días) ─────────────────────────────────────────
+    filas_horas = (
+        db.session.query(Cita.hora, func.count(Cita.id))
+        .filter(
+            Cita.barberia_id == barberia.id,
+            Cita.estado != "cancelada",
+            Cita.fecha >= hace30,
+            Cita.fecha <= hoy,
+        )
+        .group_by(Cita.hora)
+        .order_by(Cita.hora)
+        .all()
+    )
+    horas_dict = {h.strftime("%H:%M"): c for h, c in filas_horas}
+    # Generar rango de horas de 7:00 a 21:00
+    from datetime import time as _time
+    horas_labels = [f"{h:02d}:00" for h in range(7, 22)]
+    horas_data   = [horas_dict.get(f"{h:02d}:00", 0) + horas_dict.get(f"{h:02d}:30", 0)
+                    for h in range(7, 22)]
+
+    # ── Servicios más pedidos (últimos 6 meses) ──────────────────────────────
+    filas_svc = (
+        db.session.query(Cita.servicio, func.count(Cita.id).label("total"))
+        .filter(
+            Cita.barberia_id == barberia.id,
+            Cita.estado != "cancelada",
+            Cita.fecha >= hace180,
+            Cita.servicio != None,
+            Cita.servicio != "📌 Turno fijo",
+        )
+        .group_by(Cita.servicio)
+        .order_by(func.count(Cita.id).desc())
+        .limit(6)
+        .all()
+    )
+    servicios_labels = [s for s, _ in filas_svc]
+    servicios_data   = [c for _, c in filas_svc]
+
+    # ── Clientes nuevos vs recurrentes (mes actual) ──────────────────────────
+    inicio_mes_date = hoy.replace(day=1)
+    # Recurrentes = tuvieron cita ANTES del mes actual Y también este mes
+    clientes_este_mes = set(
+        c.cliente_id for c in Cita.query.filter(
+            Cita.barberia_id == barberia.id,
+            Cita.estado != "cancelada",
+            Cita.fecha >= inicio_mes_date,
+            Cita.fecha <= hoy,
+        ).all()
+    )
+    clientes_antes = set(
+        c.cliente_id for c in Cita.query.filter(
+            Cita.barberia_id == barberia.id,
+            Cita.estado != "cancelada",
+            Cita.fecha < inicio_mes_date,
+        ).all()
+    )
+    recurrentes_mes = len(clientes_este_mes & clientes_antes)
+    nuevos_mes_real = len(clientes_este_mes - clientes_antes)
+
+    # ── Tasa de retención (clientes del mes pasado que volvieron este mes) ───
+    inicio_mes_ant  = (hoy.replace(day=1) - timedelta(days=1)).replace(day=1)
+    fin_mes_ant     = hoy.replace(day=1) - timedelta(days=1)
+    clientes_mes_ant = set(
+        c.cliente_id for c in Cita.query.filter(
+            Cita.barberia_id == barberia.id,
+            Cita.estado != "cancelada",
+            Cita.fecha >= inicio_mes_ant,
+            Cita.fecha <= fin_mes_ant,
+        ).all()
+    )
+    retenidos = len(clientes_mes_ant & clientes_este_mes)
+    tasa_retencion = int((retenidos / len(clientes_mes_ant)) * 100) if clientes_mes_ant else 0
+
     return render_template("metricas.html",
-        barberia_nombre   = barberia.nombre,
-        dias_labels       = dias_labels,
-        dias_data         = dias_data,
-        meses_labels      = meses_labels_bonitos,
-        meses_citas       = meses_citas,
-        meses_ingresos    = meses_ingresos,
-        semana_labels     = DIAS_ES,
-        semana_data       = semana_data,
-        top_clientes      = top_clientes,
-        citas_mes         = citas_mes,
-        citas_mes_ant     = citas_mes_ant,
-        ingresos_mes      = ingresos_mes,
+        barberia_nombre     = barberia.nombre,
+        dias_labels         = dias_labels,
+        dias_data           = dias_data,
+        meses_labels        = meses_labels_bonitos,
+        meses_citas         = meses_citas,
+        meses_ingresos      = meses_ingresos,
+        semana_labels       = DIAS_ES,
+        semana_data         = semana_data,
+        top_clientes        = top_clientes,
+        citas_mes           = citas_mes,
+        citas_mes_ant       = citas_mes_ant,
+        ingresos_mes        = ingresos_mes,
         clientes_nuevos_mes = clientes_nuevos_mes,
-        total_clientes    = Cliente.query.filter_by(barberia_id=barberia.id).count(),
+        total_clientes      = Cliente.query.filter_by(barberia_id=barberia.id).count(),
+        tasa_cancelacion    = tasa_cancelacion,
+        ticket_promedio     = ticket_promedio,
+        horas_labels        = horas_labels,
+        horas_data          = horas_data,
+        servicios_labels    = servicios_labels,
+        servicios_data      = servicios_data,
+        nuevos_mes_real     = nuevos_mes_real,
+        recurrentes_mes     = recurrentes_mes,
+        tasa_retencion      = tasa_retencion,
     )
 
 
