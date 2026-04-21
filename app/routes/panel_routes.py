@@ -463,6 +463,12 @@ def editar_cliente():
         if "fecha_cumpleanos" in data:
             raw = (data["fecha_cumpleanos"] or "").strip()
             cliente.fecha_cumpleanos = dt.strptime(raw, "%Y-%m-%d").date() if raw else None
+        if "telefono_nuevo" in data:
+            nuevo_tel = (data["telefono_nuevo"] or "").strip()
+            if nuevo_tel and nuevo_tel != cliente.telefono:
+                if Cliente.query.filter_by(telefono=nuevo_tel, barberia_id=barberia.id).first():
+                    return jsonify({"success": False, "mensaje": f"Ya existe un cliente con el tel\u00e9fono {nuevo_tel}"})
+                cliente.telefono = nuevo_tel
         db.session.commit()
         return jsonify({"success": True, "mensaje": f"Cliente {cliente.nombre} actualizado"})
     except Exception as e:
