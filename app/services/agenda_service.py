@@ -175,6 +175,15 @@ def cancelar_cita(telefono, fecha, hora, barberia_id=None):
 
         if es_turno_fijo:
             cita.estado = "cancelada"
+            db.session.flush()
+            # Cancelar también todas las citas "📌 Turno fijo" futuras del mismo cliente
+            hoy = (datetime.utcnow() - timedelta(hours=5)).date()
+            Cita.query.filter(
+                Cita.cliente_id == cliente.id,
+                Cita.fecha >= hoy,
+                Cita.estado != "cancelada",
+                Cita.servicio == "📌 Turno fijo",
+            ).update({"estado": "cancelada"}, synchronize_session=False)
             db.session.commit()
         else:
             db.session.delete(cita)

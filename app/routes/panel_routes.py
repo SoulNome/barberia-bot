@@ -525,6 +525,16 @@ def cancelar_cita_panel():
         # Si es cliente fijo, marcar como cancelada (no borrar) para liberar el slot en el panel.
         if cliente_obj and cliente_obj.fijo:
             cita.estado = "cancelada"
+            db.session.flush()
+            # Cancelar también todas las citas "📌 Turno fijo" futuras del mismo cliente
+            # (el scheduler crea 7 días adelante; sin esto el bot dice que hay cita pendiente)
+            hoy_co = _colombia_today()
+            Cita.query.filter(
+                Cita.cliente_id == cliente_obj.id,
+                Cita.fecha >= hoy_co,
+                Cita.estado != "cancelada",
+                Cita.servicio == "📌 Turno fijo",
+            ).update({"estado": "cancelada"}, synchronize_session=False)
             db.session.commit()
         else:
             db.session.delete(cita)
