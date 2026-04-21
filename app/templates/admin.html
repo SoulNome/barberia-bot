@@ -502,7 +502,6 @@ details[open] > summary::before { content: "▼ "; }
 const ADMIN_KEY = {{ key | tojson }};
 
 // ── SPARKLINES ──────────────────────────────────────────────────────────────
-const sparkData = {{ datos | map(attribute='barberia') | list | tojson(default=str) }};
 {% for d in datos %}
 (function() {
   const ctx = document.getElementById('spark-{{ d.barberia.id }}');
