@@ -2,27 +2,23 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>BarberIA · Panel</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* ══════════════════════════════════════════
-   APPLE SYSTEM PALETTE — light
+   APPLE SYSTEM PALETTE
 ══════════════════════════════════════════ */
 :root {
-  --bg:           #f2f2f7;   /* systemGroupedBackground */
+  --bg:           #f2f2f7;
   --card:         #ffffff;
   --card2:        #f9f9fb;
   --sep:          rgba(60,60,67,0.12);
   --sep-light:    rgba(60,60,67,0.06);
-
-  /* Text */
   --label:        #1c1c1e;
   --label2:       #3c3c43;
   --label3:       rgba(60,60,67,0.50);
   --label4:       rgba(60,60,67,0.28);
-
-  /* System colors */
   --blue:         #007aff;
   --blue-bg:      rgba(0,122,255,0.08);
   --blue-border:  rgba(0,122,255,0.18);
@@ -34,18 +30,15 @@
   --orange-bg:    rgba(255,159,10,0.10);
   --indigo:       #5856d6;
   --indigo-bg:    rgba(88,86,214,0.08);
-
-  /* Elevation */
   --shadow-sm:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md:    0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.05);
   --shadow-lg:    0 16px 48px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.07);
-
-  --r-sm:   10px;
-  --r-md:   14px;
-  --r-lg:   18px;
-  --r-xl:   22px;
-
-  --slot-h: 62px;
+  --r-sm:  10px;
+  --r-md:  14px;
+  --r-lg:  18px;
+  --r-xl:  22px;
+  --slot-h: 64px;
+  --tab-h:  68px;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -57,28 +50,30 @@ body {
   color: var(--label);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
 }
 
 /* ── LAYOUT ── */
-.wrap      { max-width: 1240px; margin: auto; padding: 28px 20px 72px; }
-.page-grid { display: grid; grid-template-columns: 1fr 288px; gap: 18px; align-items: start; }
-
-@media (max-width: 860px) {
-  .page-grid { grid-template-columns: 1fr; }
-  .sidebar   { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.wrap {
+  max-width: 1240px; margin: auto;
+  padding: 20px 16px calc(var(--tab-h) + 20px);
+}
+@media (min-width: 768px) {
+  .wrap { padding: 24px 20px 60px; }
+}
+@media (min-width: 1024px) {
+  .wrap { padding: 28px 24px 72px; }
 }
 
 /* ── HEADER ── */
 .header {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 24px; gap: 12px; flex-wrap: wrap;
+  display: flex; align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px; gap: 8px;
 }
-
 .logo {
-  font-size: 17px; font-weight: 700; letter-spacing: -0.4px;
-  color: var(--label);
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 9px;
+  font-size: 16px; font-weight: 700; letter-spacing: -0.3px;
 }
 .logo-icon {
   width: 34px; height: 34px; border-radius: 9px;
@@ -86,70 +81,80 @@ body {
   display: flex; align-items: center; justify-content: center;
   font-size: 17px;
   box-shadow: 0 2px 8px rgba(0,122,255,0.30);
+  flex-shrink: 0;
 }
 
-.header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* Header actions */
+.hdr-actions { display: flex; align-items: center; gap: 6px; }
 
 .hdr-clock {
-  font-size: 13px; font-weight: 500; color: var(--label3);
+  font-size: 12px; font-weight: 500; color: var(--label3);
   font-variant-numeric: tabular-nums;
   background: var(--card); border: 1px solid var(--sep-light);
-  padding: 6px 12px; border-radius: var(--r-sm);
+  padding: 5px 10px; border-radius: var(--r-sm);
   box-shadow: var(--shadow-sm);
+  display: none;
 }
+@media (min-width: 600px) { .hdr-clock { display: block; } }
 
 .live-pill {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 12px; font-weight: 600; color: var(--green);
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 700; color: var(--green);
   background: var(--green-bg); border: 1px solid rgba(52,199,89,0.20);
-  padding: 6px 12px; border-radius: 100px;
+  padding: 5px 10px; border-radius: 100px;
 }
 .live-dot {
-  width: 6px; height: 6px; background: var(--green);
-  border-radius: 50%; animation: blink 2s infinite;
+  width: 5px; height: 5px; background: var(--green);
+  border-radius: 50%; animation: blink 2s infinite; flex-shrink: 0;
 }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* Icon buttons in header */
+.hdr-btn {
+  width: 36px; height: 36px; border-radius: var(--r-sm);
+  background: var(--card); border: 1px solid var(--sep);
+  box-shadow: var(--shadow-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; cursor: pointer; text-decoration: none;
+  color: var(--label); transition: background .15s;
+  flex-shrink: 0;
+}
+.hdr-btn:hover { background: var(--card2); }
 
 /* ── BUTTONS ── */
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 16px; border-radius: var(--r-sm);
+  padding: 9px 16px; border-radius: var(--r-sm);
   font-size: 13px; font-weight: 600; font-family: inherit;
-  border: none; cursor: pointer;
-  transition: all .15s ease;
+  border: none; cursor: pointer; text-decoration: none;
+  transition: all .15s ease; white-space: nowrap;
 }
 .btn:active { transform: scale(.97); }
-
-.btn-blue {
-  background: var(--blue); color: #fff;
-  box-shadow: 0 2px 8px rgba(0,122,255,0.30);
-}
-.btn-blue:hover { background: #0071e3; box-shadow: 0 4px 12px rgba(0,122,255,0.35); }
-
-.btn-neutral {
-  background: var(--card); color: var(--label);
-  border: 1px solid var(--sep); box-shadow: var(--shadow-sm);
-}
+.btn-blue    { background: var(--blue); color: #fff; box-shadow: 0 2px 8px rgba(0,122,255,0.30); }
+.btn-blue:hover { background: #0071e3; }
+.btn-neutral { background: var(--card); color: var(--label); border: 1px solid var(--sep); box-shadow: var(--shadow-sm); }
 .btn-neutral:hover { background: var(--card2); }
 
-/* ── STAT CARDS ── */
-.stats-row {
-  display: grid; grid-template-columns: repeat(6,1fr);
-  gap: 10px; margin-bottom: 20px;
+/* ── STATS STRIP ── */
+.stats-scroll {
+  display: flex; gap: 10px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; padding-bottom: 4px;
+  margin-bottom: 18px;
 }
-@media (max-width: 1100px) { .stats-row { grid-template-columns: repeat(3,1fr); } }
-@media (max-width: 560px)  { .stats-row { grid-template-columns: repeat(2,1fr); } }
+.stats-scroll::-webkit-scrollbar { display: none; }
 
 .stat-card {
   background: var(--card);
   border-radius: var(--r-md);
-  padding: 16px 15px 14px;
+  padding: 14px 14px 12px;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--sep-light);
   position: relative; overflow: hidden;
-  transition: box-shadow .2s, transform .2s;
+  flex-shrink: 0; min-width: 110px;
+  transition: box-shadow .2s;
 }
-.stat-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+@media (min-width: 600px) { .stat-card { min-width: 130px; } }
 
 .stat-color-bar {
   position: absolute; bottom: 0; left: 0; right: 0;
@@ -161,71 +166,102 @@ body {
 .sc-orange .stat-color-bar { background: var(--orange); }
 .sc-indigo .stat-color-bar { background: var(--indigo); }
 
-.stat-icon-wrap {
-  width: 34px; height: 34px; border-radius: var(--r-sm);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; margin-bottom: 10px;
+.stat-icon {
+  font-size: 18px; margin-bottom: 8px; display: block;
 }
-.sc-blue   .stat-icon-wrap { background: var(--blue-bg); }
-.sc-green  .stat-icon-wrap { background: var(--green-bg); }
-.sc-red    .stat-icon-wrap { background: var(--red-bg); }
-.sc-orange .stat-icon-wrap { background: var(--orange-bg); }
-.sc-indigo .stat-icon-wrap { background: var(--indigo-bg); }
-
 .stat-label {
   font-size: 10px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.6px;
-  color: var(--label3); margin-bottom: 4px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--label3); margin-bottom: 3px;
 }
 .stat-val {
-  font-size: 24px; font-weight: 700; letter-spacing: -0.8px;
-  color: var(--label); font-variant-numeric: tabular-nums;
-  line-height: 1;
+  font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
+  color: var(--label); font-variant-numeric: tabular-nums; line-height: 1;
 }
 .stat-val.blue   { color: var(--blue); }
 .stat-val.green  { color: var(--green); }
 .stat-val.orange { color: var(--orange); }
 .stat-val.indigo { color: var(--indigo); }
-.stat-val.sm     { font-size: 14px; letter-spacing: -0.2px; line-height: 1.4; }
+.stat-val.sm     { font-size: 13px; letter-spacing: 0; line-height: 1.3; }
+
+/* ── DATE NAV ── */
+.date-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--card); border-radius: var(--r-lg);
+  border: 1px solid var(--sep-light); box-shadow: var(--shadow-sm);
+  padding: 10px 14px; margin-bottom: 14px;
+}
+.date-nav-label {
+  font-size: 14px; font-weight: 600; color: var(--label);
+  text-align: center; flex: 1;
+}
+.nav-arrow {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: var(--r-sm);
+  background: var(--bg); border: 1px solid var(--sep);
+  color: var(--blue); font-size: 16px; text-decoration: none;
+  transition: background .15s; flex-shrink: 0;
+}
+.nav-arrow:hover { background: var(--blue-bg); }
+.nav-today {
+  font-size: 12px; font-weight: 600; padding: 5px 12px;
+  background: var(--blue-bg); border: 1px solid var(--blue-border);
+  color: var(--blue); border-radius: 100px; text-decoration: none;
+}
+
+/* ── PAGE GRID ── */
+.page-grid {
+  display: flex; flex-direction: column; gap: 14px;
+}
+@media (min-width: 900px) {
+  .page-grid { flex-direction: row; align-items: start; gap: 18px; }
+  .timeline-col { flex: 1; min-width: 0; }
+  .sidebar { width: 276px; flex-shrink: 0; position: sticky; top: 20px; }
+}
+
+/* ── MOBILE INFO STRIP ── */
+.mobile-strip {
+  display: flex; gap: 10px;
+  margin-bottom: 14px;
+}
+@media (min-width: 900px) { .mobile-strip { display: none; } }
+
+.strip-card {
+  flex: 1; background: var(--card);
+  border-radius: var(--r-md); padding: 12px 14px;
+  border: 1px solid var(--sep-light); box-shadow: var(--shadow-sm);
+}
+.strip-label { font-size: 10px; font-weight: 600; color: var(--label3); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+.strip-val   { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; line-height: 1; }
+.strip-sub   { font-size: 11px; color: var(--label3); margin-top: 3px; }
 
 /* ── SECTION HEADER ── */
 .section-hd {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 12px;
-  position: sticky; top: 0; z-index: 4;
-  background: var(--bg);
-  padding: 6px 0 10px;
-  margin-top: -6px;
-}
-.section-hd h2 {
-  font-size: 13px; font-weight: 600;
+  font-size: 12px; font-weight: 600;
   color: var(--label3); text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 10px; padding: 0 2px;
 }
 
-/* ── TIMELINE CARD ── */
+/* ── TIMELINE ── */
 .timeline-wrap {
   background: var(--card);
   border-radius: var(--r-xl);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--sep-light);
-  overflow: visible;
-  min-height: 320px;
+  overflow: hidden;
 }
-
-.timeline-inner {
-  position: relative; padding: 4px 0;
-}
-
-/* Vertical rail */
+.timeline-inner { position: relative; padding: 2px 0; }
 .timeline-inner::before {
   content: '';
-  position: absolute; left: 64px; top: 0; bottom: 0;
+  position: absolute; left: 58px; top: 0; bottom: 0;
   width: 1px; background: var(--sep-light);
 }
+@media (min-width: 480px) {
+  .timeline-inner::before { left: 64px; }
+}
 
-/* Now line */
 #now-line {
-  position: absolute; left: 54px; right: 0;
+  position: absolute; left: 48px; right: 0;
   height: 1.5px; background: var(--red);
   box-shadow: 0 0 6px rgba(255,59,48,0.35);
   z-index: 10; display: none; pointer-events: none;
@@ -236,29 +272,34 @@ body {
   width: 9px; height: 9px;
   background: var(--red); border-radius: 50%;
 }
+@media (min-width: 480px) { #now-line { left: 54px; } }
 
 .tl-slot {
-  display: flex; align-items: stretch; min-height: var(--slot-h);
-  border-bottom: 1px solid var(--sep-light); position: relative;
+  display: flex; align-items: stretch;
+  min-height: var(--slot-h);
+  border-bottom: 1px solid var(--sep-light);
+  position: relative;
 }
 .tl-slot:last-child { border-bottom: none; }
-.tl-slot.free:hover  { background: rgba(0,0,0,0.01); }
 
 .tl-time {
-  width: 64px; flex-shrink: 0;
+  width: 58px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: flex-end;
-  padding-right: 14px;
-  font-size: 11px; font-weight: 600;
+  padding-right: 12px;
+  font-size: 10px; font-weight: 600;
   color: var(--label4); font-variant-numeric: tabular-nums;
-  position: sticky; left: 0;
-  background: var(--card); z-index: 1;
+}
+@media (min-width: 480px) {
+  .tl-time { width: 64px; font-size: 11px; padding-right: 14px; }
 }
 .tl-slot.booked .tl-time { color: var(--label3); }
 
 .tl-content {
-  flex: 1; padding: 8px 14px 8px 14px;
+  flex: 1; padding: 8px 10px 8px 10px;
   display: flex; align-items: center;
+  min-width: 0;
 }
+@media (min-width: 480px) { .tl-content { padding: 8px 14px; } }
 
 .free-label { font-size: 12px; color: var(--label4); }
 
@@ -267,179 +308,218 @@ body {
   flex: 1; background: var(--blue-bg);
   border: 1px solid var(--blue-border);
   border-radius: var(--r-sm);
-  padding: 9px 12px;
-  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px;
+  display: flex; align-items: center; gap: 8px;
+  min-width: 0;
   transition: background .15s;
 }
+@media (min-width: 480px) { .appt-card { padding: 9px 12px; gap: 10px; } }
 .appt-card:hover { background: rgba(0,122,255,0.12); }
-
-.appt-card.cumple {
-  background: var(--orange-bg);
-  border-color: rgba(255,159,10,0.22);
-}
+.appt-card.cumple { background: var(--orange-bg); border-color: rgba(255,159,10,0.22); }
 .appt-card.cumple:hover { background: rgba(255,159,10,0.14); }
 
 .appt-avatar {
-  width: 32px; height: 32px; border-radius: 50%;
+  width: 30px; height: 30px; border-radius: 50%;
   background: var(--blue); color: #fff;
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 700; flex-shrink: 0;
+  font-size: 12px; font-weight: 700; flex-shrink: 0;
 }
+@media (min-width: 480px) { .appt-avatar { width: 32px; height: 32px; font-size: 13px; } }
 .appt-card.cumple .appt-avatar { background: var(--orange); }
 
 .appt-body  { flex: 1; min-width: 0; }
-.appt-name  { font-size: 14px; font-weight: 600; color: var(--label); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.appt-meta  { font-size: 11px; color: var(--label3); margin-top: 2px; display: flex; gap: 8px; }
+.appt-name  { font-size: 13px; font-weight: 600; color: var(--label); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (min-width: 480px) { .appt-name { font-size: 14px; } }
+.appt-meta  { font-size: 11px; color: var(--label3); margin-top: 1px; }
 
 .badge-svc {
-  font-size: 11px; font-weight: 600;
-  padding: 3px 8px; border-radius: 6px;
+  font-size: 10px; font-weight: 600;
+  padding: 2px 7px; border-radius: 6px;
   background: var(--indigo-bg); color: var(--indigo);
   border: 1px solid rgba(88,86,214,0.16);
   white-space: nowrap; flex-shrink: 0;
+  display: none;
 }
-.appt-card.cumple .badge-svc {
-  background: var(--orange-bg); color: var(--orange);
-  border-color: rgba(255,159,10,0.20);
-}
+@media (min-width: 480px) { .badge-svc { display: inline-flex; font-size: 11px; padding: 3px 8px; } }
+.appt-card.cumple .badge-svc { background: var(--orange-bg); color: var(--orange); border-color: rgba(255,159,10,0.20); }
 
 .btn-cancel {
   background: none; border: 1px solid rgba(255,59,48,0.20);
   border-radius: 7px; color: rgba(255,59,48,0.40);
-  font-size: 11px; width: 28px; height: 28px;
+  width: 28px; height: 28px; min-width: 28px;
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; flex-shrink: 0; transition: all .15s;
+  cursor: pointer; flex-shrink: 0; font-size: 11px;
+  transition: all .15s;
 }
-.btn-cancel:hover {
-  background: var(--red-bg); border-color: rgba(255,59,48,0.40);
-  color: var(--red);
-}
+.btn-cancel:hover { background: var(--red-bg); border-color: rgba(255,59,48,0.40); color: var(--red); }
 
 /* ── SIDEBAR ── */
 .sidebar {
-  display: flex; flex-direction: column; gap: 14px;
-  position: sticky; top: 24px;
-  max-height: calc(100vh - 48px);
-  overflow-y: auto; overflow-x: hidden;
+  display: none;
 }
-.sidebar::-webkit-scrollbar { width: 4px; }
-.sidebar::-webkit-scrollbar-track { background: transparent; }
-.sidebar::-webkit-scrollbar-thumb { background: var(--sep); border-radius: 100px; }
+@media (min-width: 900px) {
+  .sidebar {
+    display: flex; flex-direction: column; gap: 14px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto; overflow-x: hidden;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--sep); border-radius: 100px; }
+}
 
 .sb-card {
   background: var(--card); border-radius: var(--r-lg);
-  padding: 20px 18px; box-shadow: var(--shadow-sm);
+  padding: 18px 16px; box-shadow: var(--shadow-sm);
   border: 1px solid var(--sep-light);
 }
 .sb-title {
   font-size: 10px; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.7px;
-  color: var(--label3); margin-bottom: 16px;
+  color: var(--label3); margin-bottom: 14px;
 }
 
 /* Ring */
-.ring-wrap      { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.ring-wrap      { display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .ring-svg       { transform: rotate(-90deg); }
 .ring-track     { fill: none; stroke: var(--bg); stroke-width: 8; }
 .ring-fill      {
-  fill: none; stroke: var(--blue); stroke-width: 8;
-  stroke-linecap: round;
+  fill: none; stroke: var(--blue); stroke-width: 8; stroke-linecap: round;
   transition: stroke-dashoffset 1s cubic-bezier(.4,0,.2,1);
 }
 .ring-container { position: relative; display: inline-block; }
 .ring-center    { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; }
-.ring-pct       { font-size: 28px; font-weight: 700; letter-spacing: -1.5px; color: var(--label); font-variant-numeric: tabular-nums; }
-.ring-sub       { font-size: 11px; color: var(--label3); margin-top: 2px; }
-
-.occ-row         { display: flex; justify-content: space-between; width: 100%; font-size: 12px; }
-.occ-row span    { color: var(--label3); }
-.occ-row strong  { color: var(--label); font-weight: 600; }
+.ring-pct       { font-size: 26px; font-weight: 700; letter-spacing: -1px; color: var(--label); font-variant-numeric: tabular-nums; }
+.ring-sub       { font-size: 10px; color: var(--label3); }
+.occ-row        { display: flex; justify-content: space-between; width: 100%; font-size: 12px; }
+.occ-row span   { color: var(--label3); }
+.occ-row strong { color: var(--label); font-weight: 600; }
 
 /* Next */
-.next-empty  { font-size: 13px; color: var(--label3); }
-.next-item   { display: flex; flex-direction: column; gap: 4px; }
-.next-time   { font-size: 36px; font-weight: 800; letter-spacing: -2px; color: var(--blue); line-height: 1; font-variant-numeric: tabular-nums; }
-.next-name   { font-size: 15px; font-weight: 600; color: var(--label); }
-.next-svc    { font-size: 12px; color: var(--label3); margin-top: 2px; }
+.next-empty { font-size: 13px; color: var(--label3); }
+.next-item  { display: flex; flex-direction: column; gap: 3px; }
+.next-time  { font-size: 32px; font-weight: 800; letter-spacing: -2px; color: var(--blue); line-height: 1; font-variant-numeric: tabular-nums; }
+.next-name  { font-size: 14px; font-weight: 600; color: var(--label); }
+.next-svc   { font-size: 12px; color: var(--label3); }
 .next-countdown {
-  margin-top: 10px; font-size: 12px; font-weight: 600; color: var(--green);
+  margin-top: 8px; font-size: 12px; font-weight: 600; color: var(--green);
   background: var(--green-bg); border-radius: 100px;
-  padding: 4px 10px; display: inline-flex; align-items: center; gap: 5px;
-  width: fit-content;
+  padding: 4px 10px; display: inline-flex; align-items: center; gap: 5px; width: fit-content;
 }
-.next-countdown::before {
-  content: ''; width: 5px; height: 5px;
-  background: var(--green); border-radius: 50%;
-  animation: blink 2s infinite;
-}
+.next-countdown::before { content:''; width:5px; height:5px; background:var(--green); border-radius:50%; animation:blink 2s infinite; }
 
 /* Income */
-.income-amt {
-  font-size: 28px; font-weight: 800; letter-spacing: -1px;
-  color: var(--label); margin-bottom: 12px;
-  font-variant-numeric: tabular-nums;
-}
-.income-amt span { font-size: 16px; font-weight: 500; color: var(--label3); }
-
-.inc-bar-bg   {
-  background: var(--bg); border-radius: 100px;
-  height: 5px; overflow: hidden;
-}
+.income-amt { font-size: 26px; font-weight: 800; letter-spacing: -1px; color: var(--label); margin-bottom: 10px; font-variant-numeric: tabular-nums; }
+.income-amt span { font-size: 15px; font-weight: 500; color: var(--label3); }
+.inc-bar-bg  { background: var(--bg); border-radius: 100px; height: 5px; overflow: hidden; }
 .inc-bar-fill { height: 100%; background: var(--green); border-radius: 100px; transition: width 1s cubic-bezier(.4,0,.2,1); }
-.inc-goal     { font-size: 11px; color: var(--label3); margin-top: 8px; }
+.inc-goal    { font-size: 11px; color: var(--label3); margin-top: 6px; }
 
-/* ── DATE NAV ── */
-.nav-arrow {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 30px; height: 30px; border-radius: var(--r-sm);
-  background: var(--card); border: 1px solid var(--sep);
-  color: var(--blue); font-size: 16px; text-decoration: none;
-  box-shadow: var(--shadow-sm);
-  transition: background .15s;
-}
-.nav-arrow:hover { background: var(--blue-bg); }
-
-.nav-today {
-  font-size: 12px; font-weight: 600; padding: 5px 12px;
+/* Fijos en sidebar */
+.fijo-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px;
   background: var(--blue-bg); border: 1px solid var(--blue-border);
-  color: var(--blue); border-radius: var(--r-sm); text-decoration: none;
+  border-radius: var(--r-sm); margin-bottom: 6px;
 }
-.nav-date-label {
-  font-size: 13px; font-weight: 600; color: var(--fg);
-  min-width: 200px; text-align: center; white-space: nowrap;
+.fijo-item:last-child { margin-bottom: 0; }
+.fijo-info { flex: 1; min-width: 0; }
+.fijo-name { font-size: 13px; font-weight: 600; color: var(--label); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fijo-hora { font-size: 11px; color: var(--label3); }
+.fijo-edit-btn {
+  background: none; border: 1px solid var(--sep); border-radius: 6px;
+  padding: 3px 7px; font-size: 11px; color: var(--label3); cursor: pointer; flex-shrink: 0;
+}
+
+/* ── BOTTOM TAB BAR (mobile) ── */
+.bottom-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: var(--tab-h);
+  background: rgba(255,255,255,0.88);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid var(--sep-light);
+  display: flex; align-items: center; justify-content: space-around;
+  padding: 0 8px env(safe-area-inset-bottom);
+  z-index: 50;
+}
+@media (min-width: 900px) { .bottom-bar { display: none; } }
+
+.tab-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 600; color: var(--label3);
+  background: none; border: none; cursor: pointer;
+  padding: 8px 12px; border-radius: var(--r-sm);
+  text-decoration: none; flex: 1; max-width: 80px;
+  transition: color .15s;
+}
+.tab-btn span { font-size: 20px; line-height: 1; }
+.tab-btn:hover, .tab-btn.active { color: var(--blue); }
+.tab-btn.primary {
+  background: var(--blue); color: #fff !important;
+  border-radius: var(--r-md); padding: 10px 16px;
+  box-shadow: 0 2px 10px rgba(0,122,255,0.35);
 }
 
 /* ── TOAST ── */
 #toast {
-  position: fixed; bottom: 24px; right: 24px;
+  position: fixed; bottom: calc(var(--tab-h) + 12px); right: 16px;
   background: var(--label); color: #fff;
-  padding: 12px 18px; border-radius: var(--r-md);
+  padding: 11px 16px; border-radius: var(--r-md);
   font-size: 13px; font-weight: 500;
   box-shadow: var(--shadow-lg);
   transform: translateY(60px); opacity: 0;
   transition: all .3s cubic-bezier(.34,1.3,.64,1);
-  z-index: 200; max-width: 300px;
+  z-index: 200; max-width: 280px;
+}
+@media (min-width: 900px) {
+  #toast { bottom: 24px; right: 24px; max-width: 300px; }
 }
 #toast.show { transform: translateY(0); opacity: 1; }
 #toast.ok   { background: var(--green); }
 #toast.err  { background: var(--red); }
 
-/* ── MODAL ── */
+/* ── MODALS ── */
 .modal-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.30);
   backdrop-filter: blur(12px) saturate(180%);
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: flex-end; justify-content: center;
   z-index: 100;
 }
+@media (min-width: 600px) {
+  .modal-overlay { align-items: center; }
+}
+
 .modal {
-  background: var(--card); border-radius: var(--r-xl);
-  padding: 28px; width: 100%; max-width: 420px;
+  background: var(--card);
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+  width: 100%; max-width: 100%;
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--sep-light);
+  max-height: 92vh; overflow-y: auto;
 }
-.modal-hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
-.modal-hd h3 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; color: var(--label); }
+@media (min-width: 600px) {
+  .modal {
+    border-radius: var(--r-xl);
+    max-width: 420px;
+    padding: 28px;
+  }
+}
+
+/* drag handle on mobile */
+.modal::before {
+  content: '';
+  display: block;
+  width: 36px; height: 4px;
+  background: var(--sep);
+  border-radius: 100px;
+  margin: 0 auto 20px;
+}
+@media (min-width: 600px) { .modal::before { display: none; } }
+
+.modal-hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-hd h3 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
 .modal-hd button {
   background: var(--bg); border: 1px solid var(--sep);
   color: var(--label3); width: 28px; height: 28px;
@@ -447,7 +527,6 @@ body {
   display: flex; align-items: center; justify-content: center;
   font-family: inherit; font-weight: 600;
 }
-.modal-hd button:hover { color: var(--label); }
 
 .fg { margin-bottom: 12px; }
 .fg label {
@@ -455,153 +534,161 @@ body {
   color: var(--label3); margin-bottom: 5px;
   text-transform: uppercase; letter-spacing: 0.4px;
 }
-.fg input, .fg select {
-  width: 100%; padding: 10px 12px;
+.fg input, .fg select, .fg textarea {
+  width: 100%; padding: 11px 12px;
   background: var(--bg); border: 1px solid var(--sep);
   border-radius: var(--r-sm); color: var(--label);
-  font-size: 14px; font-family: inherit;
+  font-size: 15px; font-family: inherit;
   outline: none; transition: border-color .15s, box-shadow .15s;
-  -webkit-appearance: none;
+  -webkit-appearance: none; appearance: none;
 }
-.fg input:focus, .fg select:focus {
+.fg input:focus, .fg select:focus, .fg textarea:focus {
   border-color: var(--blue);
   box-shadow: 0 0 0 3px rgba(0,122,255,0.10);
+  background: #fff;
 }
+.fg textarea { resize: vertical; min-height: 80px; }
 
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 .btn-submit {
-  width: 100%; padding: 12px;
+  width: 100%; padding: 13px;
   background: var(--blue); color: #fff;
   border: none; border-radius: var(--r-sm);
   font-weight: 600; font-size: 15px;
-  font-family: inherit; cursor: pointer; margin-top: 4px;
+  font-family: inherit; cursor: pointer; margin-top: 6px;
   box-shadow: 0 2px 8px rgba(0,122,255,0.30);
   transition: all .15s;
 }
-.btn-submit:hover { background: #0071e3; }
+.btn-submit:hover  { background: #0071e3; }
 .btn-submit:active { transform: scale(.98); }
 
-.form-msg     { margin-top: 10px; font-size: 12px; text-align: center; min-height: 16px; color: var(--label3); }
+.form-msg     { margin-top: 10px; font-size: 13px; text-align: center; min-height: 18px; color: var(--label3); }
 .form-msg.ok  { color: var(--green); font-weight: 600; }
 .form-msg.err { color: var(--red);   font-weight: 600; }
 
 /* ── CONFIRM ── */
 .confirm-overlay {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.30);
+  background: rgba(0,0,0,0.35);
   backdrop-filter: blur(12px);
   display: flex; align-items: center; justify-content: center;
-  z-index: 150;
+  z-index: 150; padding: 20px;
 }
 .confirm-box {
   background: var(--card); border-radius: var(--r-xl);
-  padding: 28px; max-width: 340px; width: 90%;
+  padding: 28px; max-width: 320px; width: 100%;
   box-shadow: var(--shadow-lg); border: 1px solid var(--sep-light);
 }
-.confirm-box h4 { font-size: 17px; font-weight: 700; margin-bottom: 8px; color: var(--label); }
+.confirm-box h4 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
 .confirm-box p  { font-size: 14px; color: var(--label3); margin-bottom: 22px; line-height: 1.5; }
-.confirm-btns   { display: flex; gap: 8px; justify-content: flex-end; }
+.confirm-btns   { display: flex; gap: 8px; flex-direction: column; }
+@media (min-width: 400px) { .confirm-btns { flex-direction: row; justify-content: flex-end; } }
 
 .btn-cancel-no {
-  padding: 9px 18px; border-radius: var(--r-sm);
+  padding: 11px 18px; border-radius: var(--r-sm);
   background: var(--bg); border: 1px solid var(--sep);
   color: var(--label2); font-size: 14px; font-weight: 500;
-  cursor: pointer; font-family: inherit; transition: background .15s;
+  cursor: pointer; font-family: inherit; text-align: center;
 }
-.btn-cancel-no:hover { background: #eaeaec; }
-
 .btn-cancel-yes {
-  padding: 9px 18px; border-radius: var(--r-sm);
+  padding: 11px 18px; border-radius: var(--r-sm);
   background: var(--red); color: #fff;
   border: none; font-size: 14px; font-weight: 600;
-  cursor: pointer; font-family: inherit;
+  cursor: pointer; font-family: inherit; text-align: center;
   box-shadow: 0 2px 6px rgba(255,59,48,0.30);
-  transition: all .15s;
 }
-.btn-cancel-yes:hover { background: #e0352b; }
 
 /* ── SLOT FLASH ── */
-@keyframes flash { 0%{background:rgba(0,122,255,0.12)} 100%{background:transparent} }
+@keyframes flash { 0%{background:rgba(0,122,255,0.14)} 100%{background:transparent} }
 .tl-slot.updated .appt-card { animation: flash 1.2s ease-out; }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <!-- HEADER -->
+  <!-- ── HEADER ── -->
   <div class="header">
     <div class="logo">
       <div class="logo-icon">💈</div>
-      BarberIA
+      <span>BarberIA</span>
     </div>
-    <div class="header-right">
+    <div class="hdr-actions">
       <span class="hdr-clock" id="hdr-clock">—</span>
-      <button class="btn btn-neutral" onclick="abrirModalCliente()">+ Cliente</button>
-      <button class="btn btn-neutral" onclick="abrirModalNotificar()" title="Avisar a clientes del día">📲 Avisar</button>
-      <button class="btn btn-blue"    onclick="abrirModal()">+ Nueva cita</button>
-      {% if es_hoy %}
-      <div class="live-pill"><div class="live-dot"></div>En vivo</div>
-      {% endif %}
-      <a href="/panel/metricas" class="btn btn-neutral" title="Métricas">📊</a>
-      <a href="/panel/logout" class="btn btn-neutral" title="Cerrar sesión" style="color:var(--label3)">⎋</a>
+      {% if es_hoy %}<div class="live-pill"><div class="live-dot"></div>En vivo</div>{% endif %}
+      <a href="/panel/metricas" class="hdr-btn" title="Métricas">📊</a>
+      <a href="/panel/logout"   class="hdr-btn" title="Cerrar sesión">⎋</a>
     </div>
   </div>
 
-  <!-- STATS -->
-  <div class="stats-row">
+  <!-- ── STATS STRIP ── -->
+  <div class="stats-scroll">
     <div class="stat-card sc-blue">
-      <div class="stat-icon-wrap">📅</div>
+      <span class="stat-icon">📅</span>
       <div class="stat-label">Citas hoy</div>
       <div class="stat-val blue" id="stat-citas">{{ citas_hoy }}</div>
       <div class="stat-color-bar"></div>
     </div>
     <div class="stat-card sc-green">
-      <div class="stat-icon-wrap">💰</div>
+      <span class="stat-icon">💰</span>
       <div class="stat-label">Ingresos</div>
       <div class="stat-val green" id="stat-ingresos">${{ "{:,}".format(ingresos_hoy).replace(",",".") }}</div>
       <div class="stat-color-bar"></div>
     </div>
     <div class="stat-card sc-indigo">
-      <div class="stat-icon-wrap">📊</div>
+      <span class="stat-icon">📊</span>
       <div class="stat-label">Ocupación</div>
       <div class="stat-val indigo" id="stat-ocupacion">{{ ocupacion }}%</div>
       <div class="stat-color-bar"></div>
     </div>
     <div class="stat-card sc-orange">
-      <div class="stat-icon-wrap">⭐</div>
+      <span class="stat-icon">⭐</span>
       <div class="stat-label">Top servicio</div>
       <div class="stat-val orange sm" id="stat-servicio">{{ servicio_top or "—" }}</div>
       <div class="stat-color-bar"></div>
     </div>
     <div class="stat-card sc-blue">
-      <div class="stat-icon-wrap">👥</div>
+      <span class="stat-icon">👥</span>
       <div class="stat-label">Clientes</div>
       <div class="stat-val" id="stat-clientes">{{ clientes }}</div>
       <div class="stat-color-bar"></div>
     </div>
     <div class="stat-card sc-indigo">
-      <div class="stat-icon-wrap">💈</div>
+      <span class="stat-icon">💈</span>
       <div class="stat-label">Barberos</div>
       <div class="stat-val indigo" id="stat-barberos">{{ barberos }}</div>
       <div class="stat-color-bar"></div>
     </div>
   </div>
 
-  <!-- MAIN GRID -->
+  <!-- ── DATE NAV ── -->
+  <div class="date-nav">
+    <a href="/panel?fecha={{ fecha_prev }}" class="nav-arrow">‹</a>
+    <span class="date-nav-label" id="last-update">{{ fecha_label }}</span>
+    <a href="/panel?fecha={{ fecha_next }}" class="nav-arrow">›</a>
+    {% if not es_hoy %}<a href="/panel" class="nav-today">↩ Hoy</a>{% endif %}
+  </div>
+
+  <!-- ── MOBILE STRIP (próxima + ingresos) ── -->
+  <div class="mobile-strip">
+    <div class="strip-card">
+      <div class="strip-label">Próxima</div>
+      <div class="strip-val" id="ms-next-time" style="color:var(--blue)">—</div>
+      <div class="strip-sub" id="ms-next-name">Calculando…</div>
+    </div>
+    <div class="strip-card">
+      <div class="strip-label">Ingresos</div>
+      <div class="strip-val" id="ms-income" style="color:var(--green)">${{ "{:,}".format(ingresos_hoy).replace(",",".") }}</div>
+      <div class="strip-sub" id="ms-occ">{{ ocupacion }}% ocupado</div>
+    </div>
+  </div>
+
+  <!-- ── PAGE GRID ── -->
   <div class="page-grid">
 
     <!-- TIMELINE -->
-    <div>
-      <div class="section-hd">
-        <h2>Agenda <span style="color:var(--label);font-weight:500;text-transform:none;letter-spacing:0;font-size:14px" id="last-update">— {{ fecha_label }}</span></h2>
-        <div style="display:flex;align-items:center;gap:8px">
-          <a href="/panel?fecha={{ fecha_prev }}" class="nav-arrow">‹</a>
-          <span class="nav-date-label">{{ fecha_label }}</span>
-          <a href="/panel?fecha={{ fecha_next }}" class="nav-arrow">›</a>
-          {% if not es_hoy %}<a href="/panel" class="nav-today">↩ Hoy</a>{% endif %}
-        </div>
-      </div>
+    <div class="timeline-col">
+      <div class="section-hd">Agenda del día</div>
       <div class="timeline-wrap">
         <div class="timeline-inner" id="timeline-inner">
           <div id="now-line"></div>
@@ -621,6 +708,7 @@ body {
                       <div class="appt-name">{{ fila.cliente or "Sin nombre" }}</div>
                       <div class="appt-meta">
                         {% if fila.barbero %}<span>{{ fila.barbero }}</span>{% endif %}
+                        {% if fila.servicio %}<span>{{ fila.servicio }}</span>{% endif %}
                       </div>
                     </div>
                     {% if fila.servicio %}<span class="badge-svc">{{ fila.servicio }}</span>{% endif %}
@@ -640,20 +728,16 @@ body {
       </div>
     </div>
 
-    <!-- SIDEBAR -->
+    <!-- SIDEBAR (desktop) -->
     <div class="sidebar">
-
-      <!-- Ocupación -->
       <div class="sb-card">
         <div class="sb-title">Ocupación del día</div>
         <div class="ring-wrap">
           <div class="ring-container">
-            <svg class="ring-svg" width="118" height="118" viewBox="0 0 118 118">
-              <circle class="ring-track" cx="59" cy="59" r="48"/>
-              <circle class="ring-fill"  cx="59" cy="59" r="48"
-                      id="ring-fill"
-                      stroke-dasharray="301.59"
-                      stroke-dashoffset="301.59"/>
+            <svg class="ring-svg" width="110" height="110" viewBox="0 0 110 110">
+              <circle class="ring-track" cx="55" cy="55" r="44"/>
+              <circle class="ring-fill"  cx="55" cy="55" r="44"
+                      id="ring-fill" stroke-dasharray="276.46" stroke-dashoffset="276.46"/>
             </svg>
             <div class="ring-center">
               <div class="ring-pct" id="ring-pct">{{ ocupacion }}%</div>
@@ -667,13 +751,11 @@ body {
         </div>
       </div>
 
-      <!-- Próxima -->
       <div class="sb-card">
         <div class="sb-title">Próxima cita</div>
         <div id="next-appt-content"><span class="next-empty">Calculando…</span></div>
       </div>
 
-      <!-- Ingresos -->
       <div class="sb-card">
         <div class="sb-title">Ingresos del día</div>
         <div class="income-amt" id="sb-income">
@@ -683,33 +765,43 @@ body {
         <div class="inc-goal" id="inc-goal-txt">meta: $200.000</div>
       </div>
 
-      <!-- Clientes Fijos -->
       {% if clientes_fijos %}
       <div class="sb-card">
         <div class="sb-title">📌 Clientes Fijos</div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
-          {% for cf in clientes_fijos %}
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--r-sm)">
-            <div style="flex:1;min-width:0">
-              <div style="font-size:13px;font-weight:600;color:var(--label)">{{ cf.nombre }}</div>
-              {% if cf.horario_fijo %}
-              <div style="font-size:11px;color:var(--label3)">{{ cf.horario_fijo }}</div>
-              {% endif %}
-            </div>
-            <button onclick="abrirEditarCliente('{{ cf.nombre }}','{{ cf.telefono }}','{{ cf.horario_fijo or '' }}')"
-                    style="background:none;border:1px solid var(--sep);border-radius:6px;padding:3px 7px;font-size:11px;color:var(--label3);cursor:pointer;flex-shrink:0"
-                    title="Editar">✎</button>
+        {% for cf in clientes_fijos %}
+        <div class="fijo-item">
+          <div class="fijo-info">
+            <div class="fijo-name">{{ cf.nombre }}</div>
+            {% if cf.horario_fijo %}<div class="fijo-hora">{{ cf.horario_fijo }}</div>{% endif %}
           </div>
-          {% endfor %}
+          <button class="fijo-edit-btn"
+                  onclick="abrirEditarCliente('{{ cf.nombre }}','{{ cf.telefono }}','{{ cf.horario_fijo or '' }}')">✎</button>
         </div>
+        {% endfor %}
       </div>
       {% endif %}
-
     </div>
-  </div>
-</div>
 
-<!-- CONFIRM -->
+  </div>
+</div><!-- /wrap -->
+
+<!-- ── BOTTOM TAB BAR (mobile) ── -->
+<nav class="bottom-bar">
+  <button class="tab-btn" onclick="abrirModalCliente()">
+    <span>👤</span>Cliente
+  </button>
+  <button class="tab-btn primary" onclick="abrirModal()">
+    <span>＋</span>Cita
+  </button>
+  <a href="/panel/metricas" class="tab-btn">
+    <span>📊</span>Métricas
+  </a>
+  <button class="tab-btn" onclick="abrirModalNotificar()">
+    <span>📲</span>Avisar
+  </button>
+</nav>
+
+<!-- ── CONFIRM ── -->
 <div id="confirm-overlay" class="confirm-overlay" style="display:none">
   <div class="confirm-box">
     <h4>Cancelar cita</h4>
@@ -721,7 +813,7 @@ body {
   </div>
 </div>
 
-<!-- MODAL CITA -->
+<!-- ── MODAL CITA ── -->
 <div id="modal-cita" class="modal-overlay" style="display:none">
   <div class="modal">
     <div class="modal-hd">
@@ -761,7 +853,7 @@ body {
   </div>
 </div>
 
-<!-- MODAL CLIENTE -->
+<!-- ── MODAL CLIENTE ── -->
 <div id="modal-cliente" class="modal-overlay" style="display:none">
   <div class="modal">
     <div class="modal-hd">
@@ -775,8 +867,8 @@ body {
     <div class="fg"><label>Teléfono</label><input type="tel" id="c-telefono" placeholder="+573001234567"></div>
     <div class="fg"><label>Fecha de cumpleaños</label><input type="date" id="c-cumple"></div>
     <div class="fg" style="display:flex;align-items:center;gap:10px;margin-top:4px">
-      <input type="checkbox" id="c-fijo" style="width:16px;height:16px;margin:0;accent-color:var(--blue);cursor:pointer">
-      <label for="c-fijo" style="text-transform:none;letter-spacing:0;font-size:14px;margin:0;color:var(--label);font-weight:500;cursor:pointer">Cliente fijo</label>
+      <input type="checkbox" id="c-fijo" style="width:18px;height:18px;margin:0;accent-color:var(--blue);cursor:pointer">
+      <label for="c-fijo" style="text-transform:none;letter-spacing:0;font-size:15px;margin:0;color:var(--label);font-weight:500;cursor:pointer">Cliente fijo</label>
     </div>
     <div class="fg"><label>Horario fijo</label><input type="text" id="c-horario" placeholder="Ej: Lunes 10:00"></div>
     <button class="btn-submit" onclick="enviarCliente()">Registrar cliente</button>
@@ -784,7 +876,7 @@ body {
   </div>
 </div>
 
-<!-- MODAL EDITAR CLIENTE FIJO -->
+<!-- ── MODAL EDITAR CLIENTE FIJO ── -->
 <div id="modal-editar-cliente" class="modal-overlay" style="display:none">
   <div class="modal">
     <div class="modal-hd">
@@ -803,171 +895,183 @@ body {
   </div>
 </div>
 
-<!-- MODAL NOTIFICAR -->
+<!-- ── MODAL NOTIFICAR ── -->
 <div id="modal-notificar" class="modal-overlay" style="display:none">
-  <div class="modal-card" style="max-width:440px">
-    <h3 class="modal-title">📲 Avisar a clientes del día</h3>
-    <div style="display:flex;flex-direction:column;gap:12px">
-      <div class="form-group">
-        <label class="form-label">Fecha</label>
-        <input type="date" id="noti-fecha" class="form-input">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Mensaje personalizado <span style="color:var(--label3);font-weight:400">(opcional)</span></label>
-        <textarea id="noti-msg" class="form-input" rows="4" placeholder="Dejá vacío para usar el mensaje automático. Podés usar {nombre}, {hora}, {fecha}."></textarea>
-        <div style="font-size:11px;color:var(--label3);margin-top:4px">Si dejás vacío, se envía: "Hola {nombre}, hubo un ajuste en el horario. Tu turno sigue a las {hora}."</div>
-      </div>
+  <div class="modal">
+    <div class="modal-hd">
+      <h3>📲 Avisar a clientes</h3>
+      <button onclick="document.getElementById('modal-notificar').style.display='none'">✕</button>
+    </div>
+    <div class="fg">
+      <label>Fecha</label>
+      <input type="date" id="noti-fecha">
+    </div>
+    <div class="fg">
+      <label>Mensaje personalizado <span style="font-weight:400;color:var(--label3)">(opcional)</span></label>
+      <textarea id="noti-msg" rows="3" placeholder="Dejá vacío para el mensaje automático. Podés usar {nombre}, {hora}, {fecha}."></textarea>
     </div>
     <button class="btn-submit" onclick="enviarNotificaciones()">Enviar mensajes</button>
     <div id="noti-result" class="form-msg"></div>
   </div>
 </div>
 
-<!-- TOAST -->
 <div id="toast"></div>
 
 <script>
-const key       = "";
-const GOAL      = 200000;
-
-// ── TOAST ──
-function showToast(msg, type) {
-  const t = document.getElementById("toast");
-  t.textContent = msg; t.className = "";
-  if (type) t.classList.add(type);
-  t.classList.add("show");
-  setTimeout(() => t.classList.remove("show", "ok", "err"), 3200);
-}
+const key    = "";
+const GOAL   = 200000;
 
 // ── CLOCK ──
 function tickClock() {
-  const now    = new Date();
-  const days   = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
-  const months = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-  const pad    = n => String(n).padStart(2,"0");
-  document.getElementById("hdr-clock").textContent =
-    `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} · ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  const now=new Date(), days=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"],
+        months=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"],
+        pad=n=>String(n).padStart(2,"0");
+  const el=document.getElementById("hdr-clock");
+  if(el) el.textContent=`${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} · ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 }
-setInterval(tickClock, 1000); tickClock();
+setInterval(tickClock,1000); tickClock();
+
+// ── TOAST ──
+function showToast(msg, type) {
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.className="";
+  if(type) t.classList.add(type);
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show","ok","err"),3200);
+}
 
 // ── NOW LINE ──
 function updateNowLine() {
-  const slots   = document.querySelectorAll(".tl-slot");
-  if (!slots.length) return;
-  const now     = new Date();
-  const nowMins = now.getHours()*60 + now.getMinutes();
-  let first = null, last = null;
-  slots.forEach(s => {
-    const [h,m] = s.dataset.hora.split(":").map(Number);
-    const mins  = h*60+m;
-    if (first === null || mins < first) first = mins;
-    if (last  === null || mins > last)  last  = mins;
+  const slots=document.querySelectorAll(".tl-slot");
+  if(!slots.length) return;
+  const now=new Date(), nowMins=now.getHours()*60+now.getMinutes();
+  let first=null, last=null;
+  slots.forEach(s=>{
+    const [h,m]=s.dataset.hora.split(":").map(Number), mins=h*60+m;
+    if(first===null||mins<first) first=mins;
+    if(last===null||mins>last)   last=mins;
   });
-  const line = document.getElementById("now-line");
-  if (nowMins < first || nowMins > last+30) { line.style.display="none"; return; }
-  line.style.display = "block";
-  line.style.top     = (nowMins - first) * (62/30) + 4 + "px";
+  const line=document.getElementById("now-line");
+  if(nowMins<first||nowMins>last+30){line.style.display="none"; return;}
+  line.style.display="block";
+  line.style.top=(nowMins-first)*(64/30)+2+"px";
 }
-setInterval(updateNowLine, 30000); updateNowLine();
+setInterval(updateNowLine,30000); updateNowLine();
 
 function scrollToNow() {
-  const line  = document.getElementById("now-line");
-  const inner = document.getElementById("timeline-inner");
-  if (!line || !inner || line.style.display === "none") return;
-  const innerTop = inner.getBoundingClientRect().top + window.scrollY;
-  const lineTop  = parseInt(line.style.top || "0", 10);
-  window.scrollTo({ top: Math.max(0, innerTop + lineTop - 160), behavior: "smooth" });
+  const line=document.getElementById("now-line"), inner=document.getElementById("timeline-inner");
+  if(!line||!inner||line.style.display==="none") return;
+  const innerTop=inner.getBoundingClientRect().top+window.scrollY;
+  const lineTop=parseInt(line.style.top||"0",10);
+  window.scrollTo({top:Math.max(0,innerTop+lineTop-160),behavior:"smooth"});
 }
-setTimeout(scrollToNow, 300);
+setTimeout(scrollToNow,300);
 
 // ── RING ──
 function updateRing(pct) {
-  const circ   = 2*Math.PI*48; // 301.59
-  const fill   = document.getElementById("ring-fill");
-  fill.style.strokeDashoffset = circ - (circ * Math.min(pct,100) / 100);
-  document.getElementById("ring-pct").textContent = pct + "%";
+  const circ=2*Math.PI*44; // r=44 → 276.46
+  const fill=document.getElementById("ring-fill");
+  if(fill) fill.style.strokeDashoffset=circ-(circ*Math.min(pct,100)/100);
+  const rp=document.getElementById("ring-pct");
+  if(rp) rp.textContent=pct+"%";
 }
 updateRing({{ ocupacion }});
 
 // ── INCOME ──
 function updateIncomeBar(amount) {
-  const pct = Math.min((amount/GOAL)*100, 100);
-  document.getElementById("inc-bar").style.width       = pct + "%";
-  document.getElementById("sb-income").innerHTML       = "$" + amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g,".");
-  document.getElementById("inc-goal-txt").textContent  = `meta: $${(GOAL/1000).toFixed(0)}0.000 · ${Math.round(pct)}%`;
+  const pct=Math.min((amount/GOAL)*100,100);
+  const bar=document.getElementById("inc-bar");
+  if(bar) bar.style.width=pct+"%";
+  const fmt="$"+amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g,".");
+  const sb=document.getElementById("sb-income");
+  if(sb) sb.innerHTML=fmt;
+  const ms=document.getElementById("ms-income");
+  if(ms) ms.textContent=fmt;
+  const gt=document.getElementById("inc-goal-txt");
+  if(gt) gt.textContent=`meta: $${(GOAL/1000).toFixed(0)}0.000 · ${Math.round(pct)}%`;
 }
 updateIncomeBar({{ ingresos_hoy }});
 
 // ── NEXT APPT ──
 function updateNextAppt(agenda) {
-  const now     = new Date();
-  const nowMins = now.getHours()*60 + now.getMinutes();
-  const next    = agenda.find(f => {
-    if (!f.cliente) return false;
-    const [h,m] = f.hora.split(":").map(Number);
-    return h*60+m >= nowMins;
+  const now=new Date(), nowMins=now.getHours()*60+now.getMinutes();
+  const next=agenda.find(f=>{
+    if(!f.cliente) return false;
+    const[h,m]=f.hora.split(":").map(Number);
+    return h*60+m>=nowMins;
   });
-  const el = document.getElementById("next-appt-content");
-  if (!next) { el.innerHTML='<span class="next-empty">Sin más citas hoy</span>'; return; }
-  const [h,m] = next.hora.split(":").map(Number);
-  const diff   = h*60+m - nowMins;
-  const diffTxt = diff===0 ? "¡Ahora mismo!" : diff<60 ? `En ${diff} min` : `En ${Math.floor(diff/60)}h ${diff%60}min`;
-  el.innerHTML = `
+  // Desktop sidebar
+  const el=document.getElementById("next-appt-content");
+  // Mobile strip
+  const msTime=document.getElementById("ms-next-time");
+  const msName=document.getElementById("ms-next-name");
+  if(!next) {
+    if(el) el.innerHTML='<span class="next-empty">Sin más citas hoy</span>';
+    if(msTime) msTime.textContent="—";
+    if(msName) msName.textContent="Sin más citas";
+    return;
+  }
+  const[h,m]=next.hora.split(":").map(Number);
+  const diff=h*60+m-nowMins;
+  const diffTxt=diff===0?"¡Ahora!":diff<60?`En ${diff} min`:`En ${Math.floor(diff/60)}h ${diff%60}m`;
+  if(el) el.innerHTML=`
     <div class="next-item">
       <div class="next-time">${next.hora}</div>
       <div class="next-name">${next.cliente}</div>
-      ${next.servicio ? `<div class="next-svc">${next.servicio}${next.barbero ? " · "+next.barbero : ""}</div>` : ""}
+      ${next.servicio?`<div class="next-svc">${next.servicio}${next.barbero?" · "+next.barbero:""}</div>`:""}
       <div class="next-countdown">${diffTxt}</div>
     </div>`;
+  if(msTime) msTime.textContent=next.hora;
+  if(msName) msName.textContent=diffTxt+" · "+next.cliente;
 }
 updateNextAppt({{ agenda | tojson }});
 
 // ── RENDER TIMELINE ──
 function renderTimeline(agenda) {
-  const tl   = document.getElementById("timeline");
-  const prev = {};
-  tl.querySelectorAll(".tl-slot[data-hora]").forEach(r => {
-    prev[r.dataset.hora] = { booked: r.classList.contains("booked") };
+  const tl=document.getElementById("timeline");
+  const prev={};
+  tl.querySelectorAll(".tl-slot[data-hora]").forEach(r=>{
+    prev[r.dataset.hora]={booked:r.classList.contains("booked")};
   });
-  tl.innerHTML = "";
-  agenda.forEach(f => {
-    const isBooked  = !!f.cliente || !!f.cita_id;
-    const wasBooked = prev[f.hora]?.booked ?? null;
-    const changed   = wasBooked !== null && wasBooked !== isBooked;
-    const slot      = document.createElement("div");
-    const initial   = (f.cliente || "?")[0].toUpperCase();
-    slot.className  = `tl-slot ${isBooked ? "booked" : "free"}`;
-    slot.dataset.hora = f.hora;
-    if (f.cita_id) slot.dataset.citaId = f.cita_id;
-    if (changed) slot.classList.add("updated");
-    if (isBooked) {
-      const c = f.cumpleanos;
-      const avatar = f.fijo ? "📌" : (c ? "🎂" : initial);
-      const cancelBtn = f.cita_id
-        ? `<button class="btn-cancel" onclick="pedirCancelar(${f.cita_id},'${f.hora}','${(f.cliente||"").replace(/'/g,"\\'")}')">✕</button>`
-        : "";
-      slot.innerHTML = `
+  tl.innerHTML="";
+  agenda.forEach(f=>{
+    const isBooked=!!f.cliente||!!f.cita_id;
+    const wasBooked=prev[f.hora]?.booked??null;
+    const changed=wasBooked!==null&&wasBooked!==isBooked;
+    const slot=document.createElement("div");
+    const initial=(f.cliente||"?")[0].toUpperCase();
+    slot.className=`tl-slot ${isBooked?"booked":"free"}`;
+    slot.dataset.hora=f.hora;
+    if(f.cita_id) slot.dataset.citaId=f.cita_id;
+    if(changed) slot.classList.add("updated");
+    if(isBooked){
+      const c=f.cumpleanos;
+      const avatar=f.fijo?"📌":(c?"🎂":initial);
+      const cancelBtn=f.cita_id
+        ?`<button class="btn-cancel" onclick="pedirCancelar(${f.cita_id},'${f.hora}','${(f.cliente||"").replace(/'/g,"\\'")}')">✕</button>`
+        :"";
+      slot.innerHTML=`
         <div class="tl-time">${f.hora}</div>
         <div class="tl-content">
           <div class="appt-card${c?" cumple":""}">
             <div class="appt-avatar">${avatar}</div>
             <div class="appt-body">
               <div class="appt-name">${f.cliente||"Sin nombre"}</div>
-              <div class="appt-meta">${f.barbero?`<span>${f.barbero}</span>`:""}</div>
+              <div class="appt-meta">${f.barbero?`<span>${f.barbero}</span>`:""}${f.servicio?`<span>${f.servicio}</span>`:""}</div>
             </div>
             ${f.servicio?`<span class="badge-svc">${f.servicio}</span>`:""}
             ${cancelBtn}
           </div>
         </div>`;
     } else {
-      slot.innerHTML = `
+      slot.innerHTML=`
         <div class="tl-time">${f.hora}</div>
         <div class="tl-content"><span class="free-label">Disponible</span></div>`;
     }
     tl.appendChild(slot);
-    if (changed) {
-      setTimeout(() => slot.classList.remove("updated"), 1200);
-      showToast(isBooked ? `${f.hora} — ${f.cliente}` : `Cancelada · ${f.hora}`, isBooked?"ok":"err");
+    if(changed){
+      setTimeout(()=>slot.classList.remove("updated"),1200);
+      showToast(isBooked?`${f.hora} — ${f.cliente}`:`Cancelada · ${f.hora}`,isBooked?"ok":"err");
     }
   });
   updateNowLine();
@@ -975,203 +1079,186 @@ function renderTimeline(agenda) {
 
 // ── STATS UPDATE ──
 function updateStats(data) {
-  document.getElementById("stat-citas").textContent     = data.citas_hoy;
-  document.getElementById("stat-clientes").textContent  = data.clientes;
-  document.getElementById("stat-barberos").textContent  = data.barberos;
-  document.getElementById("stat-servicio").textContent  = data.servicio_top || "—";
-  document.getElementById("stat-ocupacion").textContent = data.ocupacion + "%";
-  document.getElementById("occ-citas").innerHTML        = `${data.citas_hoy} / <span id="occ-total">${data.agenda.length}</span>`;
+  document.getElementById("stat-citas").textContent    =data.citas_hoy;
+  document.getElementById("stat-clientes").textContent =data.clientes;
+  document.getElementById("stat-barberos").textContent =data.barberos;
+  document.getElementById("stat-servicio").textContent =data.servicio_top||"—";
+  document.getElementById("stat-ocupacion").textContent=data.ocupacion+"%";
+  const occ=document.getElementById("occ-citas");
+  if(occ) occ.innerHTML=`${data.citas_hoy} / <span id="occ-total">${data.agenda.length}</span>`;
+  const msocc=document.getElementById("ms-occ");
+  if(msocc) msocc.textContent=data.ocupacion+"% ocupado";
   updateRing(data.ocupacion);
   updateIncomeBar(data.ingresos_hoy);
   updateNextAppt(data.agenda);
-  document.getElementById("last-update").textContent    = `— Hoy · ${new Date().toLocaleTimeString("es-CO")}`;
+  const lu=document.getElementById("last-update");
+  if(lu) lu.textContent=`Hoy · ${new Date().toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"})}`;
 }
 
 // ── SSE ──
-const ES_HOY    = {{ 'true' if es_hoy else 'false' }};
-const FECHA_ISO = "{{ fecha_iso }}";
+const ES_HOY   ={{ 'true' if es_hoy else 'false' }};
+const FECHA_ISO="{{ fecha_iso }}";
 function conectarSSE() {
-  const es = new EventSource(`/panel-stream?fecha=${FECHA_ISO}`);
-  es.addEventListener("update", e => { const d=JSON.parse(e.data); updateStats(d); renderTimeline(d.agenda); });
-  es.onerror = () => { es.close(); setTimeout(conectarSSE, 5000); };
+  const es=new EventSource(`/panel-stream?fecha=${FECHA_ISO}`);
+  es.addEventListener("update",e=>{const d=JSON.parse(e.data);updateStats(d);renderTimeline(d.agenda);});
+  es.onerror=()=>{es.close();setTimeout(conectarSSE,5000);};
 }
-if (ES_HOY) conectarSSE();
-else document.getElementById("last-update").textContent = `— estático`;
+if(ES_HOY) conectarSSE();
+else { const lu=document.getElementById("last-update"); if(lu) lu.textContent=`${lu.textContent} · estático`; }
 
 // ── CANCEL ──
-function pedirCancelar(citaId, hora, nombre) {
-  document.getElementById("confirm-msg").textContent = `¿Cancelar la cita de las ${hora} — ${nombre}?`;
-  document.getElementById("confirm-overlay").style.display = "flex";
-  const btn = document.getElementById("confirm-yes");
-  const nb  = btn.cloneNode(true); btn.parentNode.replaceChild(nb, btn);
-  nb.addEventListener("click", async () => {
-    document.getElementById("confirm-overlay").style.display = "none";
+function pedirCancelar(citaId,hora,nombre) {
+  document.getElementById("confirm-msg").textContent=`¿Cancelar la cita de las ${hora} — ${nombre}?`;
+  document.getElementById("confirm-overlay").style.display="flex";
+  const btn=document.getElementById("confirm-yes");
+  const nb=btn.cloneNode(true); btn.parentNode.replaceChild(nb,btn);
+  nb.addEventListener("click",async()=>{
+    document.getElementById("confirm-overlay").style.display="none";
     try {
-      const r    = await fetch(`/cancelar-cita-panel`, {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({cita_id:citaId})
-      });
-      const data = await r.json();
-      if (data.success) {
-        showToast("Cita cancelada","err");
-        if (data.data) { updateStats(data.data); renderTimeline(data.data.agenda); }
-      } else showToast(data.mensaje||"Error","err");
-    } catch(e) { showToast("Error de conexión","err"); }
+      const r=await fetch(`/cancelar-cita-panel`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({cita_id:citaId})});
+      const data=await r.json();
+      if(data.success){showToast("Cita cancelada","err");if(data.data){updateStats(data.data);renderTimeline(data.data.agenda);}}
+      else showToast(data.mensaje||"Error","err");
+    } catch(e){showToast("Error de conexión","err");}
   });
 }
-function cerrarConfirm() { document.getElementById("confirm-overlay").style.display="none"; }
+function cerrarConfirm(){document.getElementById("confirm-overlay").style.display="none";}
 
 // ── MODAL CITA ──
 function abrirModal() {
-  document.getElementById("modal-cita").style.display = "flex";
-  document.getElementById("form-msg").textContent = "";
-  // Resetear selects
-  document.getElementById("f-barbero").selectedIndex = 0;
-  document.getElementById("f-hora").innerHTML = '<option value="">— elige fecha —</option>';
-  document.getElementById("f-servicio").selectedIndex = 0;
-  document.getElementById("f-nombre").value = "";
-  document.getElementById("f-telefono").value = "";
-  const hoy = new Date().toISOString().split("T")[0];
-  document.getElementById("f-fecha").min = hoy;
-  document.getElementById("f-fecha").value = hoy;
+  document.getElementById("modal-cita").style.display="flex";
+  document.getElementById("form-msg").textContent="";
+  document.getElementById("f-barbero").selectedIndex=0;
+  document.getElementById("f-hora").innerHTML='<option value="">— elige fecha —</option>';
+  document.getElementById("f-servicio").selectedIndex=0;
+  document.getElementById("f-nombre").value="";
+  document.getElementById("f-telefono").value="";
+  const hoy=new Date().toISOString().split("T")[0];
+  document.getElementById("f-fecha").min=hoy;
+  document.getElementById("f-fecha").value=hoy;
 }
-function cerrarModal() { document.getElementById("modal-cita").style.display="none"; }
-document.getElementById("modal-cita").addEventListener("click", e => { if(e.target===e.currentTarget) cerrarModal(); });
+function cerrarModal(){document.getElementById("modal-cita").style.display="none";}
+document.getElementById("modal-cita").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarModal();});
 
 async function cargarHorarios() {
-  const barberoId = document.getElementById("f-barbero").value;
-  const fecha     = document.getElementById("f-fecha").value;
-  const sel       = document.getElementById("f-hora");
-  if (!barberoId || !fecha) {
-    sel.innerHTML = '<option value="">— elige barbero y fecha —</option>';
-    return;
-  }
-  sel.innerHTML = '<option value="">Cargando…</option>';
+  const barberoId=document.getElementById("f-barbero").value;
+  const fecha=document.getElementById("f-fecha").value;
+  const sel=document.getElementById("f-hora");
+  if(!barberoId||!fecha){sel.innerHTML='<option value="">— elige barbero y fecha —</option>';return;}
+  sel.innerHTML='<option value="">Cargando…</option>';
   try {
-    const r    = await fetch(`/agenda/horarios?barbero_id=${barberoId}&fecha=${fecha}`);
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    const data = await r.json();
-    sel.innerHTML = "";
-    if (!data.horarios || !data.horarios.length) {
-      sel.innerHTML = data.cerrado
-        ? '<option value="">Cerrado ese día</option>'
-        : '<option value="">Sin turnos disponibles</option>';
+    const r=await fetch(`/agenda/horarios?barbero_id=${barberoId}&fecha=${fecha}`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const data=await r.json();
+    sel.innerHTML="";
+    if(!data.horarios||!data.horarios.length){
+      sel.innerHTML=data.cerrado?'<option value="">Cerrado ese día</option>':'<option value="">Sin turnos disponibles</option>';
       return;
     }
-    const defOpt = document.createElement("option");
-    defOpt.value = ""; defOpt.textContent = "— elige hora —";
+    const defOpt=document.createElement("option");
+    defOpt.value=""; defOpt.textContent="— elige hora —";
     sel.appendChild(defOpt);
-    data.horarios.forEach(h => {
-      const o = document.createElement("option");
-      o.value = h.hora; o.textContent = h.hora;
-      sel.appendChild(o);
+    data.horarios.forEach(h=>{
+      const o=document.createElement("option");
+      o.value=h.hora; o.textContent=h.hora; sel.appendChild(o);
     });
-  } catch(e) {
-    sel.innerHTML = '<option value="">Error al cargar horarios</option>';
-    console.error("cargarHorarios:", e);
-  }
+  } catch(e){sel.innerHTML='<option value="">Error al cargar horarios</option>';}
 }
 
 async function enviarCita() {
-  const msg      = document.getElementById("form-msg");
-  const barbero  = document.getElementById("f-barbero").value;
-  const fecha    = document.getElementById("f-fecha").value;
-  const hora     = document.getElementById("f-hora").value;
-  const servicio = document.getElementById("f-servicio").value;
-  const nombre   = document.getElementById("f-nombre").value.trim();
-  const telefono = document.getElementById("f-telefono").value.trim();
-  if (!barbero||!fecha||!hora||!nombre||!telefono) {
-    msg.className="form-msg err"; msg.textContent="Completa todos los campos."; return;
-  }
+  const msg=document.getElementById("form-msg");
+  const barbero=document.getElementById("f-barbero").value;
+  const fecha=document.getElementById("f-fecha").value;
+  const hora=document.getElementById("f-hora").value;
+  const servicio=document.getElementById("f-servicio").value;
+  const nombre=document.getElementById("f-nombre").value.trim();
+  const telefono=document.getElementById("f-telefono").value.trim();
+  if(!barbero||!fecha||!hora||!nombre||!telefono){msg.className="form-msg err";msg.textContent="Completa todos los campos.";return;}
   msg.className="form-msg"; msg.textContent="Agendando…";
   try {
-    const r    = await fetch("/agenda/crear-cita",{method:"POST",headers:{"Content-Type":"application/json"},
+    const r=await fetch("/agenda/crear-cita",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({nombre,telefono,barbero_id:parseInt(barbero),fecha,hora,servicio:servicio||null})});
-    const data = await r.json();
-    if (data.success) { msg.className="form-msg ok"; msg.textContent="✓ Cita agendada"; setTimeout(cerrarModal,1400); }
-    else              { msg.className="form-msg err"; msg.textContent=data.mensaje||"Error."; }
-  } catch(e) { msg.className="form-msg err"; msg.textContent="Error de conexión."; }
+    const data=await r.json();
+    if(data.success){msg.className="form-msg ok";msg.textContent="✓ Cita agendada";setTimeout(cerrarModal,1400);}
+    else{msg.className="form-msg err";msg.textContent=data.mensaje||"Error.";}
+  } catch(e){msg.className="form-msg err";msg.textContent="Error de conexión.";}
 }
 
 // ── MODAL CLIENTE ──
-function abrirModalCliente() {
+function abrirModalCliente(){
   document.getElementById("modal-cliente").style.display="flex";
   document.getElementById("cliente-msg").textContent="";
 }
-function cerrarModalCliente() { document.getElementById("modal-cliente").style.display="none"; }
-document.getElementById("modal-cliente").addEventListener("click", e => { if(e.target===e.currentTarget) cerrarModalCliente(); });
+function cerrarModalCliente(){document.getElementById("modal-cliente").style.display="none";}
+document.getElementById("modal-cliente").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarModalCliente();});
 
 async function enviarCliente() {
-  const msg      = document.getElementById("cliente-msg");
-  const nombre   = document.getElementById("c-nombre").value.trim();
-  const apellido = document.getElementById("c-apellido").value.trim();
-  const telefono = document.getElementById("c-telefono").value.trim();
-  const cumple   = document.getElementById("c-cumple").value;
-  const fijo     = document.getElementById("c-fijo").checked;
-  const horario  = document.getElementById("c-horario").value.trim();
-  if (!nombre||!telefono) { msg.className="form-msg err"; msg.textContent="Nombre y teléfono son obligatorios."; return; }
+  const msg=document.getElementById("cliente-msg");
+  const nombre=document.getElementById("c-nombre").value.trim();
+  const apellido=document.getElementById("c-apellido").value.trim();
+  const telefono=document.getElementById("c-telefono").value.trim();
+  const cumple=document.getElementById("c-cumple").value;
+  const fijo=document.getElementById("c-fijo").checked;
+  const horario=document.getElementById("c-horario").value.trim();
+  if(!nombre||!telefono){msg.className="form-msg err";msg.textContent="Nombre y teléfono son obligatorios.";return;}
   msg.className="form-msg"; msg.textContent="Registrando…";
   try {
-    const r    = await fetch(`/crear-cliente`,{method:"POST",headers:{"Content-Type":"application/json"},
+    const r=await fetch(`/crear-cliente`,{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({nombre,apellido,telefono,fecha_cumpleanos:cumple||null,fijo,horario_fijo:horario||null})});
-    const data = await r.json();
-    if (data.success) { msg.className="form-msg ok"; msg.textContent="✓ "+data.mensaje; setTimeout(cerrarModalCliente,1400); }
-    else              { msg.className="form-msg err"; msg.textContent=data.mensaje; }
-  } catch(e) { msg.className="form-msg err"; msg.textContent="Error de conexión."; }
+    const data=await r.json();
+    if(data.success){msg.className="form-msg ok";msg.textContent="✓ "+data.mensaje;setTimeout(cerrarModalCliente,1400);}
+    else{msg.className="form-msg err";msg.textContent=data.mensaje;}
+  } catch(e){msg.className="form-msg err";msg.textContent="Error de conexión.";}
 }
 
 // ── EDITAR CLIENTE FIJO ──
-function abrirEditarCliente(nombre, telefono, horario) {
-  document.getElementById("ec-nombre").value   = nombre;
-  document.getElementById("ec-telefono").value = telefono;
-  document.getElementById("ec-horario").value  = horario;
-  document.getElementById("ec-msg").textContent = "";
-  document.getElementById("modal-editar-cliente").style.display = "flex";
+function abrirEditarCliente(nombre,telefono,horario){
+  document.getElementById("ec-nombre").value=nombre;
+  document.getElementById("ec-telefono").value=telefono;
+  document.getElementById("ec-horario").value=horario;
+  document.getElementById("ec-msg").textContent="";
+  document.getElementById("modal-editar-cliente").style.display="flex";
 }
-function cerrarEditarCliente() { document.getElementById("modal-editar-cliente").style.display = "none"; }
-document.getElementById("modal-editar-cliente").addEventListener("click", e => { if(e.target===e.currentTarget) cerrarEditarCliente(); });
+function cerrarEditarCliente(){document.getElementById("modal-editar-cliente").style.display="none";}
+document.getElementById("modal-editar-cliente").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarEditarCliente();});
 
 async function guardarEditarCliente() {
-  const msg      = document.getElementById("ec-msg");
-  const telefono = document.getElementById("ec-telefono").value.trim();
-  const nombre   = document.getElementById("ec-nombre").value.trim();
-  const horario  = document.getElementById("ec-horario").value.trim();
-  msg.className = "form-msg"; msg.textContent = "Guardando…";
+  const msg=document.getElementById("ec-msg");
+  const telefono=document.getElementById("ec-telefono").value.trim();
+  const nombre=document.getElementById("ec-nombre").value.trim();
+  const horario=document.getElementById("ec-horario").value.trim();
+  msg.className="form-msg"; msg.textContent="Guardando…";
   try {
-    const r    = await fetch(`/editar-cliente`, {method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({telefono, nombre, horario_fijo: horario || null})});
-    const data = await r.json();
-    if (data.success) { msg.className="form-msg ok"; msg.textContent="✓ "+data.mensaje; setTimeout(()=>{ cerrarEditarCliente(); location.reload(); },1200); }
-    else              { msg.className="form-msg err"; msg.textContent=data.mensaje; }
-  } catch(e) { msg.className="form-msg err"; msg.textContent="Error de conexión."; }
+    const r=await fetch(`/editar-cliente`,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({telefono,nombre,horario_fijo:horario||null})});
+    const data=await r.json();
+    if(data.success){msg.className="form-msg ok";msg.textContent="✓ "+data.mensaje;setTimeout(()=>{cerrarEditarCliente();location.reload();},1200);}
+    else{msg.className="form-msg err";msg.textContent=data.mensaje;}
+  } catch(e){msg.className="form-msg err";msg.textContent="Error de conexión.";}
 }
 
 // ── MODAL NOTIFICAR ──
-function abrirModalNotificar() {
-  const hoy = new Date(FECHA_ISO);
-  document.getElementById("noti-fecha").value = FECHA_ISO;
-  document.getElementById("noti-msg").value = "";
-  document.getElementById("noti-result").textContent = "";
-  document.getElementById("modal-notificar").style.display = "flex";
+function abrirModalNotificar(){
+  document.getElementById("noti-fecha").value=FECHA_ISO;
+  document.getElementById("noti-msg").value="";
+  document.getElementById("noti-result").textContent="";
+  document.getElementById("modal-notificar").style.display="flex";
 }
-document.getElementById("modal-notificar").addEventListener("click", e => {
-  if (e.target === e.currentTarget) document.getElementById("modal-notificar").style.display = "none";
-});
+document.getElementById("modal-notificar").addEventListener("click",e=>{if(e.target===e.currentTarget)document.getElementById("modal-notificar").style.display="none";});
+
 async function enviarNotificaciones() {
-  const fecha   = document.getElementById("noti-fecha").value;
-  const mensaje = document.getElementById("noti-msg").value.trim();
-  const res     = document.getElementById("noti-result");
-  if (!fecha) { res.className="form-msg err"; res.textContent="Elegí una fecha."; return; }
+  const fecha=document.getElementById("noti-fecha").value;
+  const mensaje=document.getElementById("noti-msg").value.trim();
+  const res=document.getElementById("noti-result");
+  if(!fecha){res.className="form-msg err";res.textContent="Elegí una fecha.";return;}
   res.className="form-msg"; res.textContent="Enviando…";
   try {
-    const r    = await fetch(`/notificar-dia`, {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({fecha, mensaje: mensaje || null})
-    });
-    const data = await r.json();
-    if (data.success) { res.className="form-msg ok"; res.textContent="✓ "+data.mensaje; }
-    else              { res.className="form-msg err"; res.textContent=data.mensaje; }
-  } catch(e) { res.className="form-msg err"; res.textContent="Error de conexión."; }
+    const r=await fetch(`/notificar-dia`,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({fecha,mensaje:mensaje||null})});
+    const data=await r.json();
+    if(data.success){res.className="form-msg ok";res.textContent="✓ "+data.mensaje;}
+    else{res.className="form-msg err";res.textContent=data.mensaje;}
+  } catch(e){res.className="form-msg err";res.textContent="Error de conexión.";}
 }
 </script>
 </body>
