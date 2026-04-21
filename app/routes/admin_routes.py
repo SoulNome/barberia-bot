@@ -26,18 +26,67 @@ def _colombia_today():
 
 
 def _stats_barberia(barberia_id):
-    hoy = _colombia_today()
+    from sqlalchemy import func
+    hoy           = _colombia_today()
     inicio_semana = hoy - timedelta(days=hoy.weekday())
+    inicio_mes    = hoy.replace(day=1)
+    mes_ant_fin   = inicio_mes - timedelta(days=1)
+    mes_ant_ini   = mes_ant_fin.replace(day=1)
+
+    # Ingresos: leer precios de la barbería
+    try:
+        b = Barberia.query.get(barberia_id)
+        precios = b.get_precios() if b else {}
+    except Exception:
+        precios = {}
+
+    citas_mes = Cita.query.filter(
+        Cita.barberia_id == barberia_id,
+        Cita.fecha >= inicio_mes,
+        Cita.fecha <= hoy,
+        Cita.estado != "cancelada"
+    ).all()
+
+    citas_mes_ant = Cita.query.filter(
+        Cita.barberia_id == barberia_id,
+        Cita.fecha >= mes_ant_ini,
+        Cita.fecha <= mes_ant_fin,
+        Cita.estado != "cancelada"
+    ).count()
+
+    ingresos_mes = sum(precios.get(c.servicio, 0) for c in citas_mes)
+
+    clientes_nuevos = Cliente.query.filter(
+        Cliente.barberia_id == barberia_id,
+        Cliente.creado_en >= datetime.combine(inicio_mes, datetime.min.time()),
+    ).count()
+
+    # Citas últimos 7 días (sparkline)
+    spark = []
+    for i in range(6, -1, -1):
+        d = hoy - timedelta(days=i)
+        n = Cita.query.filter(
+            Cita.barberia_id == barberia_id,
+            Cita.fecha == d,
+            Cita.estado != "cancelada"
+        ).count()
+        spark.append(n)
+
     return {
-        "clientes":      Cliente.query.filter_by(barberia_id=barberia_id).count(),
-        "barberos":      Barbero.query.filter_by(barberia_id=barberia_id).count(),
-        "citas_hoy":     Cita.query.filter_by(barberia_id=barberia_id, fecha=hoy).filter(Cita.estado != "cancelada").count(),
-        "citas_semana":  Cita.query.filter(
-                             Cita.barberia_id == barberia_id,
-                             Cita.fecha >= inicio_semana,
-                             Cita.fecha <= hoy,
-                             Cita.estado != "cancelada"
-                         ).count(),
+        "clientes":         Cliente.query.filter_by(barberia_id=barberia_id).count(),
+        "barberos":         Barbero.query.filter_by(barberia_id=barberia_id).count(),
+        "citas_hoy":        Cita.query.filter_by(barberia_id=barberia_id, fecha=hoy).filter(Cita.estado != "cancelada").count(),
+        "citas_semana":     Cita.query.filter(
+                                Cita.barberia_id == barberia_id,
+                                Cita.fecha >= inicio_semana,
+                                Cita.fecha <= hoy,
+                                Cita.estado != "cancelada"
+                            ).count(),
+        "citas_mes":        len(citas_mes),
+        "citas_mes_ant":    citas_mes_ant,
+        "ingresos_mes":     ingresos_mes,
+        "clientes_nuevos":  clientes_nuevos,
+        "spark":            spark,
     }
 
 

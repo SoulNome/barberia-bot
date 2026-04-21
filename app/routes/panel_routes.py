@@ -320,9 +320,6 @@ def panel():
     if not barberia:
         return redirect(url_for("panel.panel_login"))
 
-    # Leer key desde sesión (para que el JS del template pueda hacer llamadas API)
-    key = session.get("panel_key", "")
-
     fecha_str = request.args.get("fecha", "")
     try:
         fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date() if fecha_str else _colombia_today()
@@ -347,7 +344,7 @@ def panel():
     fecha_next = (fecha + timedelta(days=1)).isoformat()
     data = _build_panel_data(barberia.id, fecha)
     return render_template("panel.html", **data,
-                           key=key, es_hoy=es_hoy,
+                           es_hoy=es_hoy,
                            fecha_label=fecha_label,
                            fecha_prev=fecha_prev, fecha_next=fecha_next)
 
@@ -745,6 +742,119 @@ def confirmar_citas():
         "errores": errores,
         "mensaje": f"Confirmaciones enviadas: {enviados}. Errores: {errores}."
     })
+
+
+@panel_bp.route("/panel/metricas")
+def panel_metricas():
+    barberia = _check_auth()
+    if not barberia:
+        return redirect(url_for("panel.panel_login"))
+
+    from sqlalchemy import func
+    from datetime import timedelta
+
+    hoy     = _colombia_today()
+    hace30  = hoy - timedelta(days=29)
+    hace180 = hoy - timedelta(days=179)
+
+    # ── Citas por día (últimos 30 días) ──────────────────────────────────────
+    filas_dia = (
+        db.session.query(Cita.fecha, func.count(Cita.id))
+        .filter(
+            Cita.barberia_id == barberia.id,
+            Cita.estado != "cancelada",
+            Cita.fecha >= hace30,
+            Cita.fecha <= hoy,
+        )
+        .group_by(Cita.fecha)
+        .order_by(Cita.fecha)
+        .all()
+    )
+    citas_por_dia = {str(f): c for f, c in filas_dia}
+    dias_labels   = [(hace30 + timedelta(days=i)).isoformat() for i in range(30)]
+    dias_data     = [citas_por_dia.get(d, 0) for d in dias_labels]
+
+    # ── Ingresos y citas por mes (últimos 6 meses) ───────────────────────────
+    precios = barberia.get_precios()
+    todas_citas_6m = (
+        Cita.query
+        .filter(
+            Cita.barberia_id == barberia.id,
+            Cita.estado != "cancelada",
+            Cita.fecha >= hace180,
+        )
+        .all()
+    )
+    meses_dict = {}
+    for c in todas_citas_6m:
+        clave = c.fecha.strftime("%Y-%m")
+        if clave not in meses_dict:
+            meses_dict[clave] = {"citas": 0, "ingresos": 0}
+        meses_dict[clave]["citas"] += 1
+        meses_dict[clave]["ingresos"] += precios.get(c.servicio, 0)
+
+    meses_labels  = sorted(meses_dict.keys())
+    meses_citas   = [meses_dict[m]["citas"]    for m in meses_labels]
+    meses_ingresos= [meses_dict[m]["ingresos"] for m in meses_labels]
+
+    MESES_ES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]
+    meses_labels_bonitos = [
+        f"{MESES_ES[int(m.split('-')[1])-1]} {m.split('-')[0]}"
+        for m in meses_labels
+    ]
+
+    # ── Por día de la semana ─────────────────────────────────────────────────
+    DIAS_ES = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"]
+    semana_dict = {i: 0 for i in range(7)}
+    for c in todas_citas_6m:
+        semana_dict[c.fecha.weekday()] += 1
+    semana_data = [semana_dict[i] for i in range(7)]
+
+    # ── Top clientes ─────────────────────────────────────────────────────────
+    filas_top = (
+        db.session.query(Cita.cliente_id, func.count(Cita.id).label("total"))
+        .filter(
+            Cita.barberia_id == barberia.id,
+            Cita.estado != "cancelada",
+        )
+        .group_by(Cita.cliente_id)
+        .order_by(func.count(Cita.id).desc())
+        .limit(8)
+        .all()
+    )
+    top_clientes = []
+    for cliente_id, total in filas_top:
+        cli = Cliente.query.get(cliente_id)
+        if cli:
+            top_clientes.append({"nombre": cli.nombre, "total": total})
+
+    # ── Stats resumen ────────────────────────────────────────────────────────
+    mes_actual   = hoy.strftime("%Y-%m")
+    mes_anterior = (hoy.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
+    citas_mes    = meses_dict.get(mes_actual,   {}).get("citas",    0)
+    citas_mes_ant= meses_dict.get(mes_anterior, {}).get("citas",    0)
+    ingresos_mes = meses_dict.get(mes_actual,   {}).get("ingresos", 0)
+    clientes_nuevos_mes = Cliente.query.filter(
+        Cliente.barberia_id == barberia.id,
+        func.date_trunc("month", Cliente.creado_en) == func.date_trunc("month", func.now()),
+    ).count()
+
+    return render_template("metricas.html",
+        barberia_nombre   = barberia.nombre,
+        dias_labels       = dias_labels,
+        dias_data         = dias_data,
+        meses_labels      = meses_labels_bonitos,
+        meses_citas       = meses_citas,
+        meses_ingresos    = meses_ingresos,
+        semana_labels     = DIAS_ES,
+        semana_data       = semana_data,
+        top_clientes      = top_clientes,
+        citas_mes         = citas_mes,
+        citas_mes_ant     = citas_mes_ant,
+        ingresos_mes      = ingresos_mes,
+        clientes_nuevos_mes = clientes_nuevos_mes,
+        total_clientes    = Cliente.query.filter_by(barberia_id=barberia.id).count(),
+    )
 
 
 @panel_bp.route("/notificar-dia", methods=["POST"])

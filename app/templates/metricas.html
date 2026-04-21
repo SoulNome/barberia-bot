@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BarberIA · Métricas</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:        #f2f2f7;
+  --card:      #ffffff;
+  --sep:       rgba(60,60,67,0.12);
+  --sep-light: rgba(60,60,67,0.06);
+  --label:     #1c1c1e;
+  --label2:    #3c3c43;
+  --label3:    rgba(60,60,67,0.50);
+  --blue:      #007aff;
+  --blue-bg:   rgba(0,122,255,0.08);
+  --green:     #34c759;
+  --green-bg:  rgba(52,199,89,0.10);
+  --orange:    #ff9f0a;
+  --orange-bg: rgba(255,159,10,0.10);
+  --indigo:    #5856d6;
+  --indigo-bg: rgba(88,86,214,0.08);
+  --red:       #ff3b30;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.05);
+  --r-md: 14px; --r-lg: 18px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg); color: var(--label);
+  min-height: 100vh; -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1100px; margin: auto; padding: 28px 20px 72px; }
+
+/* HEADER */
+.header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 28px; gap: 12px; flex-wrap: wrap;
+}
+.logo { font-size: 17px; font-weight: 700; letter-spacing: -0.4px;
+  display: flex; align-items: center; gap: 10px; }
+.logo-icon {
+  width: 36px; height: 36px; border-radius: 10px; background: var(--blue);
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+  box-shadow: 0 2px 8px rgba(0,122,255,0.30);
+}
+.header-right { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: var(--r-md);
+  font-size: 13px; font-weight: 600; font-family: inherit;
+  border: none; cursor: pointer; text-decoration: none;
+  transition: all .15s ease;
+}
+.btn-neutral {
+  background: var(--card); color: var(--label2);
+  border: 1px solid var(--sep); box-shadow: var(--shadow-sm);
+}
+.btn-neutral:hover { background: #f5f5f7; }
+
+/* STATS ROW */
+.stats-row {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px; margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--card); border-radius: var(--r-lg);
+  padding: 18px 20px; box-shadow: var(--shadow-sm);
+  border: 1px solid var(--sep-light);
+}
+.stat-label { font-size: 12px; font-weight: 500; color: var(--label3); margin-bottom: 6px; }
+.stat-val { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; line-height: 1; }
+.stat-sub { font-size: 11px; color: var(--label3); margin-top: 4px; }
+.stat-up   { color: var(--green); }
+.stat-down { color: var(--red); }
+.stat-eq   { color: var(--label3); }
+
+/* GRID */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+/* CHART CARD */
+.chart-card {
+  background: var(--card); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm); border: 1px solid var(--sep-light);
+  padding: 20px 24px;
+}
+.chart-title {
+  font-size: 14px; font-weight: 700; margin-bottom: 18px; color: var(--label);
+}
+.chart-wrap { position: relative; height: 200px; }
+.chart-wrap-tall { position: relative; height: 260px; }
+
+/* TOP CLIENTES */
+.top-list { display: flex; flex-direction: column; gap: 8px; }
+.top-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: var(--r-md);
+  background: var(--bg);
+}
+.top-rank {
+  font-size: 12px; font-weight: 700; color: var(--label3);
+  min-width: 20px; text-align: center;
+}
+.top-rank.gold   { color: #f0a500; }
+.top-rank.silver { color: #8e8e93; }
+.top-rank.bronze { color: #c47722; }
+.top-name { flex: 1; font-size: 13px; font-weight: 500; }
+.top-badge {
+  font-size: 12px; font-weight: 700; color: var(--blue);
+  background: var(--blue-bg); padding: 2px 8px; border-radius: 100px;
+}
+
+/* BAR CSS para día semana */
+.bar-list { display: flex; flex-direction: column; gap: 8px; }
+.bar-item { display: flex; align-items: center; gap: 10px; }
+.bar-day { font-size: 12px; font-weight: 600; color: var(--label2); min-width: 30px; }
+.bar-track {
+  flex: 1; height: 8px; background: var(--bg); border-radius: 100px; overflow: hidden;
+}
+.bar-fill {
+  height: 100%; border-radius: 100px; background: var(--blue);
+  transition: width .6s ease;
+}
+.bar-num { font-size: 12px; font-weight: 600; color: var(--label3); min-width: 28px; text-align: right; }
+
+@media (max-width: 700px) {
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">💈</div>
+      <span>{{ barberia_nombre }}</span>
+      <span style="font-size:13px;font-weight:500;color:var(--label3)">· Métricas</span>
+    </div>
+    <div class="header-right">
+      <a href="/panel" class="btn btn-neutral">← Volver al panel</a>
+    </div>
+  </div>
+
+  <!-- STATS RESUMEN -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Citas este mes</div>
+      <div class="stat-val" style="color:var(--blue)">{{ citas_mes }}</div>
+      {% set diff = citas_mes - citas_mes_ant %}
+      {% if citas_mes_ant > 0 %}
+        {% set pct = ((diff / citas_mes_ant) * 100) | int %}
+        <div class="stat-sub {% if diff > 0 %}stat-up{% elif diff < 0 %}stat-down{% else %}stat-eq{% endif %}">
+          {% if diff > 0 %}↑{% elif diff < 0 %}↓{% endif %}
+          {{ pct | abs }}% vs mes anterior
+        </div>
+      {% else %}
+        <div class="stat-sub stat-eq">Sin datos mes anterior</div>
+      {% endif %}
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Ingresos este mes</div>
+      <div class="stat-val" style="color:var(--green)">
+        ${{ "{:,}".format(ingresos_mes).replace(",", ".") }}
+      </div>
+      <div class="stat-sub stat-eq">Basado en servicios</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Clientes totales</div>
+      <div class="stat-val" style="color:var(--indigo)">{{ total_clientes }}</div>
+      <div class="stat-sub stat-up">+{{ clientes_nuevos_mes }} este mes</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Citas mes anterior</div>
+      <div class="stat-val" style="color:var(--orange)">{{ citas_mes_ant }}</div>
+      <div class="stat-sub stat-eq">Referencia comparación</div>
+    </div>
+  </div>
+
+  <!-- CITAS ÚLTIMOS 30 DÍAS -->
+  <div class="chart-card" style="margin-bottom:16px">
+    <div class="chart-title">Citas · últimos 30 días</div>
+    <div class="chart-wrap-tall">
+      <canvas id="chartDias"></canvas>
+    </div>
+  </div>
+
+  <!-- FILA 2: CITAS POR MES + DÍA DE SEMANA -->
+  <div class="grid-2" style="margin-bottom:16px">
+    <div class="chart-card">
+      <div class="chart-title">Citas por mes · últimos 6 meses</div>
+      <div class="chart-wrap">
+        <canvas id="chartMeses"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Días más ocupados</div>
+      {% set max_dia = semana_data | max %}
+      <div class="bar-list" style="margin-top:8px">
+        {% for i in range(7) %}
+        <div class="bar-item">
+          <span class="bar-day">{{ semana_labels[i] }}</span>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:{{ ((semana_data[i] / max_dia * 100) if max_dia > 0 else 0) | int }}%"></div>
+          </div>
+          <span class="bar-num">{{ semana_data[i] }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- FILA 3: INGRESOS + TOP CLIENTES -->
+  <div class="grid-3">
+    <div class="chart-card">
+      <div class="chart-title">Ingresos por mes · últimos 6 meses</div>
+      <div class="chart-wrap">
+        <canvas id="chartIngresos"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Top clientes</div>
+      <div class="top-list" style="margin-top:4px">
+        {% for c in top_clientes %}
+        <div class="top-item">
+          <span class="top-rank {% if loop.index0==0 %}gold{% elif loop.index0==1 %}silver{% elif loop.index0==2 %}bronze{% endif %}">
+            {% if loop.index0==0 %}🥇{% elif loop.index0==1 %}🥈{% elif loop.index0==2 %}🥉{% else %}{{ loop.index }}{% endif %}
+          </span>
+          <span class="top-name">{{ c.nombre }}</span>
+          <span class="top-badge">{{ c.total }} citas</span>
+        </div>
+        {% endfor %}
+        {% if not top_clientes %}
+        <p style="font-size:13px;color:var(--label3);text-align:center;padding:20px">Sin datos aún</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const diasLabels    = {{ dias_labels | tojson }};
+const diasData      = {{ dias_data | tojson }};
+const mesesLabels   = {{ meses_labels | tojson }};
+const mesesCitas    = {{ meses_citas | tojson }};
+const mesesIngresos = {{ meses_ingresos | tojson }};
+
+const baseOpts = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid: { display: false }, ticks: { font: { size: 11, family: 'Inter' }, color: '#8e8e93' } },
+    y: { grid: { color: 'rgba(60,60,67,0.08)' }, ticks: { font: { size: 11, family: 'Inter' }, color: '#8e8e93' }, beginAtZero: true }
+  }
+};
+
+// Citas últimos 30 días
+new Chart(document.getElementById('chartDias'), {
+  type: 'bar',
+  data: {
+    labels: diasLabels.map(d => {
+      const [,m,day] = d.split('-');
+      return `${parseInt(day)}/${parseInt(m)}`;
+    }),
+    datasets: [{
+      data: diasData,
+      backgroundColor: 'rgba(0,122,255,0.15)',
+      borderColor: '#007aff',
+      borderWidth: 2,
+      borderRadius: 6,
+    }]
+  },
+  options: { ...baseOpts }
+});
+
+// Citas por mes
+new Chart(document.getElementById('chartMeses'), {
+  type: 'bar',
+  data: {
+    labels: mesesLabels,
+    datasets: [{
+      data: mesesCitas,
+      backgroundColor: 'rgba(88,86,214,0.15)',
+      borderColor: '#5856d6',
+      borderWidth: 2,
+      borderRadius: 6,
+    }]
+  },
+  options: { ...baseOpts }
+});
+
+// Ingresos por mes
+new Chart(document.getElementById('chartIngresos'), {
+  type: 'line',
+  data: {
+    labels: mesesLabels,
+    datasets: [{
+      data: mesesIngresos,
+      borderColor: '#34c759',
+      backgroundColor: 'rgba(52,199,89,0.10)',
+      borderWidth: 2.5,
+      pointBackgroundColor: '#34c759',
+      pointRadius: 4,
+      tension: 0.3,
+      fill: true,
+    }]
+  },
+  options: {
+    ...baseOpts,
+    scales: {
+      ...baseOpts.scales,
+      y: {
+        ...baseOpts.scales.y,
+        ticks: {
+          ...baseOpts.scales.y.ticks,
+          callback: v => '$' + v.toLocaleString('es-CO')
+        }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>

@@ -543,6 +543,7 @@ body {
       {% if es_hoy %}
       <div class="live-pill"><div class="live-dot"></div>En vivo</div>
       {% endif %}
+      <a href="/panel/metricas" class="btn btn-neutral" title="Métricas">📊</a>
       <a href="/panel/logout" class="btn btn-neutral" title="Cerrar sesión" style="color:var(--label3)">⎋</a>
     </div>
   </div>
@@ -595,10 +596,10 @@ body {
       <div class="section-hd">
         <h2>Agenda <span style="color:var(--label);font-weight:500;text-transform:none;letter-spacing:0;font-size:14px" id="last-update">— {{ fecha_label }}</span></h2>
         <div style="display:flex;align-items:center;gap:8px">
-          <a href="/panel?key={{ key }}&fecha={{ fecha_prev }}" class="nav-arrow">‹</a>
+          <a href="/panel?fecha={{ fecha_prev }}" class="nav-arrow">‹</a>
           <span class="nav-date-label">{{ fecha_label }}</span>
-          <a href="/panel?key={{ key }}&fecha={{ fecha_next }}" class="nav-arrow">›</a>
-          {% if not es_hoy %}<a href="/panel?key={{ key }}" class="nav-today">↩ Hoy</a>{% endif %}
+          <a href="/panel?fecha={{ fecha_next }}" class="nav-arrow">›</a>
+          {% if not es_hoy %}<a href="/panel" class="nav-today">↩ Hoy</a>{% endif %}
         </div>
       </div>
       <div class="timeline-wrap">
@@ -826,8 +827,7 @@ body {
 <div id="toast"></div>
 
 <script>
-const params    = new URLSearchParams(window.location.search);
-const key       = params.get("key") || "";
+const key       = "";
 const GOAL      = 200000;
 
 // ── TOAST ──
@@ -991,7 +991,7 @@ function updateStats(data) {
 const ES_HOY    = {{ 'true' if es_hoy else 'false' }};
 const FECHA_ISO = "{{ fecha_iso }}";
 function conectarSSE() {
-  const es = new EventSource(`/panel-stream?key=${key}&fecha=${FECHA_ISO}`);
+  const es = new EventSource(`/panel-stream?fecha=${FECHA_ISO}`);
   es.addEventListener("update", e => { const d=JSON.parse(e.data); updateStats(d); renderTimeline(d.agenda); });
   es.onerror = () => { es.close(); setTimeout(conectarSSE, 5000); };
 }
@@ -1007,7 +1007,7 @@ function pedirCancelar(citaId, hora, nombre) {
   nb.addEventListener("click", async () => {
     document.getElementById("confirm-overlay").style.display = "none";
     try {
-      const r    = await fetch(`/cancelar-cita-panel?key=${key}`, {
+      const r    = await fetch(`/cancelar-cita-panel`, {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({cita_id:citaId})
       });
@@ -1112,8 +1112,8 @@ async function enviarCliente() {
   if (!nombre||!telefono) { msg.className="form-msg err"; msg.textContent="Nombre y teléfono son obligatorios."; return; }
   msg.className="form-msg"; msg.textContent="Registrando…";
   try {
-    const r    = await fetch(`/crear-cliente?key=${key}`,{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({nombre,apellido,telefono,fecha_cumpleanos:cumple||null,fijo,horario_fijo:horario||null,key})});
+    const r    = await fetch(`/crear-cliente`,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({nombre,apellido,telefono,fecha_cumpleanos:cumple||null,fijo,horario_fijo:horario||null})});
     const data = await r.json();
     if (data.success) { msg.className="form-msg ok"; msg.textContent="✓ "+data.mensaje; setTimeout(cerrarModalCliente,1400); }
     else              { msg.className="form-msg err"; msg.textContent=data.mensaje; }
@@ -1138,8 +1138,8 @@ async function guardarEditarCliente() {
   const horario  = document.getElementById("ec-horario").value.trim();
   msg.className = "form-msg"; msg.textContent = "Guardando…";
   try {
-    const r    = await fetch(`/editar-cliente?key=${key}`, {method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({telefono, nombre, horario_fijo: horario || null, key})});
+    const r    = await fetch(`/editar-cliente`, {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({telefono, nombre, horario_fijo: horario || null})});
     const data = await r.json();
     if (data.success) { msg.className="form-msg ok"; msg.textContent="✓ "+data.mensaje; setTimeout(()=>{ cerrarEditarCliente(); location.reload(); },1200); }
     else              { msg.className="form-msg err"; msg.textContent=data.mensaje; }
@@ -1164,7 +1164,7 @@ async function enviarNotificaciones() {
   if (!fecha) { res.className="form-msg err"; res.textContent="Elegí una fecha."; return; }
   res.className="form-msg"; res.textContent="Enviando…";
   try {
-    const r    = await fetch(`/notificar-dia?key=${key}`, {
+    const r    = await fetch(`/notificar-dia`, {
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({fecha, mensaje: mensaje || null})
     });

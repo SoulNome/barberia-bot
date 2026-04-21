@@ -24,7 +24,8 @@ Arquitectura multi-tenant: cada barbería tiene sus propios datos, credenciales 
 - El scheduler ya corre diariamente; agregar job que envíe WhatsApp a todos con cita mañana
 - Por barbería, usando sus propias credenciales de Evolution
 
-### 4. Actualizar Evolution API a v2 (fix @lid) ⬅ SIGUIENTE
+### 4. Actualizar Evolution API a v2 (fix @lid) ✅ COMPLETADO
+- Imagen en uso: evoapicloud/evolution-api:v2.3.7 (atendai v2.2.3 tenía Baileys roto, no generaba QR)
 - Usuarios con "confirmaciones de lectura" desactivadas generan JIDs `@lid`
 - Evolution API v1.8.6 no puede enviarles mensajes
 - v2 lo soporta nativamente
@@ -35,7 +36,7 @@ Arquitectura multi-tenant: cada barbería tiene sus propios datos, credenciales 
 - Implementar login con usuario/contraseña + sesión (Flask-Login o JWT)
 - Antes de tener más de 2-3 clientes esto se vuelve un riesgo
 
-### 6. Métricas e informes históricos ⬅ SIGUIENTE
+### 6. Métricas e informes históricos ✅ COMPLETADO
 - El panel solo muestra el día actual
 - Agregar vista de: ingresos por mes, citas por semana, clientes más frecuentes, días más ocupados
 - Diferenciador clave a la hora de vender ("ve cómo está tu negocio")

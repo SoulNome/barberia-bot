@@ -5,164 +5,173 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BarberIA · Super-Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
+/* ── DARK PALETTE ── */
 :root {
-  --bg:           #f2f2f7;
-  --card:         #ffffff;
-  --sep:          rgba(60,60,67,0.12);
-  --sep-light:    rgba(60,60,67,0.06);
-  --label:        #1c1c1e;
-  --label2:       #3c3c43;
-  --label3:       rgba(60,60,67,0.50);
-  --blue:         #007aff;
-  --blue-bg:      rgba(0,122,255,0.08);
-  --green:        #34c759;
-  --green-bg:     rgba(52,199,89,0.10);
-  --red:          #ff3b30;
-  --red-bg:       rgba(255,59,48,0.08);
-  --orange:       #ff9f0a;
-  --orange-bg:    rgba(255,159,10,0.10);
-  --shadow-sm:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md:    0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.05);
-  --shadow-lg:    0 16px 48px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.07);
-  --r-sm:   10px;
-  --r-md:   14px;
-  --r-lg:   18px;
+  --bg:         #0a0a0f;
+  --bg2:        #111118;
+  --card:       #16161f;
+  --card2:      #1c1c28;
+  --border:     rgba(255,255,255,0.07);
+  --border2:    rgba(255,255,255,0.12);
+
+  --label:      #f0f0f5;
+  --label2:     #a0a0b0;
+  --label3:     rgba(160,160,176,0.50);
+
+  --blue:       #0a84ff;
+  --blue-bg:    rgba(10,132,255,0.12);
+  --green:      #30d158;
+  --green-bg:   rgba(48,209,88,0.12);
+  --orange:     #ff9f0a;
+  --orange-bg:  rgba(255,159,10,0.12);
+  --red:        #ff453a;
+  --red-bg:     rgba(255,69,58,0.12);
+  --indigo:     #7877e6;
+  --indigo-bg:  rgba(120,119,230,0.12);
+  --purple:     #bf5af2;
+  --purple-bg:  rgba(191,90,242,0.12);
+
+  --shadow:     0 4px 24px rgba(0,0,0,0.5);
+  --shadow-lg:  0 16px 48px rgba(0,0,0,0.7);
+
+  --r-sm: 10px; --r-md: 14px; --r-lg: 18px; --r-xl: 22px;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--bg);
-  color: var(--label);
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
+  background: var(--bg); color: var(--label);
+  min-height: 100vh; -webkit-font-smoothing: antialiased;
 }
-.wrap { max-width: 1100px; margin: auto; padding: 28px 20px 72px; }
 
-/* HEADER */
+/* ── LAYOUT ── */
+.wrap { max-width: 1160px; margin: auto; padding: 32px 20px 80px; }
+
+/* ── HEADER ── */
 .header {
   display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 28px; gap: 12px; flex-wrap: wrap;
+  margin-bottom: 36px; gap: 12px; flex-wrap: wrap;
 }
-.logo {
-  font-size: 17px; font-weight: 700; letter-spacing: -0.4px;
-  display: flex; align-items: center; gap: 10px;
-}
+.logo { display: flex; align-items: center; gap: 12px; }
 .logo-icon {
-  width: 36px; height: 36px; border-radius: 10px;
-  background: var(--orange);
+  width: 40px; height: 40px; border-radius: 12px;
+  background: linear-gradient(135deg, #ff9f0a, #ff6b00);
   display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
-  box-shadow: 0 2px 8px rgba(255,159,10,0.35);
+  font-size: 20px; box-shadow: 0 4px 16px rgba(255,159,10,0.40);
 }
+.logo-name { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
 .badge-admin {
-  font-size: 11px; font-weight: 700; letter-spacing: .5px;
+  font-size: 10px; font-weight: 700; letter-spacing: .8px;
   color: var(--orange); background: var(--orange-bg);
-  border: 1px solid rgba(255,159,10,0.25);
-  padding: 3px 8px; border-radius: 100px;
-  text-transform: uppercase;
+  border: 1px solid rgba(255,159,10,0.20);
+  padding: 3px 8px; border-radius: 100px; text-transform: uppercase;
 }
 
-/* BUTTONS */
+/* ── BUTTONS ── */
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 16px; border-radius: var(--r-sm);
+  padding: 9px 18px; border-radius: var(--r-sm);
   font-size: 13px; font-weight: 600; font-family: inherit;
-  border: none; cursor: pointer; transition: all .15s ease;
+  border: none; cursor: pointer; text-decoration: none;
+  transition: all .15s ease;
 }
 .btn:active { transform: scale(.97); }
-.btn-blue { background: var(--blue); color: #fff; box-shadow: 0 2px 8px rgba(0,122,255,0.30); }
-.btn-blue:hover { background: #0071e3; }
-.btn-green { background: var(--green); color: #fff; box-shadow: 0 2px 8px rgba(52,199,89,0.30); }
-.btn-green:hover { background: #28b14c; }
-.btn-red { background: var(--red-bg); color: var(--red); border: 1px solid rgba(255,59,48,0.20); }
-.btn-red:hover { background: rgba(255,59,48,0.14); }
-.btn-neutral {
-  background: var(--card); color: var(--label2);
-  border: 1px solid var(--sep); box-shadow: var(--shadow-sm);
-}
-.btn-neutral:hover { background: #f5f5f7; }
+.btn-green  { background: var(--green); color: #000; box-shadow: 0 2px 12px rgba(48,209,88,0.30); }
+.btn-green:hover { filter: brightness(1.1); }
+.btn-blue   { background: var(--blue); color: #fff; box-shadow: 0 2px 12px rgba(10,132,255,0.30); }
+.btn-blue:hover { filter: brightness(1.1); }
+.btn-ghost  { background: var(--card2); color: var(--label2); border: 1px solid var(--border2); }
+.btn-ghost:hover { background: var(--border2); color: var(--label); }
 .btn-sm { padding: 5px 12px; font-size: 12px; }
 
-/* CARD */
-.card {
-  background: var(--card);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--sep-light);
-  overflow: hidden;
+/* ── GLOBAL STATS ── */
+.global-stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px; margin-bottom: 32px;
 }
-.card-header {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 18px 20px; border-bottom: 1px solid var(--sep-light);
+.gstat {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 20px;
 }
-.card-title { font-size: 15px; font-weight: 700; }
-.card-body { padding: 20px; }
+.gstat-label { font-size: 11px; font-weight: 600; color: var(--label3); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+.gstat-val   { font-size: 32px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
 
-/* STATS ROW */
-.stats-row {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 12px; margin-bottom: 28px;
+/* ── SECTION TITLE ── */
+.section-title {
+  font-size: 12px; font-weight: 700; color: var(--label3);
+  text-transform: uppercase; letter-spacing: .8px;
+  margin-bottom: 14px;
 }
-.stat-card {
-  background: var(--card);
-  border-radius: var(--r-md);
-  padding: 16px 18px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--sep-light);
-}
-.stat-label { font-size: 12px; font-weight: 500; color: var(--label3); margin-bottom: 4px; }
-.stat-val { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
 
-/* BARBERIAS GRID */
+/* ── BARBERÍA CARDS ── */
 .barb-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
-  margin-bottom: 28px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px; margin-bottom: 32px;
 }
 .barb-card {
-  background: var(--card);
-  border-radius: var(--r-lg);
-  border: 1px solid var(--sep-light);
-  box-shadow: var(--shadow-sm);
-  padding: 20px;
-  display: flex; flex-direction: column; gap: 14px;
-  transition: box-shadow .2s;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r-xl); padding: 24px;
+  display: flex; flex-direction: column; gap: 18px;
+  transition: border-color .2s, box-shadow .2s;
 }
-.barb-card:hover { box-shadow: var(--shadow-md); }
-.barb-name { font-size: 16px; font-weight: 700; }
+.barb-card:hover { border-color: var(--border2); box-shadow: var(--shadow); }
+
+.barb-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.barb-name { font-size: 17px; font-weight: 700; }
 .barb-slug {
-  font-size: 12px; font-weight: 500; color: var(--blue);
-  background: var(--blue-bg); border: 1px solid rgba(0,122,255,0.15);
-  padding: 2px 8px; border-radius: 6px; font-family: monospace;
-  display: inline-block;
+  font-size: 11px; font-weight: 600; font-family: monospace;
+  color: var(--blue); background: var(--blue-bg);
+  border: 1px solid rgba(10,132,255,0.20);
+  padding: 3px 8px; border-radius: 6px; white-space: nowrap;
 }
-.barb-meta { font-size: 12px; color: var(--label3); }
+.barb-meta { font-size: 12px; color: var(--label3); margin-top: 4px; }
+
+/* Stats 2x2 */
 .barb-stats {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 8px; background: var(--bg); border-radius: var(--r-sm); padding: 12px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
 }
-.barb-stat-item { text-align: center; }
-.barb-stat-val { font-size: 18px; font-weight: 700; }
-.barb-stat-lbl { font-size: 10px; color: var(--label3); font-weight: 500; }
+.bstat {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.bstat-val { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; line-height: 1; }
+.bstat-lbl { font-size: 11px; color: var(--label3); font-weight: 500; }
+.bstat-sub { font-size: 10px; margin-top: 2px; font-weight: 600; }
+.up   { color: var(--green); }
+.down { color: var(--red); }
+.eq   { color: var(--label3); }
+
+/* Sparkline */
+.spark-wrap { height: 40px; }
+
+/* Ingreso badge */
+.ingreso-row {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--green-bg); border: 1px solid rgba(48,209,88,0.15);
+  border-radius: var(--r-md); padding: 10px 14px;
+}
+.ingreso-label { font-size: 12px; font-weight: 600; color: var(--green); }
+.ingreso-val   { font-size: 16px; font-weight: 800; color: var(--green); }
+
+/* Actions */
 .barb-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-/* MODAL */
+/* ── MODAL ── */
 .modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.45);
-  backdrop-filter: blur(6px);
+  background: rgba(0,0,0,0.70);
+  backdrop-filter: blur(8px);
   display: flex; align-items: center; justify-content: center;
   z-index: 100; padding: 20px;
   opacity: 0; pointer-events: none; transition: opacity .2s;
 }
 .modal-overlay.open { opacity: 1; pointer-events: auto; }
 .modal {
-  background: var(--card);
-  border-radius: var(--r-xl, 22px);
-  box-shadow: var(--shadow-lg);
+  background: var(--card); border: 1px solid var(--border2);
+  border-radius: var(--r-xl); box-shadow: var(--shadow-lg);
   width: 100%; max-width: 560px;
   max-height: 90vh; overflow-y: auto;
   transform: translateY(20px) scale(.97);
@@ -171,77 +180,74 @@ body {
 .modal-overlay.open .modal { transform: none; }
 .modal-head {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 20px 24px; border-bottom: 1px solid var(--sep-light);
+  padding: 20px 24px; border-bottom: 1px solid var(--border);
   position: sticky; top: 0; background: var(--card); z-index: 1;
 }
 .modal-title { font-size: 16px; font-weight: 700; }
-.modal-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
-.modal-foot {
-  padding: 16px 24px; border-top: 1px solid var(--sep-light);
+.modal-body  { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.modal-foot  {
+  padding: 16px 24px; border-top: 1px solid var(--border);
   display: flex; justify-content: flex-end; gap: 10px;
   position: sticky; bottom: 0; background: var(--card);
 }
 
-/* FORM */
+/* ── FORM ── */
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field label { font-size: 12px; font-weight: 600; color: var(--label2); }
 .field input, .field textarea {
-  font-family: inherit;
-  font-size: 14px;
+  font-family: inherit; font-size: 14px;
   padding: 10px 12px;
-  border: 1px solid var(--sep);
+  border: 1px solid var(--border2);
   border-radius: var(--r-sm);
-  background: var(--bg);
-  color: var(--label);
-  outline: none;
-  transition: border-color .15s;
-  width: 100%;
+  background: var(--bg2); color: var(--label);
+  outline: none; width: 100%;
+  transition: border-color .15s, box-shadow .15s;
 }
 .field input:focus, .field textarea:focus {
   border-color: var(--blue);
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(0,122,255,0.12);
+  box-shadow: 0 0 0 3px rgba(10,132,255,0.15);
 }
 .field textarea { resize: vertical; min-height: 90px; font-family: monospace; font-size: 12px; }
 .field .hint { font-size: 11px; color: var(--label3); }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-/* TOAST */
-.toast {
-  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
-  background: var(--label); color: #fff;
-  padding: 12px 20px; border-radius: var(--r-md);
-  font-size: 13px; font-weight: 500;
-  box-shadow: var(--shadow-lg);
-  z-index: 200;
-  transition: transform .3s ease;
-  white-space: nowrap;
+details > summary {
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  color: var(--label2); padding: 6px 0; list-style: none;
 }
-.toast.show { transform: translateX(-50%) translateY(0); }
-.toast.error { background: var(--red); }
-.toast.success { background: var(--green); }
+details > summary::before { content: "▶ "; font-size: 10px; }
+details[open] > summary::before { content: "▼ "; }
 
-/* CLOSE BTN */
+/* ── CLOSE BTN ── */
 .close-btn {
   width: 28px; height: 28px; border-radius: 50%;
-  background: var(--bg); border: none; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; color: var(--label3);
-  transition: background .15s;
+  background: var(--card2); border: 1px solid var(--border);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: var(--label3); transition: background .15s;
 }
-.close-btn:hover { background: var(--sep); }
+.close-btn:hover { background: var(--border2); color: var(--label); }
 
-/* EMPTY STATE */
-.empty {
-  text-align: center; padding: 48px 24px;
-  color: var(--label3); font-size: 14px;
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--card2); border: 1px solid var(--border2); color: var(--label);
+  padding: 12px 20px; border-radius: var(--r-md);
+  font-size: 13px; font-weight: 500; box-shadow: var(--shadow-lg);
+  z-index: 200; transition: transform .3s ease; white-space: nowrap;
 }
-.empty .emoji { font-size: 40px; margin-bottom: 12px; }
+.toast.show   { transform: translateX(-50%) translateY(0); }
+.toast.error  { background: var(--red-bg);   border-color: rgba(255,69,58,.3);   color: var(--red); }
+.toast.success{ background: var(--green-bg); border-color: rgba(48,209,88,.3); color: var(--green); }
+
+/* ── EMPTY ── */
+.empty { text-align: center; padding: 60px 24px; color: var(--label3); font-size: 14px; }
+.empty .emoji { font-size: 44px; margin-bottom: 12px; display: block; }
 
 @media (max-width: 640px) {
   .field-row { grid-template-columns: 1fr; }
   .barb-grid { grid-template-columns: 1fr; }
-  .stats-row { grid-template-columns: 1fr 1fr; }
+  .global-stats { grid-template-columns: 1fr 1fr; }
 }
 </style>
 </head>
@@ -252,107 +258,133 @@ body {
   <div class="header">
     <div class="logo">
       <div class="logo-icon">✂️</div>
-      <span>BarberIA</span>
-      <span class="badge-admin">Admin</span>
+      <div>
+        <div class="logo-name">BarberIA</div>
+      </div>
+      <span class="badge-admin">Super Admin</span>
     </div>
-    <button class="btn btn-green" onclick="abrirCrear()">
-      ＋ Nueva barbería
-    </button>
+    <button class="btn btn-green" onclick="abrirCrear()">＋ Nueva barbería</button>
   </div>
 
-  <!-- STATS GLOBALES -->
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-label">Barberías</div>
-      <div class="stat-val" style="color:var(--blue)">{{ datos|length }}</div>
+  <!-- GLOBAL STATS -->
+  <div class="global-stats">
+    <div class="gstat">
+      <div class="gstat-label">Barberías</div>
+      <div class="gstat-val" style="color:var(--orange)">{{ datos|length }}</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Clientes totales</div>
-      <div class="stat-val" style="color:var(--green)">{{ datos|sum(attribute='stats.clientes') }}</div>
+    <div class="gstat">
+      <div class="gstat-label">Clientes totales</div>
+      <div class="gstat-val" style="color:var(--blue)">{{ datos|sum(attribute='stats.clientes') }}</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Citas hoy (total)</div>
-      <div class="stat-val" style="color:var(--orange)">{{ datos|sum(attribute='stats.citas_hoy') }}</div>
+    <div class="gstat">
+      <div class="gstat-label">Citas hoy</div>
+      <div class="gstat-val" style="color:var(--green)">{{ datos|sum(attribute='stats.citas_hoy') }}</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Citas esta semana</div>
-      <div class="stat-val" style="color:var(--indigo, #5856d6)">{{ datos|sum(attribute='stats.citas_semana') }}</div>
+    <div class="gstat">
+      <div class="gstat-label">Citas este mes</div>
+      <div class="gstat-val" style="color:var(--indigo)">{{ datos|sum(attribute='stats.citas_mes') }}</div>
+    </div>
+    <div class="gstat">
+      <div class="gstat-label">Ingresos este mes</div>
+      <div class="gstat-val" style="color:var(--purple)">
+        ${{ "{:,}".format(datos|sum(attribute='stats.ingresos_mes')).replace(",",".") }}
+      </div>
     </div>
   </div>
 
-  <!-- GRID DE BARBERÍAS -->
+  <!-- BARBERÍAS -->
+  <div class="section-title">Barberías activas</div>
+
   {% if datos %}
   <div class="barb-grid">
     {% for d in datos %}
     {% set b = d.barberia %}
     {% set s = d.stats %}
     <div class="barb-card">
+
+      <!-- Cabecera -->
       <div>
-        <div class="barb-name">{{ b.nombre }}</div>
-        {% if b.slug %}
-        <span class="barb-slug">/bot/{{ b.slug }}</span>
-        {% endif %}
-        {% if b.direccion %}
-        <div class="barb-meta" style="margin-top:4px">📍 {{ b.direccion }}</div>
-        {% endif %}
-        {% if b.telefono %}
-        <div class="barb-meta">📞 {{ b.telefono }}</div>
-        {% endif %}
+        <div class="barb-head">
+          <div class="barb-name">{{ b.nombre }}</div>
+          {% if b.slug %}<span class="barb-slug">/bot/{{ b.slug }}</span>{% endif %}
+        </div>
+        {% if b.direccion %}<div class="barb-meta">📍 {{ b.direccion }}</div>{% endif %}
+        {% if b.telefono  %}<div class="barb-meta">📞 {{ b.telefono }}</div>{% endif %}
       </div>
 
+      <!-- Stats 2x2 -->
       <div class="barb-stats">
-        <div class="barb-stat-item">
-          <div class="barb-stat-val" style="color:var(--blue)">{{ s.clientes }}</div>
-          <div class="barb-stat-lbl">Clientes</div>
+        <div class="bstat">
+          <div class="bstat-val" style="color:var(--blue)">{{ s.clientes }}</div>
+          <div class="bstat-lbl">Clientes</div>
+          {% if s.clientes_nuevos > 0 %}
+          <div class="bstat-sub up">+{{ s.clientes_nuevos }} este mes</div>
+          {% endif %}
         </div>
-        <div class="barb-stat-item">
-          <div class="barb-stat-val" style="color:var(--orange)">{{ s.barberos }}</div>
-          <div class="barb-stat-lbl">Barberos</div>
+        <div class="bstat">
+          <div class="bstat-val" style="color:var(--green)">{{ s.citas_hoy }}</div>
+          <div class="bstat-lbl">Citas hoy</div>
+          <div class="bstat-sub eq">{{ s.citas_semana }} esta semana</div>
         </div>
-        <div class="barb-stat-item">
-          <div class="barb-stat-val" style="color:var(--green)">{{ s.citas_hoy }}</div>
-          <div class="barb-stat-lbl">Citas hoy</div>
+        <div class="bstat">
+          <div class="bstat-val" style="color:var(--indigo)">{{ s.citas_mes }}</div>
+          <div class="bstat-lbl">Citas este mes</div>
+          {% set diff = s.citas_mes - s.citas_mes_ant %}
+          {% if s.citas_mes_ant > 0 %}
+            {% set pct = ((diff / s.citas_mes_ant) * 100) | int %}
+            <div class="bstat-sub {% if diff > 0 %}up{% elif diff < 0 %}down{% else %}eq{% endif %}">
+              {% if diff > 0 %}↑{% elif diff < 0 %}↓{% endif %}{{ pct|abs }}% vs mes ant.
+            </div>
+          {% endif %}
         </div>
-        <div class="barb-stat-item">
-          <div class="barb-stat-val">{{ s.citas_semana }}</div>
-          <div class="barb-stat-lbl">Esta semana</div>
+        <div class="bstat">
+          <div class="bstat-val" style="color:var(--orange)">{{ s.barberos }}</div>
+          <div class="bstat-lbl">Barberos</div>
         </div>
       </div>
 
-      <div class="barb-actions">
-        <button class="btn btn-blue btn-sm" onclick="abrirEditar({{ b.id }})">
-          ✏️ Editar
-        </button>
-        <a class="btn btn-neutral btn-sm"
-           href="/panel?key={{ b.panel_key or '' }}" target="_blank">
-          Panel →
-        </a>
+      <!-- Sparkline 7 días -->
+      <div>
+        <div style="font-size:11px;color:var(--label3);margin-bottom:4px">Últimos 7 días</div>
+        <div class="spark-wrap">
+          <canvas id="spark-{{ b.id }}"></canvas>
+        </div>
       </div>
+
+      <!-- Ingresos -->
+      {% if s.ingresos_mes > 0 %}
+      <div class="ingreso-row">
+        <span class="ingreso-label">💰 Ingresos este mes</span>
+        <span class="ingreso-val">${{ "{:,}".format(s.ingresos_mes).replace(",",".") }}</span>
+      </div>
+      {% endif %}
+
+      <!-- Acciones -->
+      <div class="barb-actions">
+        <button class="btn btn-blue btn-sm" onclick="abrirEditar({{ b.id }})">✏️ Editar</button>
+        <a class="btn btn-ghost btn-sm" href="/panel/login" target="_blank">Panel →</a>
+      </div>
+
     </div>
     {% endfor %}
   </div>
   {% else %}
-  <div class="card">
-    <div class="empty">
-      <div class="emoji">✂️</div>
-      <p>No hay barberías aún. Crea la primera.</p>
-    </div>
+  <div class="empty">
+    <span class="emoji">✂️</span>
+    <p>No hay barberías aún. Crea la primera.</p>
   </div>
   {% endif %}
 
 </div><!-- /wrap -->
 
-<!-- ══════════════════════════════════════
-     MODAL CREAR
-══════════════════════════════════════ -->
-<div class="modal-overlay" id="modalCrear" onclick="closeOnOverlay(event, 'modalCrear')">
+<!-- ══ MODAL CREAR ══ -->
+<div class="modal-overlay" id="modalCrear" onclick="closeOnOverlay(event,'modalCrear')">
   <div class="modal">
     <div class="modal-head">
       <span class="modal-title">Nueva barbería</span>
       <button class="close-btn" onclick="cerrarModal('modalCrear')">✕</button>
     </div>
     <div class="modal-body">
-
       <div class="field-row">
         <div class="field">
           <label>Nombre *</label>
@@ -361,90 +393,56 @@ body {
         <div class="field">
           <label>Slug *</label>
           <input type="text" id="c_slug" placeholder="ej. don-juan">
-          <span class="hint">Se usa en la URL del bot: /bot/&lt;slug&gt;</span>
+          <span class="hint">URL del bot: /bot/&lt;slug&gt;</span>
         </div>
       </div>
-
       <div class="field">
         <label>Panel Key * <span class="hint" style="display:inline">(contraseña del panel)</span></label>
-        <input type="text" id="c_panel_key" placeholder="ej. clave-secreta-barberia">
+        <input type="text" id="c_panel_key" placeholder="clave-secreta">
       </div>
-
       <div class="field-row">
-        <div class="field">
-          <label>Teléfono</label>
-          <input type="text" id="c_telefono" placeholder="+57 300 000 0000">
-        </div>
-        <div class="field">
-          <label>Dirección</label>
-          <input type="text" id="c_direccion" placeholder="Calle 10 #5-20">
-        </div>
+        <div class="field"><label>Teléfono</label><input type="text" id="c_telefono" placeholder="+57 300 000 0000"></div>
+        <div class="field"><label>Dirección</label><input type="text" id="c_direccion" placeholder="Calle 10 #5-20"></div>
       </div>
-
       <details>
-        <summary style="font-size:13px;font-weight:600;cursor:pointer;color:var(--label2);padding:4px 0">
-          ⚙️ Evolution API (WhatsApp)
-        </summary>
+        <summary>⚙️ Evolution API (WhatsApp)</summary>
         <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
-          <div class="field">
-            <label>Evolution API URL</label>
-            <input type="text" id="c_evo_url" placeholder="https://evolution.midominio.com">
-          </div>
+          <div class="field"><label>Evolution API URL</label><input type="text" id="c_evo_url" placeholder="https://evolution.midominio.com"></div>
           <div class="field-row">
-            <div class="field">
-              <label>API Key</label>
-              <input type="text" id="c_evo_key" placeholder="xxxxxxxx">
-            </div>
-            <div class="field">
-              <label>Instance</label>
-              <input type="text" id="c_evo_inst" placeholder="mi-instancia">
-            </div>
+            <div class="field"><label>API Key</label><input type="text" id="c_evo_key"></div>
+            <div class="field"><label>Instance</label><input type="text" id="c_evo_inst"></div>
           </div>
-          <div class="field">
-            <label>WhatsApp Barbero (notificaciones)</label>
-            <input type="text" id="c_wa_barbero" placeholder="573001234567">
-          </div>
+          <div class="field"><label>WhatsApp Barbero</label><input type="text" id="c_wa_barbero" placeholder="573001234567"></div>
         </div>
       </details>
-
       <details>
-        <summary style="font-size:13px;font-weight:600;cursor:pointer;color:var(--label2);padding:4px 0">
-          🕐 Horarios (JSON) — opcional
-        </summary>
+        <summary>🕐 Horarios (JSON) — opcional</summary>
         <div style="margin-top:12px">
           <div class="field">
-            <label>Horarios por día (0=Lun … 6=Dom)</label>
             <textarea id="c_horarios" placeholder="{{ default_horarios }}"></textarea>
-            <span class="hint">Deja vacío para usar los horarios predeterminados</span>
+            <span class="hint">Vacío = usar horarios predeterminados</span>
           </div>
         </div>
       </details>
-
       <details>
-        <summary style="font-size:13px;font-weight:600;cursor:pointer;color:var(--label2);padding:4px 0">
-          💈 Servicios (JSON) — opcional
-        </summary>
+        <summary>💈 Servicios (JSON) — opcional</summary>
         <div style="margin-top:12px">
           <div class="field">
-            <label>Lista de servicios con id, nombre y precio</label>
             <textarea id="c_servicios" placeholder="{{ default_servicios }}"></textarea>
-            <span class="hint">Deja vacío para usar los servicios predeterminados</span>
+            <span class="hint">Vacío = usar servicios predeterminados</span>
           </div>
         </div>
       </details>
-
     </div>
     <div class="modal-foot">
-      <button class="btn btn-neutral" onclick="cerrarModal('modalCrear')">Cancelar</button>
+      <button class="btn btn-ghost" onclick="cerrarModal('modalCrear')">Cancelar</button>
       <button class="btn btn-green" onclick="crearBarberia()">Crear barbería</button>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     MODAL EDITAR
-══════════════════════════════════════ -->
-<div class="modal-overlay" id="modalEditar" onclick="closeOnOverlay(event, 'modalEditar')">
+<!-- ══ MODAL EDITAR ══ -->
+<div class="modal-overlay" id="modalEditar" onclick="closeOnOverlay(event,'modalEditar')">
   <div class="modal">
     <div class="modal-head">
       <span class="modal-title">Editar barbería</span>
@@ -452,64 +450,28 @@ body {
     </div>
     <div class="modal-body">
       <input type="hidden" id="e_id">
-
       <div class="field-row">
-        <div class="field">
-          <label>Nombre *</label>
-          <input type="text" id="e_nombre">
-        </div>
-        <div class="field">
-          <label>Slug *</label>
-          <input type="text" id="e_slug">
-        </div>
+        <div class="field"><label>Nombre *</label><input type="text" id="e_nombre"></div>
+        <div class="field"><label>Slug *</label><input type="text" id="e_slug"></div>
       </div>
-
-      <div class="field">
-        <label>Panel Key *</label>
-        <input type="text" id="e_panel_key">
-      </div>
-
+      <div class="field"><label>Panel Key *</label><input type="text" id="e_panel_key"></div>
       <div class="field-row">
-        <div class="field">
-          <label>Teléfono</label>
-          <input type="text" id="e_telefono">
-        </div>
-        <div class="field">
-          <label>Dirección</label>
-          <input type="text" id="e_direccion">
-        </div>
+        <div class="field"><label>Teléfono</label><input type="text" id="e_telefono"></div>
+        <div class="field"><label>Dirección</label><input type="text" id="e_direccion"></div>
       </div>
-
       <details>
-        <summary style="font-size:13px;font-weight:600;cursor:pointer;color:var(--label2);padding:4px 0">
-          ⚙️ Evolution API (WhatsApp)
-        </summary>
+        <summary>⚙️ Evolution API (WhatsApp)</summary>
         <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
-          <div class="field">
-            <label>Evolution API URL</label>
-            <input type="text" id="e_evo_url">
-          </div>
+          <div class="field"><label>Evolution API URL</label><input type="text" id="e_evo_url"></div>
           <div class="field-row">
-            <div class="field">
-              <label>API Key</label>
-              <input type="text" id="e_evo_key">
-            </div>
-            <div class="field">
-              <label>Instance</label>
-              <input type="text" id="e_evo_inst">
-            </div>
+            <div class="field"><label>API Key</label><input type="text" id="e_evo_key"></div>
+            <div class="field"><label>Instance</label><input type="text" id="e_evo_inst"></div>
           </div>
-          <div class="field">
-            <label>WhatsApp Barbero</label>
-            <input type="text" id="e_wa_barbero">
-          </div>
+          <div class="field"><label>WhatsApp Barbero</label><input type="text" id="e_wa_barbero"></div>
         </div>
       </details>
-
-      <details id="e_hor_details">
-        <summary style="font-size:13px;font-weight:600;cursor:pointer;color:var(--label2);padding:4px 0">
-          🕐 Horarios (JSON)
-        </summary>
+      <details>
+        <summary>🕐 Horarios (JSON)</summary>
         <div style="margin-top:12px">
           <div class="field">
             <textarea id="e_horarios" rows="10"></textarea>
@@ -517,11 +479,8 @@ body {
           </div>
         </div>
       </details>
-
-      <details id="e_srv_details">
-        <summary style="font-size:13px;font-weight:600;cursor:pointer;color:var(--label2);padding:4px 0">
-          💈 Servicios (JSON)
-        </summary>
+      <details>
+        <summary>💈 Servicios (JSON)</summary>
         <div style="margin-top:12px">
           <div class="field">
             <textarea id="e_servicios" rows="10"></textarea>
@@ -529,193 +488,149 @@ body {
           </div>
         </div>
       </details>
-
     </div>
     <div class="modal-foot">
-      <button class="btn btn-neutral" onclick="cerrarModal('modalEditar')">Cancelar</button>
+      <button class="btn btn-ghost" onclick="cerrarModal('modalEditar')">Cancelar</button>
       <button class="btn btn-blue" onclick="guardarEdicion()">Guardar cambios</button>
     </div>
   </div>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
 const ADMIN_KEY = {{ key | tojson }};
 
-// ── MODAL UTILS ──────────────────────────────────────────
-function abrirModal(id) {
-  document.getElementById(id).classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-function cerrarModal(id) {
-  document.getElementById(id).classList.remove('open');
-  document.body.style.overflow = '';
-}
-function closeOnOverlay(e, id) {
-  if (e.target === document.getElementById(id)) cerrarModal(id);
-}
+// ── SPARKLINES ──────────────────────────────────────────────────────────────
+const sparkData = {{ datos | map(attribute='barberia') | list | tojson(default=str) }};
+{% for d in datos %}
+(function() {
+  const ctx = document.getElementById('spark-{{ d.barberia.id }}');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['','','','','','',''],
+      datasets: [{
+        data: {{ d.stats.spark | tojson }},
+        borderColor: '#0a84ff',
+        backgroundColor: 'rgba(10,132,255,0.10)',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.4,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: { x: { display: false }, y: { display: false, beginAtZero: true } },
+      animation: { duration: 600 }
+    }
+  });
+})();
+{% endfor %}
 
-// ── TOAST ────────────────────────────────────────────────
-let toastTimer;
-function toast(msg, type = '') {
+// ── MODAL UTILS ─────────────────────────────────────────────────────────────
+function abrirModal(id)  { document.getElementById(id).classList.add('open'); document.body.style.overflow='hidden'; }
+function cerrarModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
+function closeOnOverlay(e,id) { if (e.target===document.getElementById(id)) cerrarModal(id); }
+document.addEventListener('keydown', e => { if(e.key==='Escape'){cerrarModal('modalCrear');cerrarModal('modalEditar');} });
+
+// ── TOAST ────────────────────────────────────────────────────────────────────
+let _tt;
+function toast(msg, type='') {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show' + (type ? ' ' + type : '');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.className = 'toast', 3200);
+  t.textContent = msg; t.className = 'toast show' + (type?' '+type:'');
+  clearTimeout(_tt); _tt = setTimeout(()=>t.className='toast', 3400);
 }
 
-// ── CREAR ────────────────────────────────────────────────
+// ── CREAR ────────────────────────────────────────────────────────────────────
 function abrirCrear() {
   ['c_nombre','c_slug','c_panel_key','c_telefono','c_direccion',
-   'c_evo_url','c_evo_key','c_evo_inst','c_wa_barbero',
-   'c_horarios','c_servicios'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
+   'c_evo_url','c_evo_key','c_evo_inst','c_wa_barbero','c_horarios','c_servicios']
+  .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   abrirModal('modalCrear');
 }
-
-// Auto-slug
 document.getElementById('c_nombre').addEventListener('input', function() {
-  const slug = this.value.toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   if (!document.getElementById('c_slug')._edited)
-    document.getElementById('c_slug').value = slug;
+    document.getElementById('c_slug').value = this.value.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 });
-document.getElementById('c_slug').addEventListener('input', function() {
-  this._edited = !!this.value;
-});
+document.getElementById('c_slug').addEventListener('input', function() { this._edited=!!this.value; });
 
 async function crearBarberia() {
-  let horarios = null, servicios = null;
-  const hor_raw = document.getElementById('c_horarios').value.trim();
-  const srv_raw = document.getElementById('c_servicios').value.trim();
-  if (hor_raw) {
-    try { horarios = JSON.parse(hor_raw); }
-    catch { return toast('JSON de horarios inválido', 'error'); }
-    // Convertir claves string a número
-    horarios = Object.fromEntries(Object.entries(horarios).map(([k,v]) => [parseInt(k), v]));
-  }
-  if (srv_raw) {
-    try { servicios = JSON.parse(srv_raw); }
-    catch { return toast('JSON de servicios inválido', 'error'); }
-  }
-
+  let horarios=null, servicios=null;
+  const hr = document.getElementById('c_horarios').value.trim();
+  const sr = document.getElementById('c_servicios').value.trim();
+  if (hr) { try { horarios=JSON.parse(hr); horarios=Object.fromEntries(Object.entries(horarios).map(([k,v])=>[parseInt(k),v])); } catch { return toast('JSON de horarios inválido','error'); } }
+  if (sr) { try { servicios=JSON.parse(sr); } catch { return toast('JSON de servicios inválido','error'); } }
   const body = {
-    key:                ADMIN_KEY,
-    nombre:             document.getElementById('c_nombre').value.trim(),
-    slug:               document.getElementById('c_slug').value.trim(),
-    panel_key:          document.getElementById('c_panel_key').value.trim(),
-    telefono:           document.getElementById('c_telefono').value.trim(),
-    direccion:          document.getElementById('c_direccion').value.trim(),
+    key: ADMIN_KEY,
+    nombre: document.getElementById('c_nombre').value.trim(),
+    slug:   document.getElementById('c_slug').value.trim(),
+    panel_key: document.getElementById('c_panel_key').value.trim(),
+    telefono:  document.getElementById('c_telefono').value.trim(),
+    direccion: document.getElementById('c_direccion').value.trim(),
     evolution_api_url:  document.getElementById('c_evo_url').value.trim(),
     evolution_api_key:  document.getElementById('c_evo_key').value.trim(),
     evolution_instance: document.getElementById('c_evo_inst').value.trim(),
     whatsapp_barbero:   document.getElementById('c_wa_barbero').value.trim(),
     horarios, servicios,
   };
-
-  const r = await fetch('/admin/crear-barberia?key=' + encodeURIComponent(ADMIN_KEY), {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(body),
-  });
+  const r = await fetch('/admin/crear-barberia?key='+encodeURIComponent(ADMIN_KEY),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const d = await r.json();
-  if (d.success) {
-    cerrarModal('modalCrear');
-    toast('✅ ' + d.mensaje, 'success');
-    setTimeout(() => location.reload(), 1200);
-  } else {
-    toast('❌ ' + d.mensaje, 'error');
-  }
+  if (d.success) { cerrarModal('modalCrear'); toast('✅ '+d.mensaje,'success'); setTimeout(()=>location.reload(),1300); }
+  else toast('❌ '+d.mensaje,'error');
 }
 
-// ── EDITAR ───────────────────────────────────────────────
+// ── EDITAR ───────────────────────────────────────────────────────────────────
 async function abrirEditar(id) {
-  const r = await fetch(`/admin/barberia/${id}?key=` + encodeURIComponent(ADMIN_KEY));
+  const r = await fetch(`/admin/barberia/${id}?key=`+encodeURIComponent(ADMIN_KEY));
   const d = await r.json();
-  if (!d.success) return toast('Error cargando datos', 'error');
+  if (!d.success) return toast('Error cargando datos','error');
   const b = d.barberia;
-
-  document.getElementById('e_id').value         = b.id;
-  document.getElementById('e_nombre').value     = b.nombre || '';
-  document.getElementById('e_slug').value       = b.slug || '';
-  document.getElementById('e_panel_key').value  = b.panel_key || '';
-  document.getElementById('e_telefono').value   = b.telefono || '';
-  document.getElementById('e_direccion').value  = b.direccion || '';
-  document.getElementById('e_evo_url').value    = b.evolution_api_url || '';
-  document.getElementById('e_evo_key').value    = b.evolution_api_key || '';
-  document.getElementById('e_evo_inst').value   = b.evolution_instance || '';
-  document.getElementById('e_wa_barbero').value = b.whatsapp_barbero || '';
-
-  // Horarios y servicios: mostrar JSON actual
-  if (b.horarios) {
-    document.getElementById('e_horarios').value = JSON.stringify(b.horarios, null, 2);
-  } else {
-    document.getElementById('e_horarios').value = '';
-  }
-  if (b.servicios) {
-    document.getElementById('e_servicios').value = JSON.stringify(b.servicios, null, 2);
-  } else {
-    document.getElementById('e_servicios').value = '';
-  }
-
+  document.getElementById('e_id').value        = b.id;
+  document.getElementById('e_nombre').value    = b.nombre||'';
+  document.getElementById('e_slug').value      = b.slug||'';
+  document.getElementById('e_panel_key').value = b.panel_key||'';
+  document.getElementById('e_telefono').value  = b.telefono||'';
+  document.getElementById('e_direccion').value = b.direccion||'';
+  document.getElementById('e_evo_url').value   = b.evolution_api_url||'';
+  document.getElementById('e_evo_key').value   = b.evolution_api_key||'';
+  document.getElementById('e_evo_inst').value  = b.evolution_instance||'';
+  document.getElementById('e_wa_barbero').value= b.whatsapp_barbero||'';
+  document.getElementById('e_horarios').value  = b.horarios ? JSON.stringify(b.horarios,null,2):'';
+  document.getElementById('e_servicios').value = b.servicios? JSON.stringify(b.servicios,null,2):'';
   abrirModal('modalEditar');
 }
 
 async function guardarEdicion() {
-  let horarios = null, servicios = null;
-  const hor_raw = document.getElementById('e_horarios').value.trim();
-  const srv_raw = document.getElementById('e_servicios').value.trim();
-  if (hor_raw) {
-    try { horarios = JSON.parse(hor_raw); }
-    catch { return toast('JSON de horarios inválido', 'error'); }
-    horarios = Object.fromEntries(Object.entries(horarios).map(([k,v]) => [parseInt(k), v]));
-  }
-  if (srv_raw) {
-    try { servicios = JSON.parse(srv_raw); }
-    catch { return toast('JSON de servicios inválido', 'error'); }
-  }
-
+  let horarios=null, servicios=null;
+  const hr = document.getElementById('e_horarios').value.trim();
+  const sr = document.getElementById('e_servicios').value.trim();
+  if (hr) { try { horarios=JSON.parse(hr); horarios=Object.fromEntries(Object.entries(horarios).map(([k,v])=>[parseInt(k),v])); } catch { return toast('JSON de horarios inválido','error'); } }
+  if (sr) { try { servicios=JSON.parse(sr); } catch { return toast('JSON de servicios inválido','error'); } }
   const body = {
-    key:                ADMIN_KEY,
-    id:                 parseInt(document.getElementById('e_id').value),
-    nombre:             document.getElementById('e_nombre').value.trim(),
-    slug:               document.getElementById('e_slug').value.trim(),
-    panel_key:          document.getElementById('e_panel_key').value.trim(),
-    telefono:           document.getElementById('e_telefono').value.trim(),
-    direccion:          document.getElementById('e_direccion').value.trim(),
+    key: ADMIN_KEY,
+    id:  parseInt(document.getElementById('e_id').value),
+    nombre:    document.getElementById('e_nombre').value.trim(),
+    slug:      document.getElementById('e_slug').value.trim(),
+    panel_key: document.getElementById('e_panel_key').value.trim(),
+    telefono:  document.getElementById('e_telefono').value.trim(),
+    direccion: document.getElementById('e_direccion').value.trim(),
     evolution_api_url:  document.getElementById('e_evo_url').value.trim(),
     evolution_api_key:  document.getElementById('e_evo_key').value.trim(),
     evolution_instance: document.getElementById('e_evo_inst').value.trim(),
     whatsapp_barbero:   document.getElementById('e_wa_barbero').value.trim(),
     horarios, servicios,
   };
-
-  const r = await fetch('/admin/editar-barberia?key=' + encodeURIComponent(ADMIN_KEY), {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(body),
-  });
+  const r = await fetch('/admin/editar-barberia?key='+encodeURIComponent(ADMIN_KEY),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const d = await r.json();
-  if (d.success) {
-    cerrarModal('modalEditar');
-    toast('✅ ' + d.mensaje, 'success');
-    setTimeout(() => location.reload(), 1200);
-  } else {
-    toast('❌ ' + d.mensaje, 'error');
-  }
+  if (d.success) { cerrarModal('modalEditar'); toast('✅ '+d.mensaje,'success'); setTimeout(()=>location.reload(),1300); }
+  else toast('❌ '+d.mensaje,'error');
 }
-
-// ── KEYBOARD ESC ─────────────────────────────────────────
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    cerrarModal('modalCrear');
-    cerrarModal('modalEditar');
-  }
-});
 </script>
 </body>
 </html>
