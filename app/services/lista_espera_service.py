@@ -82,16 +82,25 @@ def notificar_lista_espera(barbero_id, fecha, barberia_id=None, barberia=None, h
         # Formatear hora si viene
         hora_str = hora.strftime("%H:%M") if hora and hasattr(hora, "strftime") else str(hora) if hora else None
 
+        # Helper local AM/PM
+        def _ampm(h):
+            try:
+                hh, mm = map(int, h.split(":"))
+                p = "AM" if hh < 12 else "PM"
+                return f"{hh%12 or 12}:{mm:02d} {p}"
+            except Exception:
+                return h
+
         if hora_str:
             msg = (
                 f"🔔 *¡Se liberó un turno!*\n\n"
                 f"Hola {cliente.nombre} 👋\n\n"
                 f"Quedó disponible:\n"
                 f"📅 {fecha_bonita}\n"
-                f"⏰ {hora_str}\n"
+                f"⏰ {_ampm(hora_str)}\n"
                 f"{'💈 ' + barbero_nombre if barbero_nombre else ''}\n\n"
-                f"Responde *1* para tomarlo ahora ✅\n"
-                f"Responde *2* para rechazarlo ❌\n\n"
+                f"Responde *sí* para tomarlo ahora ✅\n"
+                f"Responde *no* para rechazarlo ❌\n\n"
                 f"_Si no respondes en 30 minutos el turno se ofrecerá al siguiente._"
             )
         else:
@@ -101,7 +110,7 @@ def notificar_lista_espera(barbero_id, fecha, barberia_id=None, barberia=None, h
                 f"Se canceló una cita para:\n"
                 f"📅 {fecha_bonita}\n"
                 f"{'💈 ' + barbero_nombre if barbero_nombre else ''}\n\n"
-                f"Responde *1* para agendar antes de que se llene."
+                f"Escribe *hola* para ver los horarios disponibles."
             )
 
         ok = _enviar_whatsapp(cliente.telefono, msg, barberia)

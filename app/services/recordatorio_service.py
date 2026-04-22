@@ -1,6 +1,17 @@
 import os
 import requests
 
+
+def _ampm(hora_str: str) -> str:
+    """Convierte '14:30' → '2:30 PM' para mensajes WhatsApp."""
+    try:
+        h, m = map(int, hora_str.split(":"))
+        periodo = "AM" if h < 12 else "PM"
+        h12 = h % 12 or 12
+        return f"{h12}:{m:02d} {periodo}"
+    except Exception:
+        return hora_str
+
 # Credenciales globales (fallback para barbería por defecto)
 _DEFAULT_EVO_URL      = os.getenv("EVOLUTION_API_URL", "")
 _DEFAULT_EVO_KEY      = os.getenv("EVOLUTION_API_KEY", "")
@@ -45,9 +56,9 @@ def construir_mensaje(nombre, fecha, hora):
         f"Hola {nombre} 👋\n\n"
         f"Te recordamos tu cita:\n\n"
         f"📅 Fecha: {fecha}\n"
-        f"⏰ Hora: {hora}\n\n"
+        f"⏰ Hora: {_ampm(hora)}\n\n"
         f"Por favor llega 5 minutos antes.\n\n"
-        f"Si necesitas cancelar escribe:\n\ncancelar\n\n"
+        f"Si necesitas cancelar escribe *cancelar*.\n\n"
         f"¡Te esperamos!"
     )
 
@@ -68,9 +79,9 @@ def notificar_barbero(nombre_cliente, fecha, hora, servicio=None, barbero_nombre
     if accion == "nueva":
         svc  = f"\n✂️ {servicio}"      if servicio       else ""
         barb = f"\n💈 {barbero_nombre}" if barbero_nombre else ""
-        msg  = f"💈 *Nueva cita agendada*\n\n👤 {nombre_cliente}\n📅 {fecha}\n⏰ {hora}{svc}{barb}"
+        msg  = f"💈 *Nueva cita agendada*\n\n👤 {nombre_cliente}\n📅 {fecha}\n⏰ {_ampm(hora)}{svc}{barb}"
     else:
-        msg = f"❌ *Cita cancelada*\n\n👤 {nombre_cliente}\n📅 {fecha}\n⏰ {hora}"
+        msg = f"❌ *Cita cancelada*\n\n👤 {nombre_cliente}\n📅 {fecha}\n⏰ {_ampm(hora)}"
     _enviar_whatsapp(phone, msg, barberia)
 
 
