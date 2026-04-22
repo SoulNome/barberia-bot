@@ -664,9 +664,15 @@ body {
   <!-- ── DATE NAV ── -->
   <div class="date-nav">
     <a href="/panel?fecha={{ fecha_prev }}" class="nav-arrow">‹</a>
-    <span class="date-nav-label" id="last-update">{{ fecha_label }}</span>
+    <span class="date-nav-label" id="date-nav-label">{{ fecha_label }}</span>
     <a href="/panel?fecha={{ fecha_next }}" class="nav-arrow">›</a>
     {% if not es_hoy %}<a href="/panel" class="nav-today">↩ Hoy</a>{% endif %}
+    <button id="btn-bloqueo" onclick="toggleBloqueo()"
+      title="Bloquear / desbloquear este día"
+      style="width:32px;height:32px;border-radius:var(--r-sm);border:1px solid var(--sep);
+             background:var(--card);box-shadow:var(--shadow-sm);font-size:15px;
+             cursor:pointer;display:flex;align-items:center;justify-content:center;
+             flex-shrink:0;transition:all .15s;">🔒</button>
   </div>
 
   <!-- ── MOBILE STRIP (próxima + ingresos) ── -->
@@ -1259,6 +1265,54 @@ async function enviarNotificaciones() {
     if(data.success){res.className="form-msg ok";res.textContent="✓ "+data.mensaje;}
     else{res.className="form-msg err";res.textContent=data.mensaje;}
   } catch(e){res.className="form-msg err";res.textContent="Error de conexión.";}
+}
+
+// ── BLOQUEO DE DÍAS ──────────────────────────────────────────────────────────
+let _diasBloqueados = new Set();
+
+function _actualizarBotonBloqueo() {
+  const btn   = document.getElementById("btn-bloqueo");
+  const label = document.getElementById("date-nav-label");
+  if (!btn) return;
+  const bloqueado = _diasBloqueados.has(FECHA_ISO);
+  btn.textContent  = bloqueado ? "🔓" : "🔒";
+  btn.title        = bloqueado ? "Desbloquear este día" : "Bloquear este día (cerrar barbería)";
+  btn.style.background    = bloqueado ? "var(--red-bg)"  : "var(--card)";
+  btn.style.borderColor   = bloqueado ? "var(--red)"     : "var(--sep)";
+  if (label) label.style.color = bloqueado ? "var(--red)" : "";
+}
+
+// Cargar días bloqueados al iniciar
+fetch("/dias-bloqueados")
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) _diasBloqueados = new Set(d.dias_bloqueados);
+    _actualizarBotonBloqueo();
+  })
+  .catch(() => {});
+
+async function toggleBloqueo() {
+  const bloqueado = _diasBloqueados.has(FECHA_ISO);
+  const accion    = bloqueado ? "desbloquear" : "bloquear";
+  const confirmar = bloqueado
+    ? "¿Desbloquear este día? Los clientes podrán agendar."
+    : "¿Bloquear este día? Los clientes NO podrán agendar.";
+  if (!confirm(confirmar)) return;
+  try {
+    const r = await fetch("/bloquear-dia", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({fecha: FECHA_ISO, accion}),
+    });
+    const d = await r.json();
+    if (d.success) {
+      _diasBloqueados = new Set(d.dias_bloqueados);
+      _actualizarBotonBloqueo();
+      showToast(bloqueado ? "Día desbloqueado" : "Día bloqueado ✓", bloqueado ? "" : "err");
+    } else {
+      showToast(d.mensaje || "Error", "err");
+    }
+  } catch(e) { showToast("Error de conexión", "err"); }
 }
 </script>
 </body>

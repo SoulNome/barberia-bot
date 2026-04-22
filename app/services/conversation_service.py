@@ -245,6 +245,8 @@ Escribe *cancelar* si deseas cancelarla.
             return "📅 Los domingos no trabajamos.\n\nEscribe *hola* para ver el menú."
         if resultado == "festivo":
             return "📅 Ese día es festivo y no trabajamos.\n\nEscribe *hola* para ver el menú."
+        if resultado == "cerrado":
+            return "📅 Ese día la barbería está cerrada.\n\nPrueba con otra fecha 😊"
         if not resultado or resultado is None:
             return "❌ No entendí la fecha. Intenta con *hoy*, *mañana* o *lunes*."
 
@@ -373,6 +375,8 @@ Escribe *cancelar* si deseas cancelarla.
             return "📅 Los domingos no trabajamos.\n\nPrueba con otra fecha 😊"
         if horarios == "festivo":
             return "📅 Ese día es festivo y no trabajamos.\n\nPrueba con otra fecha 😊"
+        if horarios == "cerrado":
+            return "📅 Ese día la barbería está cerrada.\n\nPrueba con otra fecha 😊"
         if not horarios:
             return "❌ No hay horarios disponibles para ese día.\n\nPrueba con otra fecha."
 
@@ -677,6 +681,49 @@ Te esperamos 💈
             f"2️⃣ No, elegir otra fecha"
         )
 
+    # ── Confirmar slot de lista de espera ─────────────────────────────────────
+    if estado == "espera_slot_ofrecido":
+        if mensaje == "1":
+            # Intentar agendar directamente el slot ofrecido
+            ok, msg_c = crear_cita(
+                nombre      = nombre_cliente or estado_data.get("nombre") or "Cliente",
+                telefono    = telefono_limpio,
+                barbero_id  = estado_data.get("barbero_id"),
+                fecha       = estado_data.get("fecha"),
+                hora        = estado_data.get("hora"),
+                servicio    = estado_data.get("servicio") or "Corte",
+                barberia_id = barberia_id,
+            )
+            set_state(telefono, {"estado": "inicio"}, barberia_id)
+            if ok:
+                fecha_bonita = formatear_fecha(estado_data.get("fecha", ""))
+                return (
+                    f"✅ *¡Turno confirmado!*\n\n"
+                    f"💈 {estado_data.get('barbero_nombre', '')}\n"
+                    f"📅 {fecha_bonita}\n"
+                    f"⏰ {estado_data.get('hora', '')}\n\n"
+                    f"¡Te esperamos! Escribe *hola* para ver el menú."
+                )
+            # Si el slot ya fue tomado, ofrecer menú
+            return (
+                f"😕 Lo sentimos, ese turno ya fue tomado por otro cliente.\n\n"
+                f"Escribe *1* para buscar otro horario disponible."
+            )
+
+        elif mensaje == "2":
+            set_state(telefono, {"estado": "inicio"}, barberia_id)
+            return "Entendido 👍 Si cambias de opinión escribe *1* para agendar.\n\nEscribe *hola* para ver el menú."
+
+        # Recordatorio del slot ofrecido
+        fecha_bonita = formatear_fecha(estado_data.get("fecha", ""))
+        return (
+            f"🔔 Tienes un turno reservado esperando tu respuesta:\n\n"
+            f"📅 {fecha_bonita}  ⏰ {estado_data.get('hora', '')}\n"
+            f"💈 {estado_data.get('barbero_nombre', '')}\n\n"
+            f"1️⃣ Sí, confirmar\n"
+            f"2️⃣ No, rechazar"
+        )
+
     # ── Reagendar — iniciar ───────────────────────────────────────────────────
     if accion == "reagendar":
 
@@ -726,6 +773,8 @@ Ejemplos: *mañana*, *lunes*, *2026-04-10*
             return "📅 Los domingos no trabajamos. Prueba otra fecha."
         if horarios == "festivo":
             return "📅 Ese día es festivo. Prueba otra fecha."
+        if horarios == "cerrado":
+            return "📅 Ese día la barbería está cerrada. Prueba otra fecha."
         if not horarios:
             return "❌ No hay horarios para ese día. Prueba otra fecha."
 

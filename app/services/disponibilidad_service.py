@@ -176,6 +176,9 @@ def obtener_horarios_disponibles(barbero_id, fecha, barberia_id=None):
                 b = Barberia.query.get(barberia_id)
                 if b:
                     horarios_config = b.get_horarios()
+                    # Verificar días bloqueados por la barbería
+                    if fecha_str in b.get_dias_bloqueados():
+                        return "cerrado"
             except Exception:
                 pass
 

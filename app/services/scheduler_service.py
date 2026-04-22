@@ -166,6 +166,237 @@ def enviar_recordatorios_regulares(app):
                 print(f"📲 [{barberia.nombre}] Recordatorios mañana: {enviados}/{len(citas)}")
 
 
+def enviar_reporte_semanal(app):
+    """
+    Envía al barbero un resumen de la semana anterior por WhatsApp.
+    Se ejecuta cada lunes a las 09:00 Colombia (14:00 UTC).
+    """
+    with app.app_context():
+        from app.models.barberia import Barberia
+        from app.services.recordatorio_service import _enviar_whatsapp
+
+        hoy      = (datetime.utcnow() - timedelta(hours=5)).date()
+        lunes    = hoy - timedelta(days=hoy.weekday())      # lunes de esta semana
+        semana_ini = lunes - timedelta(days=7)              # lunes semana pasada
+        semana_fin = lunes - timedelta(days=1)              # domingo semana pasada
+
+        DIAS_ES   = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"]
+        MESES_ES  = ["ene","feb","mar","abr","may","jun",
+                     "jul","ago","sep","oct","nov","dic"]
+
+        for barberia in Barberia.query.all():
+            if not barberia.whatsapp_barbero:
+                continue
+
+            try:
+                precios = barberia.get_precios()
+
+                citas = Cita.query.filter(
+                    Cita.barberia_id == barberia.id,
+                    Cita.fecha >= semana_ini,
+                    Cita.fecha <= semana_fin,
+                    Cita.estado != "cancelada",
+                ).all()
+
+                canceladas = Cita.query.filter(
+                    Cita.barberia_id == barberia.id,
+                    Cita.fecha >= semana_ini,
+                    Cita.fecha <= semana_fin,
+                    Cita.estado == "cancelada",
+                ).count()
+
+                total_citas    = len(citas)
+                ingresos       = sum(precios.get(c.servicio, 0) for c in citas)
+                ticket_prom    = int(ingresos / total_citas) if total_citas else 0
+
+                # Clientes nuevos esa semana
+                clientes_nuevos = Cliente.query.filter(
+                    Cliente.barberia_id == barberia.id,
+                    Cliente.creado_en >= datetime.combine(semana_ini, datetime.min.time()),
+                    Cliente.creado_en <= datetime.combine(semana_fin, datetime.max.time()),
+                ).count()
+
+                # Hora pico
+                conteo_horas = {}
+                for c in citas:
+                    h = c.hora.strftime("%H:%M") if c.hora else "?"
+                    conteo_horas[h] = conteo_horas.get(h, 0) + 1
+                hora_pico = max(conteo_horas, key=conteo_horas.get) if conteo_horas else None
+
+                # Día más ocupado
+                conteo_dias = {}
+                for c in citas:
+                    d = DIAS_ES[c.fecha.weekday()]
+                    conteo_dias[d] = conteo_dias.get(d, 0) + 1
+                dia_pico = max(conteo_dias, key=conteo_dias.get) if conteo_dias else None
+
+                # Servicio más pedido
+                conteo_svc = {}
+                for c in citas:
+                    if c.servicio and not c.servicio.startswith("📌"):
+                        conteo_svc[c.servicio] = conteo_svc.get(c.servicio, 0) + 1
+                svc_top = max(conteo_svc, key=conteo_svc.get) if conteo_svc else None
+
+                # Formatear rango de fechas
+                fecha_rango = (
+                    f"{semana_ini.day} {MESES_ES[semana_ini.month-1]} — "
+                    f"{semana_fin.day} {MESES_ES[semana_fin.month-1]}"
+                )
+
+                # Comparación con semana anterior
+                semana2_ini = semana_ini - timedelta(days=7)
+                semana2_fin = semana_ini - timedelta(days=1)
+                citas_ant   = Cita.query.filter(
+                    Cita.barberia_id == barberia.id,
+                    Cita.fecha >= semana2_ini,
+                    Cita.fecha <= semana2_fin,
+                    Cita.estado != "cancelada",
+                ).count()
+                tendencia = ""
+                if citas_ant > 0:
+                    diff = total_citas - citas_ant
+                    pct  = int(abs(diff / citas_ant) * 100)
+                    if diff > 0:
+                        tendencia = f"↑ {pct}% vs semana anterior"
+                    elif diff < 0:
+                        tendencia = f"↓ {pct}% vs semana anterior"
+                    else:
+                        tendencia = "= igual que semana anterior"
+
+                # Construir mensaje
+                ingresos_fmt = f"${ingresos:,}".replace(",", ".")
+                ticket_fmt   = f"${ticket_prom:,}".replace(",", ".")
+
+                lineas = [
+                    f"📊 *Reporte semanal — {barberia.nombre}*",
+                    f"_{fecha_rango}_",
+                    "",
+                    f"✂️ Citas realizadas: *{total_citas}*" + (f"  {tendencia}" if tendencia else ""),
+                    f"💵 Ingresos: *{ingresos_fmt}*",
+                    f"🎯 Ticket promedio: *{ticket_fmt}*",
+                ]
+                if clientes_nuevos:
+                    lineas.append(f"🆕 Clientes nuevos: *{clientes_nuevos}*")
+                if canceladas:
+                    lineas.append(f"❌ Cancelaciones: *{canceladas}*")
+                if hora_pico:
+                    lineas.append(f"🕐 Hora pico: *{hora_pico}*")
+                if dia_pico:
+                    lineas.append(f"📆 Día más ocupado: *{dia_pico}*")
+                if svc_top:
+                    lineas.append(f"💈 Servicio top: *{svc_top}*")
+
+                lineas += ["", "¡Buena semana! 💪 _BarberIA_"]
+
+                msg = "\n".join(lineas)
+                ok  = _enviar_whatsapp(barberia.whatsapp_barbero, msg, barberia)
+                print(f"📊 [{barberia.nombre}] Reporte semanal {'enviado' if ok else 'falló'}")
+
+            except Exception as e:
+                print(f"⚠ [{barberia.nombre}] Error reporte semanal: {e}")
+
+
+def enviar_reactivaciones(app):
+    """
+    Detecta clientes que no tienen cita en los últimos 30 días y no tienen
+    ninguna cita futura agendada, y les manda un mensaje de reactivación.
+    Se ejecuta cada miércoles a las 10:00 Colombia (15:00 UTC).
+    Evita re-enviar al mismo cliente más de una vez cada 30 días guardando
+    la fecha del último envío en user_states.
+    """
+    with app.app_context():
+        from app.models.barberia import Barberia
+        from app.services.recordatorio_service import _enviar_whatsapp
+
+        hoy      = (datetime.utcnow() - timedelta(hours=5)).date()
+        hace30   = hoy - timedelta(days=30)
+        hace60   = hoy - timedelta(days=60)   # solo contactar si vino alguna vez en los últimos 60 días
+
+        for barberia in Barberia.query.all():
+            if not barberia.evolution_api_url or not barberia.evolution_instance:
+                continue
+
+            try:
+                # Clientes activos (tuvieron cita entre hace 60 y hace 30 días)
+                clientes_recientes = (
+                    db.session.query(Cita.cliente_id)
+                    .filter(
+                        Cita.barberia_id == barberia.id,
+                        Cita.fecha >= hace60,
+                        Cita.fecha <= hace30,
+                        Cita.estado != "cancelada",
+                    )
+                    .distinct()
+                    .all()
+                )
+                ids_recientes = {r[0] for r in clientes_recientes}
+
+                # Excluir los que ya tienen cita futura o vinieron en los últimos 30 días
+                ids_con_cita_reciente = (
+                    db.session.query(Cita.cliente_id)
+                    .filter(
+                        Cita.barberia_id == barberia.id,
+                        Cita.fecha >= hace30,
+                        Cita.estado != "cancelada",
+                    )
+                    .distinct()
+                    .all()
+                )
+                ids_excluir = {r[0] for r in ids_con_cita_reciente}
+
+                ids_dormiados = ids_recientes - ids_excluir
+                if not ids_dormiados:
+                    continue
+
+                enviados = 0
+                for cliente_id in ids_dormiados:
+                    cliente = Cliente.query.get(cliente_id)
+                    if not cliente or not cliente.telefono:
+                        continue
+
+                    # Verificar que no le hayamos enviado reactivación hace menos de 30 días
+                    from app.models.user_state import UserState
+                    us = UserState.query.filter_by(
+                        telefono=cliente.telefono,
+                        barberia_id=barberia.id,
+                    ).first()
+                    if us:
+                        datos = us.get_data()
+                        ultimo_envio = datos.get("reactivacion_enviada")
+                        if ultimo_envio:
+                            try:
+                                fecha_envio = date.fromisoformat(ultimo_envio)
+                                if (hoy - fecha_envio).days < 30:
+                                    continue
+                            except Exception:
+                                pass
+
+                    msg = (
+                        f"💈 *¡Hola {cliente.nombre}!*\n\n"
+                        f"Hace un tiempo que no te vemos por aquí 👋\n\n"
+                        f"¿Quieres agendar tu próxima cita? Escríbenos *hola* "
+                        f"y te reservamos el turno en segundos 😊\n\n"
+                        f"_BarberIA · {barberia.nombre}_"
+                    )
+
+                    ok = _enviar_whatsapp(cliente.telefono, msg, barberia)
+                    if ok:
+                        enviados += 1
+                        # Guardar fecha de envío en el estado del usuario
+                        try:
+                            from app.services.state_service import get_state, set_state
+                            datos_actuales = get_state(cliente.telefono, barberia.id)
+                            datos_actuales["reactivacion_enviada"] = hoy.isoformat()
+                            set_state(cliente.telefono, datos_actuales, barberia.id)
+                        except Exception:
+                            pass
+
+                print(f"💤 [{barberia.nombre}] Reactivaciones enviadas: {enviados}/{len(ids_dormiados)}")
+
+            except Exception as e:
+                print(f"⚠ [{barberia.nombre}] Error reactivaciones: {e}")
+
+
 def iniciar_scheduler(app):
     scheduler = BackgroundScheduler()
 
@@ -202,6 +433,26 @@ def iniciar_scheduler(app):
         enviar_recordatorios_regulares,
         "cron",
         hour=22,
+        minute=0,
+        args=[app]
+    )
+
+    # Reporte semanal al barbero — cada lunes a las 09:00 Colombia (14:00 UTC)
+    scheduler.add_job(
+        enviar_reporte_semanal,
+        "cron",
+        day_of_week="mon",
+        hour=14,
+        minute=0,
+        args=[app]
+    )
+
+    # Reactivación clientes dormidos — cada miércoles a las 10:00 Colombia (15:00 UTC)
+    scheduler.add_job(
+        enviar_reactivaciones,
+        "cron",
+        day_of_week="wed",
+        hour=15,
         minute=0,
         args=[app]
     )

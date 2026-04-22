@@ -171,6 +171,7 @@ def cancelar_cita(telefono, fecha, hora, barberia_id=None):
 
         barbero_id_guardado = cita.barbero_id
         fecha_guardada      = cita.fecha
+        hora_guardada       = cita.hora
         es_turno_fijo       = (cita.servicio or "").startswith("📌")
 
         if es_turno_fijo:
@@ -192,7 +193,7 @@ def cancelar_cita(telefono, fecha, hora, barberia_id=None):
         if not es_turno_fijo:
             try:
                 from app.services.lista_espera_service import notificar_lista_espera
-                notificar_lista_espera(barbero_id_guardado, fecha_guardada, barberia_id)
+                notificar_lista_espera(barbero_id_guardado, fecha_guardada, barberia_id, hora=hora_guardada)
             except Exception:
                 pass
 

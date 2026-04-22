@@ -39,8 +39,9 @@ def _run_startup_migrations(app):
                 ("evolution_api_key",  "VARCHAR(200)"),
                 ("evolution_instance", "VARCHAR(100)"),
                 ("whatsapp_barbero",   "VARCHAR(20)"),
-                ("horarios_json",      "TEXT"),
-                ("servicios_json",     "TEXT"),
+                ("horarios_json",         "TEXT"),
+                ("servicios_json",        "TEXT"),
+                ("dias_bloqueados_json",  "TEXT"),
             ]
             for col, typ in new_barberia_cols:
                 if not col_exists("barberias", col):

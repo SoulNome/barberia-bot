@@ -58,6 +58,10 @@ class Barberia(db.Model):
     # servicios_json: [{"id":1,"nombre":"Corte niños","precio":15000}, ...]
     servicios_json = db.Column(db.Text, nullable=True)
 
+    # dias_bloqueados_json: ["2024-12-25", "2024-12-31", ...]
+    # Fechas en las que la barbería está cerrada (vacaciones, festivos propios, etc.)
+    dias_bloqueados_json = db.Column(db.Text, nullable=True)
+
     # ── Helpers ───────────────────────────────────────────────────────────────
 
     def get_horarios(self):
@@ -99,6 +103,27 @@ class Barberia(db.Model):
     def set_servicios(self, servicios_list):
         """servicios_list: [{"id", "nombre", "precio"}]"""
         self.servicios_json = json.dumps(servicios_list)
+
+    def get_dias_bloqueados(self):
+        """Devuelve set de strings 'YYYY-MM-DD'."""
+        if not self.dias_bloqueados_json:
+            return set()
+        try:
+            return set(json.loads(self.dias_bloqueados_json))
+        except Exception:
+            return set()
+
+    def bloquear_dia(self, fecha_str):
+        """Agrega una fecha al bloqueo. fecha_str: 'YYYY-MM-DD'."""
+        dias = self.get_dias_bloqueados()
+        dias.add(fecha_str)
+        self.dias_bloqueados_json = json.dumps(sorted(dias))
+
+    def desbloquear_dia(self, fecha_str):
+        """Elimina una fecha del bloqueo."""
+        dias = self.get_dias_bloqueados()
+        dias.discard(fecha_str)
+        self.dias_bloqueados_json = json.dumps(sorted(dias)) if dias else None
 
     def __repr__(self):
         return f"<Barberia {self.id} {self.nombre} slug={self.slug}>"

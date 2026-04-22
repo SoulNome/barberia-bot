@@ -516,10 +516,13 @@ def cancelar_cita_panel():
     if not cita:
         return jsonify({"success": False, "mensaje": f"Cita {cita_id} no encontrada"})
 
-    cliente_obj = Cliente.query.filter_by(id=cita.cliente_id).first()
-    nombre_cli  = cliente_obj.nombre if cliente_obj else "Desconocido"
-    fecha_str2  = str(cita.fecha)
-    hora_str    = cita.hora.strftime("%H:%M")
+    cliente_obj  = Cliente.query.filter_by(id=cita.cliente_id).first()
+    nombre_cli   = cliente_obj.nombre if cliente_obj else "Desconocido"
+    fecha_str2   = str(cita.fecha)
+    hora_str     = cita.hora.strftime("%H:%M")
+    barbero_id_c = cita.barbero_id
+    fecha_c      = cita.fecha
+    hora_c       = cita.hora
 
     try:
         # Si es cliente fijo, marcar como cancelada (no borrar) para liberar el slot en el panel.
@@ -539,11 +542,22 @@ def cancelar_cita_panel():
         else:
             db.session.delete(cita)
             db.session.commit()
+        # Notificar al barbero
         try:
             from app.services.recordatorio_service import notificar_barbero
             notificar_barbero(
                 nombre_cliente=nombre_cli, fecha=fecha_str2, hora=hora_str,
                 accion="cancelada", barberia=barberia
+            )
+        except Exception:
+            pass
+        # Notificar al primer cliente en lista de espera para ese slot
+        try:
+            from app.services.lista_espera_service import notificar_lista_espera
+            notificar_lista_espera(
+                barbero_id_c, fecha_c,
+                barberia_id=barberia.id, barberia=barberia,
+                hora=hora_c,
             )
         except Exception:
             pass
@@ -970,6 +984,55 @@ def panel_metricas():
         recurrentes_mes     = recurrentes_mes,
         tasa_retencion      = tasa_retencion,
     )
+
+
+@panel_bp.route("/bloquear-dia", methods=["POST"])
+def bloquear_dia():
+    barberia = _get_barberia_api()
+    if not barberia:
+        return jsonify({"success": False, "mensaje": "No autorizado"}), 401
+
+    data   = request.get_json(silent=True) or {}
+    fecha  = (data.get("fecha") or "").strip()
+    accion = (data.get("accion") or "bloquear").strip()  # "bloquear" | "desbloquear"
+
+    if not fecha:
+        return jsonify({"success": False, "mensaje": "fecha requerida"})
+
+    try:
+        from datetime import date as _date
+        _date.fromisoformat(fecha)  # validar formato
+    except ValueError:
+        return jsonify({"success": False, "mensaje": "fecha inválida (usa YYYY-MM-DD)"})
+
+    try:
+        if accion == "desbloquear":
+            barberia.desbloquear_dia(fecha)
+            msg = f"Día {fecha} desbloqueado"
+        else:
+            barberia.bloquear_dia(fecha)
+            msg = f"Día {fecha} bloqueado"
+
+        db.session.commit()
+        return jsonify({
+            "success":          True,
+            "mensaje":          msg,
+            "dias_bloqueados":  sorted(barberia.get_dias_bloqueados()),
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "mensaje": str(e)})
+
+
+@panel_bp.route("/dias-bloqueados", methods=["GET"])
+def dias_bloqueados():
+    barberia = _get_barberia_api()
+    if not barberia:
+        return jsonify({"success": False, "mensaje": "No autorizado"}), 401
+    return jsonify({
+        "success":         True,
+        "dias_bloqueados": sorted(barberia.get_dias_bloqueados()),
+    })
 
 
 @panel_bp.route("/notificar-dia", methods=["POST"])

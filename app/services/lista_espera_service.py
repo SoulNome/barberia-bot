@@ -44,10 +44,11 @@ def agregar_a_espera(telefono, barbero_id, fecha, servicio=None, barberia_id=Non
         return False, str(e)
 
 
-def notificar_lista_espera(barbero_id, fecha, barberia_id=None, barberia=None):
+def notificar_lista_espera(barbero_id, fecha, barberia_id=None, barberia=None, hora=None):
     """
     Busca el primer cliente en espera para ese barbero/fecha y le avisa.
-    barberia: objeto Barberia opcional para credenciales de WhatsApp.
+    Si se pasa `hora`, se muestra en el mensaje y se pre-carga el estado del bot
+    para que el cliente confirme con un solo '1' sin repetir el flujo.
     """
     try:
         from app.services.recordatorio_service import _enviar_whatsapp
@@ -69,7 +70,8 @@ def notificar_lista_espera(barbero_id, fecha, barberia_id=None, barberia=None):
             return
 
         from app.models.barbero import Barbero
-        barbero = Barbero.query.get(barbero_id)
+        barbero_obj = Barbero.query.get(barbero_id)
+        barbero_nombre = barbero_obj.nombre if barbero_obj else ""
 
         DIAS_ES  = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"]
         MESES_ES = ["enero","febrero","marzo","abril","mayo","junio",
@@ -77,19 +79,51 @@ def notificar_lista_espera(barbero_id, fecha, barberia_id=None, barberia=None):
         f = entrada.fecha
         fecha_bonita = f"{DIAS_ES[f.weekday()]} {f.day} de {MESES_ES[f.month-1]}"
 
-        msg = (
-            f"🔔 *¡Se liberó un turno!*\n\n"
-            f"Hola {cliente.nombre} 👋\n\n"
-            f"Se canceló una cita para:\n"
-            f"📅 {fecha_bonita}\n"
-            f"{'💈 ' + barbero.nombre if barbero else ''}\n\n"
-            f"Escribe *1* para agendar antes de que se llene."
-        )
+        # Formatear hora si viene
+        hora_str = hora.strftime("%H:%M") if hora and hasattr(hora, "strftime") else str(hora) if hora else None
+
+        if hora_str:
+            msg = (
+                f"🔔 *¡Se liberó un turno!*\n\n"
+                f"Hola {cliente.nombre} 👋\n\n"
+                f"Quedó disponible:\n"
+                f"📅 {fecha_bonita}\n"
+                f"⏰ {hora_str}\n"
+                f"{'💈 ' + barbero_nombre if barbero_nombre else ''}\n\n"
+                f"Responde *1* para tomarlo ahora ✅\n"
+                f"Responde *2* para rechazarlo ❌\n\n"
+                f"_Si no respondes en 30 minutos el turno se ofrecerá al siguiente._"
+            )
+        else:
+            msg = (
+                f"🔔 *¡Se liberó un turno!*\n\n"
+                f"Hola {cliente.nombre} 👋\n\n"
+                f"Se canceló una cita para:\n"
+                f"📅 {fecha_bonita}\n"
+                f"{'💈 ' + barbero_nombre if barbero_nombre else ''}\n\n"
+                f"Responde *1* para agendar antes de que se llene."
+            )
 
         ok = _enviar_whatsapp(cliente.telefono, msg, barberia)
         if ok:
             entrada.notificado = True
             db.session.commit()
+
+            # Pre-cargar el estado del bot para confirmación directa con "1"
+            if hora_str:
+                try:
+                    from app.services.state_service import set_state
+                    set_state(cliente.telefono, {
+                        "estado":         "espera_slot_ofrecido",
+                        "barbero_id":     barbero_id,
+                        "barbero_nombre": barbero_nombre,
+                        "fecha":          str(fecha),
+                        "hora":           hora_str,
+                        "servicio":       entrada.servicio,
+                        "nombre":         cliente.nombre,
+                    }, barberia_id)
+                except Exception as e:
+                    print(f"⚠ No se pudo pre-cargar estado de espera: {e}")
 
     except Exception as e:
         print(f"⚠ Error notificando lista de espera: {e}")
