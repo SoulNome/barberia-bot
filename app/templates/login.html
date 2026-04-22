@@ -7,16 +7,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:       #f2f2f7;
-  --card:     #ffffff;
-  --sep:      rgba(60,60,67,0.12);
-  --label:    #1c1c1e;
-  --label2:   #3c3c43;
-  --label3:   rgba(60,60,67,0.50);
-  --blue:     #007aff;
-  --red:      #ff3b30;
-  --red-bg:   rgba(255,59,48,0.08);
-  --shadow-md: 0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
+  --bg:       #0e0e18;
+  --card:     #17172a;
+  --sep:      rgba(255,255,255,0.08);
+  --label:    #eeeef5;
+  --label2:   #b0b0c8;
+  --label3:   rgba(180,180,210,0.45);
+  --gold:     #d4a843;
+  --blue:     #4f8ef7;
+  --red:      #ff453a;
+  --red-bg:   rgba(255,69,58,0.12);
+  --shadow-md: 0 8px 40px rgba(0,0,0,0.50), 0 2px 8px rgba(0,0,0,0.30);
   --r-md: 14px;
   --r-lg: 18px;
 }
@@ -42,10 +43,10 @@ body {
 }
 .logo-icon {
   width: 56px; height: 56px; border-radius: 16px;
-  background: var(--blue);
+  background: linear-gradient(135deg, #d4a843 0%, #b8891e 100%);
   display: flex; align-items: center; justify-content: center;
   font-size: 26px;
-  box-shadow: 0 4px 16px rgba(0,122,255,0.30);
+  box-shadow: 0 4px 20px rgba(212,168,67,0.45);
 }
 .logo-name {
   font-size: 20px; font-weight: 800; letter-spacing: -0.5px;
@@ -75,24 +76,24 @@ form {
   width: 100%;
 }
 .field input:focus {
-  border-color: var(--blue);
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(0,122,255,0.12);
+  border-color: var(--gold);
+  background: rgba(212,168,67,0.04);
+  box-shadow: 0 0 0 3px rgba(212,168,67,0.14);
 }
 .btn-login {
   width: 100%;
   padding: 12px;
-  background: var(--blue);
-  color: #fff;
+  background: linear-gradient(135deg, #d4a843 0%, #b8891e 100%);
+  color: #0e0e18;
   border: none;
   border-radius: var(--r-md);
   font-family: inherit;
-  font-size: 15px; font-weight: 600;
+  font-size: 15px; font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0,122,255,0.30);
-  transition: background .15s, transform .1s;
+  box-shadow: 0 2px 16px rgba(212,168,67,0.35);
+  transition: opacity .15s, transform .1s;
 }
-.btn-login:hover { background: #0071e3; }
+.btn-login:hover { opacity: 0.90; }
 .btn-login:active { transform: scale(.98); }
 .error {
   width: 100%;

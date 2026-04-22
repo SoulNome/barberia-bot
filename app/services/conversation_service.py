@@ -724,6 +724,85 @@ Te esperamos 💈
             f"2️⃣ No, rechazar"
         )
 
+    # ── Encuesta post-corte ───────────────────────────────────────────────────
+    if estado == "esperando_encuesta":
+        if mensaje.isdigit() and 1 <= int(mensaje) <= 5:
+            calificacion = int(mensaje)
+            cita_id      = estado_data.get("encuesta_cita_id")
+
+            try:
+                from app.models.encuesta import Encuesta
+                from app.extensions import db as _db
+                enc = Encuesta(
+                    barberia_id  = barberia_id,
+                    cita_id      = cita_id,
+                    cliente_id   = cliente.id if cliente else None,
+                    calificacion = calificacion,
+                )
+                _db.session.add(enc)
+                _db.session.commit()
+            except Exception as _e:
+                print(f"⚠ Error guardando encuesta: {_e}")
+                try:
+                    from app.extensions import db as _db2
+                    _db2.session.rollback()
+                except Exception:
+                    pass
+
+            set_state(telefono, {
+                "estado":                  "esperando_comentario_encuesta",
+                "encuesta_cita_id":        cita_id,
+                "encuesta_calificacion":   calificacion,
+            }, barberia_id)
+
+            estrellas = "⭐" * calificacion
+            if calificacion >= 4:
+                return (
+                    f"¡Gracias! {estrellas}\n\n"
+                    f"Nos alegra que hayas tenido una buena experiencia 😊\n\n"
+                    f"¿Quieres dejarnos un comentario?\n"
+                    f"_(Escribe tu opinión o *no* para terminar)_"
+                )
+            elif calificacion == 3:
+                return (
+                    f"Gracias por tu calificación {estrellas}\n\n"
+                    f"¿Qué podríamos mejorar?\n"
+                    f"_(Escribe tu opinión o *no* para terminar)_"
+                )
+            else:
+                return (
+                    f"Lamentamos no haberte dado una buena experiencia {estrellas}\n\n"
+                    f"¿Qué salió mal? Nos ayudas a mejorar.\n"
+                    f"_(Escribe tu opinión o *no* para terminar)_"
+                )
+
+        return (
+            "⭐ *Encuesta de satisfacción*\n\n"
+            "¿Cómo estuvo tu visita? Responde con un número del *1* al *5*:\n\n"
+            "1️⃣ Muy malo\n2️⃣ Malo\n3️⃣ Regular\n4️⃣ Bueno\n5️⃣ Excelente"
+        )
+
+    if estado == "esperando_comentario_encuesta":
+        if mensaje not in ("no", "n", "no gracias", "skip"):
+            comentario = mensaje.strip()[:500]
+            cita_id    = estado_data.get("encuesta_cita_id")
+            try:
+                from app.models.encuesta import Encuesta
+                from app.extensions import db as _db
+                enc = Encuesta.query.filter_by(cita_id=cita_id).order_by(Encuesta.id.desc()).first()
+                if enc:
+                    enc.comentario = comentario
+                    _db.session.commit()
+            except Exception:
+                try:
+                    from app.extensions import db as _db2
+                    _db2.session.rollback()
+                except Exception:
+                    pass
+
+        set_state(telefono, {"estado": "inicio"}, barberia_id)
+        return "¡Gracias por tu opinión! 🙏 Nos ayuda a mejorar cada día.\n\nEscribe *hola* para ver el menú."
+
     # ── Reagendar — iniciar ───────────────────────────────────────────────────
     if accion == "reagendar":
 
@@ -977,5 +1056,15 @@ Puedes escribirme de forma natural o usar el menú:
             f"1️⃣ Sí, apuntarme a lista de espera\n"
             f"2️⃣ No, elegir otra fecha"
         )
+
+    if estado == "esperando_encuesta":
+        return (
+            "⭐ *Encuesta de satisfacción*\n\n"
+            "¿Cómo estuvo tu visita? Responde con un número del *1* al *5*:\n\n"
+            "1️⃣ Muy malo\n2️⃣ Malo\n3️⃣ Regular\n4️⃣ Bueno\n5️⃣ Excelente"
+        )
+
+    if estado == "esperando_comentario_encuesta":
+        return "¿Quieres añadir un comentario? _(Escribe tu opinión o *no* para terminar)_"
 
     return menu_principal(nombre_cliente)

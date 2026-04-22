@@ -959,6 +959,35 @@ def panel_metricas():
     retenidos = len(clientes_mes_ant & clientes_este_mes)
     tasa_retencion = int((retenidos / len(clientes_mes_ant)) * 100) if clientes_mes_ant else 0
 
+    # ── Rating promedio encuestas ────────────────────────────────────────────
+    from app.models.encuesta import Encuesta
+    rating_row = db.session.query(func.avg(Encuesta.calificacion)).filter(
+        Encuesta.barberia_id == barberia.id
+    ).scalar()
+    rating_promedio  = round(float(rating_row), 1) if rating_row else None
+    total_encuestas  = Encuesta.query.filter_by(barberia_id=barberia.id).count()
+
+    # Últimas encuestas con comentario (para mostrar en panel)
+    ultimas_encuestas = (
+        Encuesta.query
+        .filter(
+            Encuesta.barberia_id == barberia.id,
+            Encuesta.comentario  != None,
+        )
+        .order_by(Encuesta.creado_en.desc())
+        .limit(5)
+        .all()
+    )
+    encuestas_recientes = [
+        {
+            "calificacion": e.calificacion,
+            "comentario":   e.comentario,
+            "cliente":      Cliente.query.get(e.cliente_id).nombre if e.cliente_id else "—",
+            "fecha":        e.creado_en.strftime("%d/%m") if e.creado_en else "",
+        }
+        for e in ultimas_encuestas
+    ]
+
     return render_template("metricas.html",
         barberia_nombre     = barberia.nombre,
         dias_labels         = dias_labels,
@@ -983,6 +1012,9 @@ def panel_metricas():
         nuevos_mes_real     = nuevos_mes_real,
         recurrentes_mes     = recurrentes_mes,
         tasa_retencion      = tasa_retencion,
+        rating_promedio     = rating_promedio,
+        total_encuestas     = total_encuestas,
+        encuestas_recientes = encuestas_recientes,
     )
 
 

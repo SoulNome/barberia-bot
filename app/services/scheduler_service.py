@@ -397,6 +397,66 @@ def enviar_reactivaciones(app):
                 print(f"⚠ [{barberia.nombre}] Error reactivaciones: {e}")
 
 
+def enviar_encuestas(app):
+    """
+    Envía encuesta de satisfacción al día siguiente de cada cita completada.
+    Se ejecuta diariamente a las 10:00 Colombia (15:00 UTC).
+    """
+    with app.app_context():
+        from app.models.barberia import Barberia
+        from app.models.encuesta import Encuesta
+        from app.services.recordatorio_service import _enviar_whatsapp
+        from app.services.state_service import get_state, set_state
+
+        ayer = (datetime.utcnow() - timedelta(hours=5)).date() - timedelta(days=1)
+
+        for barberia in Barberia.query.all():
+            if not barberia.evolution_api_url or not barberia.evolution_instance:
+                continue
+
+            citas_ayer = Cita.query.filter(
+                Cita.barberia_id == barberia.id,
+                Cita.fecha == ayer,
+                Cita.estado != "cancelada",
+            ).all()
+
+            enviados = 0
+            for cita in citas_ayer:
+                cliente = Cliente.query.get(cita.cliente_id)
+                if not cliente or not cliente.telefono:
+                    continue
+
+                # No reenviar si ya existe encuesta para esta cita
+                if Encuesta.query.filter_by(cita_id=cita.id).first():
+                    continue
+
+                msg = (
+                    f"💈 *¡Gracias por visitarnos, {cliente.nombre}!*\n\n"
+                    f"¿Cómo estuvo tu experiencia?\n\n"
+                    f"Calificanos del *1* al *5* ⭐\n\n"
+                    f"1️⃣ Muy malo\n"
+                    f"2️⃣ Malo\n"
+                    f"3️⃣ Regular\n"
+                    f"4️⃣ Bueno\n"
+                    f"5️⃣ Excelente\n\n"
+                    f"_(Solo responde con el número)_"
+                )
+
+                ok = _enviar_whatsapp(cliente.telefono, msg, barberia)
+                if ok:
+                    enviados += 1
+                    try:
+                        datos = get_state(cliente.telefono, barberia.id)
+                        datos["estado"]              = "esperando_encuesta"
+                        datos["encuesta_cita_id"]    = cita.id
+                        set_state(cliente.telefono, datos, barberia.id)
+                    except Exception as e:
+                        print(f"⚠ Error set_state encuesta: {e}")
+
+            if citas_ayer:
+                print(f"⭐ [{barberia.nombre}] Encuestas enviadas: {enviados}/{len(citas_ayer)}")
+
+
 def iniciar_scheduler(app):
     scheduler = BackgroundScheduler()
 
@@ -452,6 +512,15 @@ def iniciar_scheduler(app):
         enviar_reactivaciones,
         "cron",
         day_of_week="wed",
+        hour=15,
+        minute=0,
+        args=[app]
+    )
+
+    # Encuesta post-corte — cada día a las 10:00 Colombia (15:00 UTC)
+    scheduler.add_job(
+        enviar_encuestas,
+        "cron",
         hour=15,
         minute=0,
         args=[app]

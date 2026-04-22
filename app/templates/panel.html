@@ -10,29 +10,31 @@
    APPLE SYSTEM PALETTE
 ══════════════════════════════════════════ */
 :root {
-  --bg:           #f2f2f7;
-  --card:         #ffffff;
-  --card2:        #f9f9fb;
-  --sep:          rgba(60,60,67,0.12);
-  --sep-light:    rgba(60,60,67,0.06);
-  --label:        #1c1c1e;
-  --label2:       #3c3c43;
-  --label3:       rgba(60,60,67,0.50);
-  --label4:       rgba(60,60,67,0.28);
-  --blue:         #007aff;
-  --blue-bg:      rgba(0,122,255,0.08);
-  --blue-border:  rgba(0,122,255,0.18);
-  --green:        #34c759;
-  --green-bg:     rgba(52,199,89,0.10);
-  --red:          #ff3b30;
-  --red-bg:       rgba(255,59,48,0.08);
+  --bg:           #0e0e18;
+  --card:         #17172a;
+  --card2:        #1e1e35;
+  --sep:          rgba(255,255,255,0.08);
+  --sep-light:    rgba(255,255,255,0.04);
+  --label:        #eeeef5;
+  --label2:       #b0b0c8;
+  --label3:       rgba(180,180,210,0.45);
+  --label4:       rgba(180,180,210,0.25);
+  --gold:         #d4a843;
+  --gold-bg:      rgba(212,168,67,0.12);
+  --blue:         #4f8ef7;
+  --blue-bg:      rgba(79,142,247,0.10);
+  --blue-border:  rgba(79,142,247,0.22);
+  --green:        #30d158;
+  --green-bg:     rgba(48,209,88,0.10);
+  --red:          #ff453a;
+  --red-bg:       rgba(255,69,58,0.10);
   --orange:       #ff9f0a;
   --orange-bg:    rgba(255,159,10,0.10);
-  --indigo:       #5856d6;
-  --indigo-bg:    rgba(88,86,214,0.08);
-  --shadow-sm:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md:    0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.05);
-  --shadow-lg:    0 16px 48px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.07);
+  --indigo:       #a78bfa;
+  --indigo-bg:    rgba(167,139,250,0.10);
+  --shadow-sm:    0 1px 6px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.20);
+  --shadow-md:    0 6px 24px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.25);
+  --shadow-lg:    0 20px 60px rgba(0,0,0,0.60), 0 6px 20px rgba(0,0,0,0.35);
   --r-sm:  10px;
   --r-md:  14px;
   --r-lg:  18px;
@@ -77,10 +79,10 @@ body {
 }
 .logo-icon {
   width: 34px; height: 34px; border-radius: 9px;
-  background: var(--blue);
+  background: linear-gradient(135deg, #d4a843 0%, #b8891e 100%);
   display: flex; align-items: center; justify-content: center;
   font-size: 17px;
-  box-shadow: 0 2px 8px rgba(0,122,255,0.30);
+  box-shadow: 0 2px 12px rgba(212,168,67,0.40);
   flex-shrink: 0;
 }
 
@@ -130,8 +132,8 @@ body {
   transition: all .15s ease; white-space: nowrap;
 }
 .btn:active { transform: scale(.97); }
-.btn-blue    { background: var(--blue); color: #fff; box-shadow: 0 2px 8px rgba(0,122,255,0.30); }
-.btn-blue:hover { background: #0071e3; }
+.btn-blue    { background: var(--blue); color: #fff; box-shadow: 0 2px 8px rgba(79,142,247,0.35); }
+.btn-blue:hover { background: #3a7ef5; }
 .btn-neutral { background: var(--card); color: var(--label); border: 1px solid var(--sep); box-shadow: var(--shadow-sm); }
 .btn-neutral:hover { background: var(--card2); }
 
@@ -263,7 +265,7 @@ body {
 #now-line {
   position: absolute; left: 48px; right: 0;
   height: 1.5px; background: var(--red);
-  box-shadow: 0 0 6px rgba(255,59,48,0.35);
+  box-shadow: 0 0 6px rgba(255,69,58,0.45);
   z-index: 10; display: none; pointer-events: none;
 }
 #now-line::before {
@@ -344,14 +346,14 @@ body {
 .appt-card.cumple .badge-svc { background: var(--orange-bg); color: var(--orange); border-color: rgba(255,159,10,0.20); }
 
 .btn-cancel {
-  background: none; border: 1px solid rgba(255,59,48,0.20);
-  border-radius: 7px; color: rgba(255,59,48,0.40);
+  background: none; border: 1px solid rgba(255,69,58,0.20);
+  border-radius: 7px; color: rgba(255,69,58,0.40);
   width: 28px; height: 28px; min-width: 28px;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; flex-shrink: 0; font-size: 11px;
   transition: all .15s;
 }
-.btn-cancel:hover { background: var(--red-bg); border-color: rgba(255,59,48,0.40); color: var(--red); }
+.btn-cancel:hover { background: var(--red-bg); border-color: rgba(255,69,58,0.45); color: var(--red); }
 
 /* ── SIDEBAR ── */
 .sidebar {
@@ -543,9 +545,9 @@ body {
   -webkit-appearance: none; appearance: none;
 }
 .fg input:focus, .fg select:focus, .fg textarea:focus {
-  border-color: var(--blue);
-  box-shadow: 0 0 0 3px rgba(0,122,255,0.10);
-  background: #fff;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(212,168,67,0.14);
+  background: rgba(212,168,67,0.04);
 }
 .fg textarea { resize: vertical; min-height: 80px; }
 
