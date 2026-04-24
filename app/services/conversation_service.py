@@ -1,3 +1,4 @@
+import re
 from app.services.nlp_service import interpretar_mensaje, detectar_servicio_por_nombre, detectar_barbero
 from app.services.disponibilidad_service import obtener_horarios_disponibles, normalizar_fecha as _normalizar_fecha_raw
 from app.services.agenda_service import crear_cita, obtener_cita_cliente, cancelar_cita
