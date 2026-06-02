@@ -58,9 +58,8 @@ def construir_mensaje(nombre, fecha, hora):
         f"📅 Fecha: {fecha}\n"
         f"⏰ Hora: {_ampm(hora)}\n\n"
         f"Por favor llega 5 minutos antes 🙏\n\n"
-        f"⚠️ *Importante:* Si no puedes asistir, "
-        f"cancela tu cita escribiendo *cancelar* antes de las 8:00 PM de hoy.\n"
-        f"Las inasistencias sin previo aviso generan una *multa* en tu próxima visita.\n\n"
+        f"⚠️ *Importante:* Si no puedes asistir cancela antes de las 8:00 PM de hoy escribiendo *cancelar*.\n"
+        f"Las inasistencias sin aviso generan una *multa* en tu próxima visita.\n\n"
         f"¡Te esperamos!"
     )
 

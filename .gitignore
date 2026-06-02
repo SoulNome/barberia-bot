@@ -33,3 +33,11 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Temp working files
+Barberia Bot/
+evo_key.txt
+BullsBarberClub_Accesos.docx
+*.bin
+*.bat
+railway_token.txt
