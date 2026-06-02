@@ -1,0 +1,4 @@
+﻿URL: https://evolution-api-production-75a8.up.railway.app/instance/create
+APIKEY: barberia123
+BODY: {"instanceName":"BullsBarberClub","qrcode":true,"integration":"WHATSAPP-BAILEYS"}
+HTTP ERROR Unauthorized: 

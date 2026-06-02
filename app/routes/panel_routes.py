@@ -264,13 +264,25 @@ def _build_panel_data(barberia_id, fecha=None):
     q_barberos  = Barbero.query
     if barberia_id:
         q_barberos = q_barberos.filter_by(barberia_id=barberia_id)
-    barberos_lista = [{"id": b.id, "nombre": b.nombre} for b in q_barberos.order_by(Barbero.nombre).all()]
+    barberos_lista = [{"id": b.id, "nombre": b.nombre, "barberia_id": b.barberia_id} for b in q_barberos.order_by(Barbero.nombre).all()]
+
+    # Servicios de la barberia para el panel
+    servicios_lista = []
+    try:
+        if barberia_id:
+            from app.models.barberia import Barberia as _Barb
+            _b2 = _Barb.query.get(barberia_id)
+            if _b2:
+                servicios_lista = _b2.get_servicios()
+    except Exception:
+        pass
 
     return {
         "citas_hoy":       citas_hoy,
         "clientes":        clientes_count,
         "barberos":        barberos_count,
         "barberos_lista":  barberos_lista,
+        "servicios_lista": servicios_lista,
         "ingresos_hoy":    ingresos_hoy,
         "servicio_top":    servicio_top,
         "ocupacion":       ocupacion,

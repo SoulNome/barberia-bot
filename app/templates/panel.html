@@ -828,6 +828,7 @@ body {
       <h3>Nueva cita</h3>
       <button onclick="cerrarModal()">✕</button>
     </div>
+    {% if barberos_lista|length != 1 %}
     <div class="fg">
       <label>Barbero</label>
       <select id="f-barbero" onchange="cargarHorarios()">
@@ -837,6 +838,11 @@ body {
         {% endfor %}
       </select>
     </div>
+    {% else %}
+    <select id="f-barbero" style="display:none">
+      <option value="{{ barberos_lista[0].id }}" selected>{{ barberos_lista[0].nombre }}</option>
+    </select>
+    {% endif %}
     <div class="grid2">
       <div class="fg"><label>Fecha</label><input type="date" id="f-fecha" onchange="cargarHorarios()"></div>
       <div class="fg"><label>Hora</label><select id="f-hora"><option value="">— elige fecha —</option></select></div>
@@ -845,11 +851,9 @@ body {
       <label>Servicio</label>
       <select id="f-servicio">
         <option value="">Sin especificar</option>
-        <option>Corte niños</option>
-        <option>Corte normal</option>
-        <option>Corte + barba + tinte</option>
-        <option>Corte + barba + tinte + alisadora</option>
-        <option>Pigmentación cejas</option>
+        {% for s in servicios_lista %}
+        <option value="{{ s.nombre }}">{{ s.nombre }}</option>
+        {% endfor %}
       </select>
     </div>
     <div class="grid2">
@@ -1136,7 +1140,8 @@ function cerrarConfirm(){document.getElementById("confirm-overlay").style.displa
 function abrirModal() {
   document.getElementById("modal-cita").style.display="flex";
   document.getElementById("form-msg").textContent="";
-  document.getElementById("f-barbero").selectedIndex=0;
+  const sel=document.getElementById("f-barbero");
+  if(sel.options.length>1) sel.selectedIndex=0;  // solo resetear si tiene opciones multiples
   document.getElementById("f-hora").innerHTML='<option value="">— elige fecha —</option>';
   document.getElementById("f-servicio").selectedIndex=0;
   document.getElementById("f-nombre").value="";
@@ -1144,6 +1149,7 @@ function abrirModal() {
   const hoy=new Date().toISOString().split("T")[0];
   document.getElementById("f-fecha").min=hoy;
   document.getElementById("f-fecha").value=hoy;
+  cargarHorarios();  // auto-cargar horarios al abrir (funciona cuando barbero ya esta seleccionado)
 }
 function cerrarModal(){document.getElementById("modal-cita").style.display="none";}
 document.getElementById("modal-cita").addEventListener("click",e=>{if(e.target===e.currentTarget)cerrarModal();});
@@ -1181,7 +1187,8 @@ async function enviarCita() {
   const servicio=document.getElementById("f-servicio").value;
   const nombre=document.getElementById("f-nombre").value.trim();
   const telefono=document.getElementById("f-telefono").value.trim();
-  if(!barbero||!fecha||!hora||!nombre||!telefono){msg.className="form-msg err";msg.textContent="Completa todos los campos.";return;}
+  if(!fecha||!hora||!nombre||!telefono){msg.className="form-msg err";msg.textContent="Completa todos los campos.";return;}
+  if(!barbero){msg.className="form-msg err";msg.textContent="Selecciona un barbero o recarga la pagina.";return;}
   msg.className="form-msg"; msg.textContent="Agendando…";
   try {
     const r=await fetch("/agenda/crear-cita",{method:"POST",headers:{"Content-Type":"application/json"},

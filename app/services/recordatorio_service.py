@@ -52,13 +52,15 @@ def _enviar_whatsapp(numero, texto, barberia=None):
 
 def construir_mensaje(nombre, fecha, hora):
     return (
-        f"💈 *BarberIA*\n\n"
+        f"💈 *Recordatorio de cita*\n\n"
         f"Hola {nombre} 👋\n\n"
-        f"Te recordamos tu cita:\n\n"
+        f"Te recordamos tu cita para *mañana*:\n\n"
         f"📅 Fecha: {fecha}\n"
         f"⏰ Hora: {_ampm(hora)}\n\n"
-        f"Por favor llega 5 minutos antes.\n\n"
-        f"Si necesitas cancelar escribe *cancelar*.\n\n"
+        f"Por favor llega 5 minutos antes 🙏\n\n"
+        f"⚠️ *Importante:* Si no puedes asistir, "
+        f"cancela tu cita escribiendo *cancelar* antes de las 8:00 PM de hoy.\n"
+        f"Las inasistencias sin previo aviso generan una *multa* en tu próxima visita.\n\n"
         f"¡Te esperamos!"
     )
 

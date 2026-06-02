@@ -15,9 +15,19 @@ def horarios():
     try:
         barbero_id = int(barbero_id_raw)
     except (ValueError, TypeError):
-        return jsonify({"horarios": [], "cerrado": False, "error": "barbero_id inválido"}), 400
+        return jsonify({"horarios": [], "cerrado": False, "error": "barbero_id invalido"}), 400
 
-    resultado = obtener_horarios_disponibles(barbero_id, fecha)
+    # Detectar barberia_id desde el barbero para usar sus horarios propios
+    barberia_id = None
+    try:
+        from app.models.barbero import Barbero
+        b = Barbero.query.get(barbero_id)
+        if b:
+            barberia_id = b.barberia_id
+    except Exception:
+        pass
+
+    resultado = obtener_horarios_disponibles(barbero_id, fecha, barberia_id)
 
     if resultado in ("domingo", "festivo") or resultado is None:
         return jsonify({"horarios": [], "cerrado": True})

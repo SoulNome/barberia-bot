@@ -29,13 +29,24 @@ def crear():
 
     servicio = data.get("servicio")
 
+    # Detectar barberia_id para respetar reglas de disponibilidad de la barberia
+    barberia_id = None
+    try:
+        from app.models.barbero import Barbero as _Barbero
+        _b = _Barbero.query.get(barbero_id)
+        if _b:
+            barberia_id = _b.barberia_id
+    except Exception:
+        pass
+
     ok, mensaje = crear_cita(
         nombre,
         telefono,
         barbero_id,
         fecha,
         hora,
-        servicio
+        servicio,
+        barberia_id=barberia_id
     )
 
     return jsonify({

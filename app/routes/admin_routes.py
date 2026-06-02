@@ -286,6 +286,26 @@ def detalle_barberia(barberia_id):
 # API — Lista de barberías (JSON)
 # ──────────────────────────────────────────────────────────────────────────────
 
+
+@admin_bp.route("/admin/crear-barbero", methods=["POST"])
+def crear_barbero_admin():
+    key = request.args.get("key") or (request.get_json(silent=True) or {}).get("key")
+    if not _check_key(key):
+        return jsonify({"success": False, "mensaje": "No autorizado"}), 401
+    data = request.get_json(silent=True) or {}
+    nombre = (data.get("nombre") or "").strip()
+    barberia_id = data.get("barberia_id")
+    if not nombre or not barberia_id:
+        return jsonify({"success": False, "mensaje": "nombre y barberia_id requeridos"})
+    try:
+        b = Barbero(nombre=nombre, barberia_id=barberia_id)
+        db.session.add(b)
+        db.session.commit()
+        return jsonify({"success": True, "id": b.id, "nombre": b.nombre})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "mensaje": str(e)})
+
 @admin_bp.route("/admin/barberias")
 def listar_barberias():
     key = request.args.get("key")
