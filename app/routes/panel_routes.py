@@ -13,17 +13,11 @@ panel_bp = Blueprint("panel", __name__)
 # Fallback global para compatibilidad con el cliente activo (1 sola barbería)
 _PANEL_KEY_ENV = os.getenv("PANEL_KEY")
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 # HELPER: obtener barbería desde la key del panel
 # ──────────────────────────────────────────────────────────────────────────────
 
 def _get_barberia(key):
-    """
-    Devuelve el objeto Barberia correspondiente a la key.
-    1) Busca en la tabla barberias por panel_key.
-    2) Fallback: si la key coincide con PANEL_KEY env-var, devuelve la primera barbería.
-    """
     if not key:
         return None
     b = Barberia.query.filter_by(panel_key=key).first()
@@ -33,13 +27,7 @@ def _get_barberia(key):
         return Barberia.query.order_by(Barberia.id).first()
     return None
 
-
 def _check_auth(key=None):
-    """
-    Devuelve Barberia si el usuario está autenticado (sesión o key).
-    Prioridad: sesión → key en URL/body.
-    Si valida por key, guarda en sesión para futuras peticiones.
-    """
     barberia_id = session.get("panel_barberia_id")
     if barberia_id:
         b = Barberia.query.get(barberia_id)
@@ -57,16 +45,12 @@ def _check_auth(key=None):
 
     return None
 
-
 def _get_barberia_api():
-    """Para endpoints de API: verifica sesión, luego key en args o body JSON."""
     key = request.args.get("key") or (request.get_json(silent=True) or {}).get("key")
     return _check_auth(key)
 
-
 def _colombia_today():
     return (datetime.utcnow() - timedelta(hours=5)).date()
-
 
 from app.models.barberia import DEFAULT_HORARIOS as _DEFAULT_HORARIOS
 
@@ -74,7 +58,6 @@ _DIAS_NUM_PANEL = {
     "lunes": 0, "martes": 1, "miércoles": 2, "miercoles": 2,
     "jueves": 3, "viernes": 4, "sábado": 5, "sabado": 5
 }
-
 
 def _parsear_horario_fijo_panel(horario_str, dia_semana):
     if not horario_str:
@@ -102,9 +85,7 @@ def _parsear_horario_fijo_panel(horario_str, dia_semana):
         return f"{h:02d}:{mins:02d}"
     return None
 
-
 def obtener_horarios_dia(dia_semana, barberia=None):
-    """Devuelve los bloques horarios del día para la barbería (o los defaults)."""
     config = barberia.get_horarios() if barberia else _DEFAULT_HORARIOS
     bloques_str = config.get(dia_semana, [])
     result = []
@@ -114,7 +95,6 @@ def obtener_horarios_dia(dia_semana, barberia=None):
         result.append((time(h_i, m_i), time(h_f, m_f)))
     return result
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 # BUILD PANEL DATA
 # ──────────────────────────────────────────────────────────────────────────────
@@ -122,16 +102,15 @@ def obtener_horarios_dia(dia_semana, barberia=None):
 def _build_panel_data(barberia_id, fecha=None):
     hoy = fecha or _colombia_today()
 
-    # Cargar objeto barbería para acceder a su config (precios, horarios)
     barberia_obj = Barberia.query.get(barberia_id) if barberia_id else None
-    precios      = barberia_obj.get_precios() if barberia_obj else {}
+    precios = barberia_obj.get_precios() if barberia_obj else {}
 
     q_citas = Cita.query.filter(Cita.fecha == hoy, Cita.estado != "cancelada")
     if barberia_id:
         q_citas = q_citas.filter(Cita.barberia_id == barberia_id)
     citas = q_citas.all()
 
-    citas_hoy      = len(citas)
+    citas_hoy = len(citas)
     clientes_count = Cliente.query.filter_by(barberia_id=barberia_id).count() if barberia_id else Cliente.query.count()
     barberos_count = Barbero.query.filter_by(barberia_id=barberia_id).count() if barberia_id else Barbero.query.count()
 
@@ -145,9 +124,8 @@ def _build_panel_data(barberia_id, fecha=None):
             conteo[cita.servicio] = conteo.get(cita.servicio, 0) + 1
     servicio_top = max(conteo, key=conteo.get) if conteo else None
 
-    # Slots virtuales de clientes fijos para este día
     dia_semana = hoy.weekday()
-    fijo_slots = {}  # time -> nombre cliente
+    fijo_slots = {}
     clientes_fijos_lista = []
 
     q_fijos = Cliente.query.filter_by(fijo=True)
@@ -169,7 +147,6 @@ def _build_panel_data(barberia_id, fecha=None):
             except Exception:
                 pass
 
-    # Excluir de fijo_slots a los clientes fijos que cancelaron hoy
     q_canceladas = Cita.query.filter(Cita.fecha == hoy, Cita.estado == "cancelada")
     if barberia_id:
         q_canceladas = q_canceladas.filter(Cita.barberia_id == barberia_id)
@@ -191,82 +168,79 @@ def _build_panel_data(barberia_id, fecha=None):
             hora = actual.time()
             cita = next((c for c in citas if c.hora == hora), None)
             if cita:
-                cli_obj    = clientes_dict.get(cita.cliente_id)
+                cli_obj = clientes_dict.get(cita.cliente_id)
                 nombre_cli = cli_obj.nombre if cli_obj else None
-                es_fijo    = bool(cli_obj and cli_obj.fijo)
+                es_fijo = bool(cli_obj and cli_obj.fijo)
                 agenda.append({
-                    "hora":      hora.strftime("%H:%M"),
-                    "cita_id":   cita.id,
-                    "cliente":   nombre_cli,
-                    "barbero":   barberos_dict.get(cita.barbero_id),
-                    "servicio":  cita.servicio,
+                    "hora": hora.strftime("%H:%M"),
+                    "cita_id": cita.id,
+                    "cliente": nombre_cli,
+                    "barbero": barberos_dict.get(cita.barbero_id),
+                    "servicio": cita.servicio,
                     "cumpleanos": bool(cita.servicio and "🎂" in cita.servicio),
-                    "fijo":      es_fijo
+                    "fijo": es_fijo
                 })
             elif hora in fijo_slots:
                 agenda.append({
-                    "hora":      hora.strftime("%H:%M"),
-                    "cita_id":   None,
-                    "cliente":   fijo_slots[hora],
-                    "barbero":   None,
-                    "servicio":  "📌 Turno fijo",
+                    "hora": hora.strftime("%H:%M"),
+                    "cita_id": None,
+                    "cliente": fijo_slots[hora],
+                    "barbero": None,
+                    "servicio": "📌 Turno fijo",
                     "cumpleanos": False,
-                    "fijo":      True
+                    "fijo": True
                 })
             else:
                 agenda.append({
-                    "hora":      hora.strftime("%H:%M"),
-                    "cita_id":   None,
-                    "cliente":   None,
-                    "barbero":   None,
-                    "servicio":  None,
+                    "hora": hora.strftime("%H:%M"),
+                    "cita_id": None,
+                    "cliente": None,
+                    "barbero": None,
+                    "servicio": None,
                     "cumpleanos": False,
-                    "fijo":      False
+                    "fijo": False
                 })
             actual += timedelta(minutes=30)
 
-    # Citas fuera del horario estándar
     horas_en_agenda = {row["hora"] for row in agenda}
     for cita in citas:
         hora_str = cita.hora.strftime("%H:%M")
         if hora_str not in horas_en_agenda:
-            cli_obj    = clientes_dict.get(cita.cliente_id)
+            cli_obj = clientes_dict.get(cita.cliente_id)
             nombre_cli = cli_obj.nombre if cli_obj else None
-            es_fijo    = bool(cli_obj and cli_obj.fijo)
+            es_fijo = bool(cli_obj and cli_obj.fijo)
             agenda.append({
-                "hora":      hora_str,
-                "cita_id":   cita.id,
-                "cliente":   nombre_cli,
-                "barbero":   barberos_dict.get(cita.barbero_id),
-                "servicio":  cita.servicio,
+                "hora": hora_str,
+                "cita_id": cita.id,
+                "cliente": nombre_cli,
+                "barbero": barberos_dict.get(cita.barbero_id),
+                "servicio": cita.servicio,
                 "cumpleanos": bool(cita.servicio and "🎂" in cita.servicio),
-                "fijo":      es_fijo
+                "fijo": es_fijo
             })
             horas_en_agenda.add(hora_str)
 
-    # Fijos fuera del rango normal
     for t_fijo, nombre_fijo in sorted(fijo_slots.items()):
         hora_str = t_fijo.strftime("%H:%M")
         if hora_str not in horas_en_agenda:
             agenda.append({
-                "hora":      hora_str,
-                "cita_id":   None,
-                "cliente":   nombre_fijo,
-                "barbero":   None,
-                "servicio":  "📌 Turno fijo (excepcional)",
+                "hora": hora_str,
+                "cita_id": None,
+                "cliente": nombre_fijo,
+                "barbero": None,
+                "servicio": "📌 Turno fijo (excepcional)",
                 "cumpleanos": False,
-                "fijo":      True
+                "fijo": True
             })
 
     agenda.sort(key=lambda r: r["hora"])
 
-    ocupacion   = int((citas_hoy / total_slots) * 100) if total_slots > 0 else 0
-    q_barberos  = Barbero.query
+    ocupacion = int((citas_hoy / total_slots) * 100) if total_slots > 0 else 0
+    q_barberos = Barbero.query
     if barberia_id:
         q_barberos = q_barberos.filter_by(barberia_id=barberia_id)
     barberos_lista = [{"id": b.id, "nombre": b.nombre, "barberia_id": b.barberia_id} for b in q_barberos.order_by(Barbero.nombre).all()]
 
-    # Servicios de la barberia para el panel
     servicios_lista = []
     try:
         if barberia_id:
@@ -278,19 +252,18 @@ def _build_panel_data(barberia_id, fecha=None):
         pass
 
     return {
-        "citas_hoy":       citas_hoy,
-        "clientes":        clientes_count,
-        "barberos":        barberos_count,
-        "barberos_lista":  barberos_lista,
+        "citas_hoy": citas_hoy,
+        "clientes": clientes_count,
+        "barberos": barberos_count,
+        "barberos_lista": barberos_lista,
         "servicios_lista": servicios_lista,
-        "ingresos_hoy":    ingresos_hoy,
-        "servicio_top":    servicio_top,
-        "ocupacion":       ocupacion,
-        "agenda":          agenda,
-        "clientes_fijos":  clientes_fijos_lista,
-        "fecha_iso":       hoy.isoformat()
+        "ingresos_hoy": ingresos_hoy,
+        "servicio_top": servicio_top,
+        "ocupacion": ocupacion,
+        "agenda": agenda,
+        "clientes_fijos": clientes_fijos_lista,
+        "fecha_iso": hoy.isoformat()
     }
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # RUTAS DEL PANEL
@@ -298,7 +271,6 @@ def _build_panel_data(barberia_id, fecha=None):
 
 @panel_bp.route("/panel/login", methods=["GET", "POST"])
 def panel_login():
-    # Si ya está autenticado, ir directo al panel
     if session.get("panel_barberia_id"):
         b = Barberia.query.get(session["panel_barberia_id"])
         if b:
@@ -316,17 +288,14 @@ def panel_login():
 
     return render_template("login.html", error=error)
 
-
 @panel_bp.route("/panel/logout")
 def panel_logout():
     session.pop("panel_barberia_id", None)
     session.pop("panel_key", None)
     return redirect(url_for("panel.panel_login"))
 
-
 @panel_bp.route("/panel")
 def panel():
-    # Soportar ?key= en URL para compatibilidad (sesión tiene prioridad)
     key = request.args.get("key")
     barberia = _check_auth(key)
     if not barberia:
@@ -338,10 +307,10 @@ def panel():
     except ValueError:
         fecha = _colombia_today()
 
-    hoy      = _colombia_today()
-    es_hoy   = fecha == hoy
+    hoy = _colombia_today()
+    es_hoy = fecha == hoy
     es_manana = fecha == hoy + timedelta(days=1)
-    DIAS  = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
     MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
              "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
     base_label = f"{DIAS[fecha.weekday()]} {fecha.day} de {MESES[fecha.month-1]}"
@@ -360,7 +329,6 @@ def panel():
                            fecha_label=fecha_label,
                            fecha_prev=fecha_prev, fecha_next=fecha_next)
 
-
 @panel_bp.route("/panel-stream")
 def panel_stream():
     barberia = _get_barberia_api()
@@ -368,7 +336,7 @@ def panel_stream():
         return "No autorizado", 401
 
     from flask import current_app
-    app         = current_app._get_current_object()
+    app = current_app._get_current_object()
     barberia_id = barberia.id
 
     fecha_str = request.args.get("fecha", "")
@@ -382,7 +350,7 @@ def panel_stream():
             try:
                 with app.app_context():
                     payload = _build_panel_data(barberia_id, fecha_sse)
-                yield f"event: update\ndata: {json.dumps(payload)}\n\n"
+                    yield f"event: update\ndata: {json.dumps(payload)}\n\n"
             except Exception as e:
                 yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
             for _ in range(10):
@@ -393,7 +361,6 @@ def panel_stream():
         mimetype="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
     )
-
 
 @panel_bp.route("/run-import", methods=["POST"])
 def run_import():
@@ -410,14 +377,13 @@ def run_import():
     except Exception as e:
         return jsonify({"success": False, "mensaje": str(e)})
 
-
 @panel_bp.route("/crear-cliente", methods=["POST"])
 def crear_cliente():
     barberia = _get_barberia_api()
     if not barberia:
         return jsonify({"success": False, "mensaje": "No autorizado"}), 401
 
-    data     = request.get_json()
+    data = request.get_json()
     telefono = (data.get("telefono") or "").strip()
 
     if not data.get("nombre") or not telefono:
@@ -451,16 +417,15 @@ def crear_cliente():
         db.session.rollback()
         return jsonify({"success": False, "mensaje": str(e)})
 
-
 @panel_bp.route("/editar-cliente", methods=["POST"])
 def editar_cliente():
     barberia = _get_barberia_api()
     if not barberia:
         return jsonify({"success": False, "mensaje": "No autorizado"}), 401
 
-    data     = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True) or {}
     telefono = (data.get("telefono") or "").strip()
-    cliente  = Cliente.query.filter_by(telefono=telefono, barberia_id=barberia.id).first()
+    cliente = Cliente.query.filter_by(telefono=telefono, barberia_id=barberia.id).first()
     if not cliente:
         return jsonify({"success": False, "mensaje": "Cliente no encontrado"})
 
@@ -479,7 +444,7 @@ def editar_cliente():
             nuevo_tel = (data["telefono_nuevo"] or "").strip()
             if nuevo_tel and nuevo_tel != cliente.telefono:
                 if Cliente.query.filter_by(telefono=nuevo_tel, barberia_id=barberia.id).first():
-                    return jsonify({"success": False, "mensaje": f"Ya existe un cliente con el tel\u00e9fono {nuevo_tel}"})
+                    return jsonify({"success": False, "mensaje": f"Ya existe un cliente con el teléfono {nuevo_tel}"})
                 cliente.telefono = nuevo_tel
         db.session.commit()
         return jsonify({"success": True, "mensaje": f"Cliente {cliente.nombre} actualizado"})
@@ -487,20 +452,19 @@ def editar_cliente():
         db.session.rollback()
         return jsonify({"success": False, "mensaje": str(e)})
 
-
 @panel_bp.route("/crear-cita-panel", methods=["POST"])
 def crear_cita_panel():
     barberia = _get_barberia_api()
     if not barberia:
         return jsonify({"success": False, "mensaje": "No autorizado"}), 401
 
-    data       = request.get_json(silent=True) or {}
-    nombre     = (data.get("nombre") or "").strip()
-    telefono   = (data.get("telefono") or "").strip()
+    data = request.get_json(silent=True) or {}
+    nombre    = (data.get("nombre")    or "").strip()
+    telefono  = (data.get("telefono")  or "").strip()
     barbero_id = data.get("barbero_id")
-    fecha      = (data.get("fecha") or "").strip()
-    hora       = (data.get("hora") or "").strip()
-    servicio   = (data.get("servicio") or "").strip() or None
+    fecha     = (data.get("fecha")     or "").strip()
+    hora      = (data.get("hora")      or "").strip()
+    servicio  = (data.get("servicio")  or "").strip() or None
 
     if not all([nombre, telefono, barbero_id, fecha, hora]):
         return jsonify({"success": False, "mensaje": "Faltan datos"}), 400
@@ -510,8 +474,19 @@ def crear_cita_panel():
         nombre, telefono, barbero_id, fecha, hora, servicio,
         skip_client_check=True, barberia_id=barberia.id
     )
-    return jsonify({"success": ok, "mensaje": mensaje})
 
+    # FIX: devolver datos actualizados del panel para que el frontend refresque
+    if ok:
+        try:
+            fecha_panel = datetime.strptime(fecha, "%Y-%m-%d").date()
+        except Exception:
+            fecha_panel = None
+        return jsonify({
+            "success": True,
+            "mensaje": mensaje,
+            "data": _build_panel_data(barberia.id, fecha_panel)
+        })
+    return jsonify({"success": False, "mensaje": mensaje})
 
 @panel_bp.route("/cancelar-cita-panel", methods=["POST"])
 def cancelar_cita_panel():
@@ -519,7 +494,7 @@ def cancelar_cita_panel():
     if not barberia:
         return jsonify({"success": False, "mensaje": "No autorizado"}), 401
 
-    data    = request.get_json(force=True, silent=True) or {}
+    data = request.get_json(force=True, silent=True) or {}
     cita_id = data.get("cita_id")
     if not cita_id:
         return jsonify({"success": False, "mensaje": "cita_id requerido"})
@@ -528,21 +503,18 @@ def cancelar_cita_panel():
     if not cita:
         return jsonify({"success": False, "mensaje": f"Cita {cita_id} no encontrada"})
 
-    cliente_obj  = Cliente.query.filter_by(id=cita.cliente_id).first()
-    nombre_cli   = cliente_obj.nombre if cliente_obj else "Desconocido"
-    fecha_str2   = str(cita.fecha)
-    hora_str     = cita.hora.strftime("%H:%M")
+    cliente_obj = Cliente.query.filter_by(id=cita.cliente_id).first()
+    nombre_cli = cliente_obj.nombre if cliente_obj else "Desconocido"
+    fecha_str2 = str(cita.fecha)
+    hora_str = cita.hora.strftime("%H:%M")
     barbero_id_c = cita.barbero_id
-    fecha_c      = cita.fecha
-    hora_c       = cita.hora
+    fecha_c = cita.fecha
+    hora_c = cita.hora
 
     try:
-        # Si es cliente fijo, marcar como cancelada (no borrar) para liberar el slot en el panel.
         if cliente_obj and cliente_obj.fijo:
             cita.estado = "cancelada"
             db.session.flush()
-            # Cancelar también todas las citas "📌 Turno fijo" futuras del mismo cliente
-            # (el scheduler crea 7 días adelante; sin esto el bot dice que hay cita pendiente)
             hoy_co = _colombia_today()
             Cita.query.filter(
                 Cita.cliente_id == cliente_obj.id,
@@ -554,7 +526,6 @@ def cancelar_cita_panel():
         else:
             db.session.delete(cita)
             db.session.commit()
-        # Notificar al barbero
         try:
             from app.services.recordatorio_service import notificar_barbero
             notificar_barbero(
@@ -563,7 +534,6 @@ def cancelar_cita_panel():
             )
         except Exception:
             pass
-        # Notificar al primer cliente en lista de espera para ese slot
         try:
             from app.services.lista_espera_service import notificar_lista_espera
             notificar_lista_espera(
@@ -579,24 +549,22 @@ def cancelar_cita_panel():
         db.session.rollback()
         return jsonify({"success": False, "mensaje": str(e)})
 
-
 @panel_bp.route("/reparar-fijos", methods=["POST"])
 def reparar_fijos():
-    """Detecta y resuelve conflictos entre clientes regulares y slots de fijos."""
     barberia = _get_barberia_api()
     if not barberia:
         return jsonify({"success": False, "mensaje": "No autorizado"}), 401
 
     solo_preview = request.args.get("solo_preview") == "1"
-    data         = request.get_json(silent=True) or {}
-    hoy          = _colombia_today()
+    data = request.get_json(silent=True) or {}
+    hoy = _colombia_today()
     dias_adelante = int(data.get("dias", 30))
 
     from app.services.recordatorio_service import _enviar_whatsapp
     from datetime import timedelta as td
 
     conflictos = []
-    enviados   = 0
+    enviados = 0
     canceladas = 0
 
     clientes_fijos = Cliente.query.filter_by(fijo=True, barberia_id=barberia.id).all()
@@ -605,7 +573,7 @@ def reparar_fijos():
 
     for dias_ahead in range(dias_adelante + 1):
         fecha_check = hoy + td(days=dias_ahead)
-        dia_semana  = fecha_check.weekday()
+        dia_semana = fecha_check.weekday()
         if dia_semana == 6:
             continue
         fecha_str = fecha_check.strftime("%Y-%m-%d")
@@ -652,17 +620,17 @@ def reparar_fijos():
             if mismo_id or mismo_tel or mismo_nombre:
                 continue
 
-            DIAS_ES   = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+            DIAS_ES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
             dia_nombre = DIAS_ES[dia_semana]
 
             conflictos.append({
-                "fecha":               fecha_str,
-                "dia":                 dia_nombre,
-                "hora":                hora_fija_str,
-                "cliente_fijo":        cf.nombre,
-                "cliente_desplazado":  cli_conflicto.nombre,
+                "fecha": fecha_str,
+                "dia": dia_nombre,
+                "hora": hora_fija_str,
+                "cliente_fijo": cf.nombre,
+                "cliente_desplazado": cli_conflicto.nombre,
                 "telefono_desplazado": cli_conflicto.telefono,
-                "cita_id":             cita_conflicto.id,
+                "cita_id": cita_conflicto.id,
             })
 
             if not solo_preview:
@@ -700,14 +668,13 @@ def reparar_fijos():
         "mensaje": f"Se encontraron {len(conflictos)} conflicto(s). Canceladas: {canceladas}. Notificados: {enviados}."
     })
 
-
 @panel_bp.route("/confirmar-citas", methods=["POST"])
 def confirmar_citas():
     barberia = _get_barberia_api()
     if not barberia:
         return jsonify({"success": False, "mensaje": "No autorizado"}), 401
 
-    data     = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True) or {}
     fecha_str = (data.get("fecha") or "").strip()
 
     try:
@@ -718,7 +685,7 @@ def confirmar_citas():
     DIAS_ES  = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
     MESES_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio",
                 "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
-    dia_nombre   = DIAS_ES[fecha_obj.weekday()]
+    dia_nombre  = DIAS_ES[fecha_obj.weekday()]
     fecha_bonita = f"{dia_nombre} {fecha_obj.day} de {MESES_ES[fecha_obj.month - 1]}"
 
     from app.services.recordatorio_service import _enviar_whatsapp
@@ -728,7 +695,9 @@ def confirmar_citas():
     notificados = set()
 
     # Citas en BD
-    citas_db = Cita.query.filter_by(fecha=fecha_obj, barberia_id=barberia.id).all()
+    citas_db = Cita.query.filter_by(fecha=fecha_obj, barberia_id=barberia.id).filter(
+        Cita.estado != "cancelada"
+    ).all()
     for cita in citas_db:
         cli = Cliente.query.get(cita.cliente_id)
         if not cli or not cli.telefono:
@@ -785,7 +754,6 @@ def confirmar_citas():
         "mensaje": f"Confirmaciones enviadas: {enviados}. Errores: {errores}."
     })
 
-
 @panel_bp.route("/panel/metricas")
 def panel_metricas():
     barberia = _check_auth()
@@ -799,7 +767,6 @@ def panel_metricas():
     hace30  = hoy - timedelta(days=29)
     hace180 = hoy - timedelta(days=179)
 
-    # ── Citas por día (últimos 30 días) ──────────────────────────────────────
     filas_dia = (
         db.session.query(Cita.fecha, func.count(Cita.id))
         .filter(
@@ -813,10 +780,9 @@ def panel_metricas():
         .all()
     )
     citas_por_dia = {str(f): c for f, c in filas_dia}
-    dias_labels   = [(hace30 + timedelta(days=i)).isoformat() for i in range(30)]
-    dias_data     = [citas_por_dia.get(d, 0) for d in dias_labels]
+    dias_labels = [(hace30 + timedelta(days=i)).isoformat() for i in range(30)]
+    dias_data   = [citas_por_dia.get(d, 0) for d in dias_labels]
 
-    # ── Ingresos y citas por mes (últimos 6 meses) ───────────────────────────
     precios = barberia.get_precios()
     todas_citas_6m = (
         Cita.query
@@ -832,12 +798,12 @@ def panel_metricas():
         clave = c.fecha.strftime("%Y-%m")
         if clave not in meses_dict:
             meses_dict[clave] = {"citas": 0, "ingresos": 0}
-        meses_dict[clave]["citas"] += 1
+        meses_dict[clave]["citas"]    += 1
         meses_dict[clave]["ingresos"] += precios.get(c.servicio, 0)
 
-    meses_labels  = sorted(meses_dict.keys())
-    meses_citas   = [meses_dict[m]["citas"]    for m in meses_labels]
-    meses_ingresos= [meses_dict[m]["ingresos"] for m in meses_labels]
+    meses_labels   = sorted(meses_dict.keys())
+    meses_citas    = [meses_dict[m]["citas"]    for m in meses_labels]
+    meses_ingresos = [meses_dict[m]["ingresos"] for m in meses_labels]
 
     MESES_ES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]
     meses_labels_bonitos = [
@@ -845,20 +811,15 @@ def panel_metricas():
         for m in meses_labels
     ]
 
-    # ── Por día de la semana ─────────────────────────────────────────────────
     DIAS_ES = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"]
     semana_dict = {i: 0 for i in range(7)}
     for c in todas_citas_6m:
         semana_dict[c.fecha.weekday()] += 1
     semana_data = [semana_dict[i] for i in range(7)]
 
-    # ── Top clientes ─────────────────────────────────────────────────────────
     filas_top = (
         db.session.query(Cita.cliente_id, func.count(Cita.id).label("total"))
-        .filter(
-            Cita.barberia_id == barberia.id,
-            Cita.estado != "cancelada",
-        )
+        .filter(Cita.barberia_id == barberia.id, Cita.estado != "cancelada")
         .group_by(Cita.cliente_id)
         .order_by(func.count(Cita.id).desc())
         .limit(8)
@@ -870,55 +831,44 @@ def panel_metricas():
         if cli:
             top_clientes.append({"nombre": cli.nombre, "total": total})
 
-    # ── Stats resumen ────────────────────────────────────────────────────────
-    mes_actual   = hoy.strftime("%Y-%m")
+    mes_actual  = hoy.strftime("%Y-%m")
     mes_anterior = (hoy.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
-    citas_mes    = meses_dict.get(mes_actual,   {}).get("citas",    0)
-    citas_mes_ant= meses_dict.get(mes_anterior, {}).get("citas",    0)
-    ingresos_mes = meses_dict.get(mes_actual,   {}).get("ingresos", 0)
+    citas_mes    = meses_dict.get(mes_actual,  {}).get("citas",    0)
+    citas_mes_ant= meses_dict.get(mes_anterior,{}).get("citas",    0)
+    ingresos_mes = meses_dict.get(mes_actual,  {}).get("ingresos", 0)
     clientes_nuevos_mes = Cliente.query.filter(
         Cliente.barberia_id == barberia.id,
         func.date_trunc("month", Cliente.creado_en) == func.date_trunc("month", func.now()),
     ).count()
 
-    # ── Tasa de cancelación (últimos 30 días) ────────────────────────────────
     total_30d = Cita.query.filter(
         Cita.barberia_id == barberia.id,
-        Cita.fecha >= hace30,
-        Cita.fecha <= hoy,
+        Cita.fecha >= hace30, Cita.fecha <= hoy,
     ).count()
     canceladas_30d = Cita.query.filter(
         Cita.barberia_id == barberia.id,
-        Cita.fecha >= hace30,
-        Cita.fecha <= hoy,
+        Cita.fecha >= hace30, Cita.fecha <= hoy,
         Cita.estado == "cancelada",
     ).count()
     tasa_cancelacion = int((canceladas_30d / total_30d) * 100) if total_30d > 0 else 0
+    ticket_promedio  = int(ingresos_mes / citas_mes) if citas_mes > 0 else 0
 
-    # ── Ticket promedio (mes actual) ─────────────────────────────────────────
-    ticket_promedio = int(ingresos_mes / citas_mes) if citas_mes > 0 else 0
-
-    # ── Horas pico (últimos 30 días) ─────────────────────────────────────────
     filas_horas = (
         db.session.query(Cita.hora, func.count(Cita.id))
         .filter(
             Cita.barberia_id == barberia.id,
             Cita.estado != "cancelada",
-            Cita.fecha >= hace30,
-            Cita.fecha <= hoy,
+            Cita.fecha >= hace30, Cita.fecha <= hoy,
         )
         .group_by(Cita.hora)
         .order_by(Cita.hora)
         .all()
     )
-    horas_dict = {h.strftime("%H:%M"): c for h, c in filas_horas}
-    # Generar rango de horas de 7:00 a 21:00
-    from datetime import time as _time
+    horas_dict   = {h.strftime("%H:%M"): c for h, c in filas_horas}
     horas_labels = [f"{h:02d}:00" for h in range(7, 22)]
     horas_data   = [horas_dict.get(f"{h:02d}:00", 0) + horas_dict.get(f"{h:02d}:30", 0)
                     for h in range(7, 22)]
 
-    # ── Servicios más pedidos (últimos 6 meses) ──────────────────────────────
     filas_svc = (
         db.session.query(Cita.servicio, func.count(Cita.id).label("total"))
         .filter(
@@ -936,56 +886,43 @@ def panel_metricas():
     servicios_labels = [s for s, _ in filas_svc]
     servicios_data   = [c for _, c in filas_svc]
 
-    # ── Clientes nuevos vs recurrentes (mes actual) ──────────────────────────
     inicio_mes_date = hoy.replace(day=1)
-    # Recurrentes = tuvieron cita ANTES del mes actual Y también este mes
     clientes_este_mes = set(
         c.cliente_id for c in Cita.query.filter(
-            Cita.barberia_id == barberia.id,
-            Cita.estado != "cancelada",
-            Cita.fecha >= inicio_mes_date,
-            Cita.fecha <= hoy,
+            Cita.barberia_id == barberia.id, Cita.estado != "cancelada",
+            Cita.fecha >= inicio_mes_date, Cita.fecha <= hoy,
         ).all()
     )
     clientes_antes = set(
         c.cliente_id for c in Cita.query.filter(
-            Cita.barberia_id == barberia.id,
-            Cita.estado != "cancelada",
+            Cita.barberia_id == barberia.id, Cita.estado != "cancelada",
             Cita.fecha < inicio_mes_date,
         ).all()
     )
-    recurrentes_mes = len(clientes_este_mes & clientes_antes)
-    nuevos_mes_real = len(clientes_este_mes - clientes_antes)
+    recurrentes_mes  = len(clientes_este_mes & clientes_antes)
+    nuevos_mes_real  = len(clientes_este_mes - clientes_antes)
 
-    # ── Tasa de retención (clientes del mes pasado que volvieron este mes) ───
-    inicio_mes_ant  = (hoy.replace(day=1) - timedelta(days=1)).replace(day=1)
-    fin_mes_ant     = hoy.replace(day=1) - timedelta(days=1)
+    inicio_mes_ant = (hoy.replace(day=1) - timedelta(days=1)).replace(day=1)
+    fin_mes_ant    = hoy.replace(day=1) - timedelta(days=1)
     clientes_mes_ant = set(
         c.cliente_id for c in Cita.query.filter(
-            Cita.barberia_id == barberia.id,
-            Cita.estado != "cancelada",
-            Cita.fecha >= inicio_mes_ant,
-            Cita.fecha <= fin_mes_ant,
+            Cita.barberia_id == barberia.id, Cita.estado != "cancelada",
+            Cita.fecha >= inicio_mes_ant, Cita.fecha <= fin_mes_ant,
         ).all()
     )
-    retenidos = len(clientes_mes_ant & clientes_este_mes)
-    tasa_retencion = int((retenidos / len(clientes_mes_ant)) * 100) if clientes_mes_ant else 0
+    retenidos       = len(clientes_mes_ant & clientes_este_mes)
+    tasa_retencion  = int((retenidos / len(clientes_mes_ant)) * 100) if clientes_mes_ant else 0
 
-    # ── Rating promedio encuestas ────────────────────────────────────────────
     from app.models.encuesta import Encuesta
     rating_row = db.session.query(func.avg(Encuesta.calificacion)).filter(
         Encuesta.barberia_id == barberia.id
     ).scalar()
-    rating_promedio  = round(float(rating_row), 1) if rating_row else None
-    total_encuestas  = Encuesta.query.filter_by(barberia_id=barberia.id).count()
+    rating_promedio = round(float(rating_row), 1) if rating_row else None
+    total_encuestas = Encuesta.query.filter_by(barberia_id=barberia.id).count()
 
-    # Últimas encuestas con comentario (para mostrar en panel)
     ultimas_encuestas = (
         Encuesta.query
-        .filter(
-            Encuesta.barberia_id == barberia.id,
-            Encuesta.comentario  != None,
-        )
+        .filter(Encuesta.barberia_id == barberia.id, Encuesta.comentario != None)
         .order_by(Encuesta.creado_en.desc())
         .limit(5)
         .all()
@@ -1029,7 +966,6 @@ def panel_metricas():
         encuestas_recientes = encuestas_recientes,
     )
 
-
 @panel_bp.route("/bloquear-dia", methods=["POST"])
 def bloquear_dia():
     barberia = _get_barberia_api()
@@ -1037,15 +973,15 @@ def bloquear_dia():
         return jsonify({"success": False, "mensaje": "No autorizado"}), 401
 
     data   = request.get_json(silent=True) or {}
-    fecha  = (data.get("fecha") or "").strip()
-    accion = (data.get("accion") or "bloquear").strip()  # "bloquear" | "desbloquear"
+    fecha  = (data.get("fecha")  or "").strip()
+    accion = (data.get("accion") or "bloquear").strip()
 
     if not fecha:
         return jsonify({"success": False, "mensaje": "fecha requerida"})
 
     try:
         from datetime import date as _date
-        _date.fromisoformat(fecha)  # validar formato
+        _date.fromisoformat(fecha)
     except ValueError:
         return jsonify({"success": False, "mensaje": "fecha inválida (usa YYYY-MM-DD)"})
 
@@ -1059,14 +995,13 @@ def bloquear_dia():
 
         db.session.commit()
         return jsonify({
-            "success":          True,
-            "mensaje":          msg,
-            "dias_bloqueados":  sorted(barberia.get_dias_bloqueados()),
+            "success": True,
+            "mensaje": msg,
+            "dias_bloqueados": sorted(barberia.get_dias_bloqueados()),
         })
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "mensaje": str(e)})
-
 
 @panel_bp.route("/dias-bloqueados", methods=["GET"])
 def dias_bloqueados():
@@ -1074,10 +1009,9 @@ def dias_bloqueados():
     if not barberia:
         return jsonify({"success": False, "mensaje": "No autorizado"}), 401
     return jsonify({
-        "success":         True,
+        "success": True,
         "dias_bloqueados": sorted(barberia.get_dias_bloqueados()),
     })
-
 
 @panel_bp.route("/notificar-dia", methods=["POST"])
 def notificar_dia():
@@ -1086,7 +1020,7 @@ def notificar_dia():
         return jsonify({"success": False, "mensaje": "No autorizado"}), 401
 
     data           = request.get_json(silent=True) or {}
-    fecha_str      = (data.get("fecha") or "").strip()
+    fecha_str      = (data.get("fecha")   or "").strip()
     mensaje_custom = (data.get("mensaje") or "").strip()
 
     try:
@@ -1103,7 +1037,7 @@ def notificar_dia():
         return jsonify({"success": False, "mensaje": f"No hay citas para el {fecha_str}"})
 
     from app.services.recordatorio_service import _enviar_whatsapp
-    DIAS      = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
     dia_nombre = DIAS[fecha_obj.weekday()]
 
     enviados = 0
@@ -1117,8 +1051,8 @@ def notificar_dia():
         if mensaje_custom:
             texto = (mensaje_custom
                      .replace("{nombre}", cli.nombre or "")
-                     .replace("{hora}", hora_fmt)
-                     .replace("{fecha}", str(fecha_obj)))
+                     .replace("{hora}",   hora_fmt)
+                     .replace("{fecha}",  str(fecha_obj)))
         else:
             texto = (
                 f"💈 *BarberIA*\n\n"

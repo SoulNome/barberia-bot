@@ -3,7 +3,6 @@ from flask import Flask
 from config import Config
 from app.extensions import db
 
-
 def _run_startup_migrations(app):
     """
     Añade columnas multi-tenant a las tablas existentes si no están.
@@ -33,15 +32,15 @@ def _run_startup_migrations(app):
 
             # ── Columnas en barberias ─────────────────────────────────────────
             new_barberia_cols = [
-                ("slug",               "VARCHAR(50)"),
-                ("panel_key",          "VARCHAR(100)"),
-                ("evolution_api_url",  "VARCHAR(200)"),
-                ("evolution_api_key",  "VARCHAR(200)"),
-                ("evolution_instance", "VARCHAR(100)"),
-                ("whatsapp_barbero",   "VARCHAR(20)"),
-                ("horarios_json",         "TEXT"),
-                ("servicios_json",        "TEXT"),
-                ("dias_bloqueados_json",  "TEXT"),
+                ("slug",              "VARCHAR(50)"),
+                ("panel_key",         "VARCHAR(100)"),
+                ("evolution_api_url", "VARCHAR(200)"),
+                ("evolution_api_key", "VARCHAR(200)"),
+                ("evolution_instance","VARCHAR(100)"),
+                ("whatsapp_barbero",  "VARCHAR(20)"),
+                ("horarios_json",     "TEXT"),
+                ("servicios_json",    "TEXT"),
+                ("dias_bloqueados_json", "TEXT"),
             ]
             for col, typ in new_barberia_cols:
                 if not col_exists("barberias", col):
@@ -76,7 +75,7 @@ def _run_startup_migrations(app):
                     "evo_url":    os.getenv("EVOLUTION_API_URL",  ""),
                     "evo_key":    os.getenv("EVOLUTION_API_KEY",  ""),
                     "evo_inst":   os.getenv("EVOLUTION_INSTANCE", ""),
-                    "wa_barbero": os.getenv("HERMES_PHONE",       ""),
+                    "wa_barbero": os.getenv("HERMES_PHONE",    ""),
                 })
                 conn.commit()
                 print("[MIGRATION] Barbería por defecto creada desde env vars")
@@ -93,13 +92,11 @@ def _run_startup_migrations(app):
                 conn.commit()
 
             # ── Índices únicos compuestos (telefono, barberia_id) ─────────────
-            # Reemplaza el índice simple en telefono que ya no sirve en multi-tenant.
             for table, idx in [
                 ("clientes",    "uq_clientes_tel_barberia"),
                 ("user_states", "uq_user_states_tel_barberia"),
             ]:
                 if not index_exists(idx):
-                    # Eliminar el constraint simple anterior si existe
                     for old in (f"{table}_telefono_key", f"ix_{table}_telefono"):
                         try:
                             conn.execute(text(
@@ -111,7 +108,6 @@ def _run_startup_migrations(app):
                             conn.execute(text(f"DROP INDEX IF EXISTS {old}"))
                         except Exception:
                             pass
-                    # Crear índice compuesto (solo activo cuando barberia_id no es NULL)
                     try:
                         conn.execute(text(
                             f"CREATE UNIQUE INDEX {idx} ON {table} (telefono, barberia_id) "
@@ -121,6 +117,27 @@ def _run_startup_migrations(app):
                     except Exception as e:
                         print(f"[MIGRATION] Aviso índice {idx}: {e}")
                     conn.commit()
+
+            # ── Horarios Bulls: fijar 09:00-12:00 y 14:00-18:00 si es NULL ───
+            # Corrección: usuario reportó que el horario 9-12 y 14-18 no aparece
+            try:
+                bulls_hor = ('{"0":[["09:00","12:00"],["14:00","18:00"]],'
+                             '"1":[["09:00","12:00"],["14:00","18:00"]],'
+                             '"2":[["09:00","12:00"],["14:00","18:00"]],'
+                             '"3":[["09:00","12:00"],["14:00","18:00"]],'
+                             '"4":[["09:00","12:00"],["14:00","18:00"]],'
+                             '"5":[["09:00","12:00"],["14:00","18:00"]]}')
+                result = conn.execute(text("""
+                    UPDATE barberias
+                    SET horarios_json = :h
+                    WHERE (slug ILIKE '%bulls%' OR nombre ILIKE '%bulls%')
+                    AND (horarios_json IS NULL OR horarios_json = '')
+                """), {"h": bulls_hor})
+                if result.rowcount > 0:
+                    conn.commit()
+                    print(f"[MIGRATION] Horarios Bulls corregidos a 09:00-12:00 / 14:00-18:00")
+            except Exception as e:
+                print(f"[MIGRATION] Aviso horarios Bulls: {e}")
 
 
 def create_app():
@@ -136,17 +153,17 @@ def create_app():
     # Migraciones automáticas para multi-tenancy
     _run_startup_migrations(app)
 
-    from app.routes.agenda_routes import agenda_bp
+    from app.routes.agenda_routes       import agenda_bp
     from app.routes.disponibilidad_routes import disponibilidad_bp
-    from app.routes.barberos_routes import barberos_bp
-    from app.routes.bot_routes import bot_bp
+    from app.routes.barberos_routes     import barberos_bp
+    from app.routes.bot_routes          import bot_bp
     from app.services.scheduler_service import iniciar_scheduler
-    from app.routes.panel_routes import panel_bp
-    from app.routes.admin_routes import admin_bp
+    from app.routes.panel_routes        import panel_bp
+    from app.routes.admin_routes        import admin_bp
 
-    app.register_blueprint(agenda_bp, url_prefix="/agenda")
-    app.register_blueprint(disponibilidad_bp, url_prefix="/agenda")
-    app.register_blueprint(barberos_bp, url_prefix="/barberos")
+    app.register_blueprint(agenda_bp,          url_prefix="/agenda")
+    app.register_blueprint(disponibilidad_bp,  url_prefix="/agenda")
+    app.register_blueprint(barberos_bp,        url_prefix="/barberos")
     app.register_blueprint(bot_bp)
     app.register_blueprint(panel_bp)
     app.register_blueprint(admin_bp)
