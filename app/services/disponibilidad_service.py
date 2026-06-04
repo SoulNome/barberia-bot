@@ -238,4 +238,3 @@ def obtener_horarios_disponibles(barbero_id, fecha, barberia_id=None):
     except Exception as e:
         print("⚠ Error obteniendo horarios:", e)
         return None
-b
