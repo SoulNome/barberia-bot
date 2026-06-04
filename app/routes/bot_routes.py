@@ -167,6 +167,10 @@ def bot_slug(slug):
         if not barberia:
             return jsonify({"status": "error", "message": f"Barbería '{slug}' no encontrada"}), 404
 
+        # Si el bot está desactivado para esta barbería, ignorar el mensaje sin responder
+        if getattr(barberia, 'bot_activo', True) is False:
+            return jsonify({"status": "bot_inactivo"}), 200
+
         evo_url  = barberia.evolution_api_url  or _DEFAULT_EVO_URL
         evo_key  = barberia.evolution_api_key  or _DEFAULT_EVO_KEY
         evo_inst = barberia.evolution_instance or _DEFAULT_EVO_INST

@@ -118,26 +118,42 @@ def _run_startup_migrations(app):
                         print(f"[MIGRATION] Aviso índice {idx}: {e}")
                     conn.commit()
 
-            # ── Horarios Bulls: fijar 09:00-12:00 y 14:00-18:00 si es NULL ───
-            # Corrección: usuario reportó que el horario 9-12 y 14-18 no aparece
+            # ── Columna bot_activo en barberias ──────────────────────────────
+            if not col_exists("barberias", "bot_activo"):
+                conn.execute(text(
+                    "ALTER TABLE barberias ADD COLUMN bot_activo BOOLEAN NOT NULL DEFAULT TRUE"
+                ))
+                conn.commit()
+                print("[MIGRATION] barberias.bot_activo añadida")
+
+            # ── Horarios Bulls: Lun-Jue 09-12 y 14-18 (Vie y Sáb libres) ────
             try:
                 bulls_hor = ('{"0":[["09:00","12:00"],["14:00","18:00"]],'
                              '"1":[["09:00","12:00"],["14:00","18:00"]],'
                              '"2":[["09:00","12:00"],["14:00","18:00"]],'
-                             '"3":[["09:00","12:00"],["14:00","18:00"]],'
-                             '"4":[["09:00","12:00"],["14:00","18:00"]],'
-                             '"5":[["09:00","12:00"],["14:00","18:00"]]}')
+                             '"3":[["09:00","12:00"],["14:00","18:00"]]}')
                 result = conn.execute(text("""
-                    UPDATE barberias
-                    SET horarios_json = :h
+                    UPDATE barberias SET horarios_json = :h
                     WHERE (slug ILIKE '%bulls%' OR nombre ILIKE '%bulls%')
-                    AND (horarios_json IS NULL OR horarios_json = '')
                 """), {"h": bulls_hor})
                 if result.rowcount > 0:
                     conn.commit()
-                    print(f"[MIGRATION] Horarios Bulls corregidos a 09:00-12:00 / 14:00-18:00")
+                    print("[MIGRATION] Horarios Bulls: Lun-Jue 09:00-12:00 / 14:00-18:00")
             except Exception as e:
                 print(f"[MIGRATION] Aviso horarios Bulls: {e}")
+
+            # ── Bot Bulls desactivado (barbero gestiona desde el panel) ───────
+            try:
+                result = conn.execute(text("""
+                    UPDATE barberias SET bot_activo = FALSE
+                    WHERE (slug ILIKE '%bulls%' OR nombre ILIKE '%bulls%')
+                    AND bot_activo = TRUE
+                """))
+                if result.rowcount > 0:
+                    conn.commit()
+                    print("[MIGRATION] Bot Bulls desactivado")
+            except Exception as e:
+                print(f"[MIGRATION] Aviso bot Bulls: {e}")
 
 
 def create_app():

@@ -62,6 +62,9 @@ class Barberia(db.Model):
     # Fechas en las que la barbería está cerrada (vacaciones, festivos propios, etc.)
     dias_bloqueados_json = db.Column(db.Text, nullable=True)
 
+    # Si False, el webhook del bot no responde mensajes (el barbero gestiona todo desde el panel)
+    bot_activo = db.Column(db.Boolean, default=True, nullable=False, server_default='true')
+
     # ── Helpers ───────────────────────────────────────────────────────────────
 
     def get_horarios(self):
