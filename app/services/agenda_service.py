@@ -123,7 +123,15 @@ def crear_cita(nombre, telefono, barbero_id, fecha, hora, servicio,
                 if hora_fija_str:
                     t_fijo = datetime.strptime(hora_fija_str, "%H:%M").time()
                     if t_fijo == hora:
-                        return False, "❌ Ese horario está reservado para un cliente habitual. Por favor elige otro."
+                        # Solo bloquear si el cliente fijo NO canceló ese slot ese día
+                        cita_cancelada = Cita.query.filter_by(
+                            cliente_id=cf.id,
+                            fecha=fecha,
+                            hora=hora,
+                            estado="cancelada"
+                        ).first()
+                        if not cita_cancelada:
+                            return False, "❌ Ese horario está reservado para un cliente habitual. Por favor elige otro."
         except Exception as e:
             print(f"⚠ Error verificando fijos en crear_cita: {e}")
 

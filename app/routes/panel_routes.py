@@ -544,7 +544,7 @@ def cancelar_cita_panel():
         except Exception:
             pass
         return jsonify({"success": True, "mensaje": "Cita cancelada",
-                        "data": _build_panel_data(barberia.id)})
+                        "data": _build_panel_data(barberia.id, fecha_c)})
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "mensaje": str(e)})

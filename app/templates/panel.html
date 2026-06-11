@@ -1191,11 +1191,14 @@ async function enviarCita() {
   if(!barbero){msg.className="form-msg err";msg.textContent="Selecciona un barbero o recarga la pagina.";return;}
   msg.className="form-msg"; msg.textContent="Agendando…";
   try {
-    const r=await fetch("/agenda/crear-cita",{method:"POST",headers:{"Content-Type":"application/json"},
+    const r=await fetch("/crear-cita-panel",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({nombre,telefono,barbero_id:parseInt(barbero),fecha,hora,servicio:servicio||null})});
     const data=await r.json();
-    if(data.success){msg.className="form-msg ok";msg.textContent="✓ Cita agendada";setTimeout(cerrarModal,1400);}
-    else{msg.className="form-msg err";msg.textContent=data.mensaje||"Error.";}
+    if(data.success){
+      msg.className="form-msg ok";msg.textContent="✓ Cita agendada";
+      if(data.data){updateStats(data.data);renderTimeline(data.data.agenda);}
+      setTimeout(cerrarModal,1400);
+    } else{msg.className="form-msg err";msg.textContent=data.mensaje||"Error.";}
   } catch(e){msg.className="form-msg err";msg.textContent="Error de conexión.";}
 }
 
