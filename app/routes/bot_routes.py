@@ -1,5 +1,6 @@
 import os
 import json
+import random
 import requests
 from flask import Blueprint, request, jsonify
 
@@ -62,10 +63,12 @@ def _enviar_respuesta(jid, texto, evo_url, evo_key, evo_inst):
     numero  = resolver_numero(jid)
     url     = f"{evo_url}/message/sendText/{evo_inst}"
     headers = {"apikey": evo_key, "Content-Type": "application/json"}
-    payload = {"number": numero, "text": texto}
+    # "delay" (ms): Evolution v2 muestra "escribiendo…" antes de entregar;
+    # responder en el mismo instante en que llega el mensaje delata al bot.
+    payload = {"number": numero, "text": texto, "delay": random.randint(1200, 2500)}
     print(f"[DEBUG] Enviando a: {numero}")
     try:
-        r = requests.post(url, json=payload, headers=headers, timeout=10)
+        r = requests.post(url, json=payload, headers=headers, timeout=15)
         print(f"[DEBUG] Evolution respondió: {r.status_code} {r.text[:200]}")
     except Exception as e:
         print(f"[ERROR] No se pudo enviar mensaje: {e}")

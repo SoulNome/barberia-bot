@@ -1,19 +1,28 @@
+import os
+import random
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.extensions import db
 from app.models import Cita, Cliente
 from datetime import datetime, timedelta, date
 
+# Máximo de reactivaciones por barbería por corrida — los mensajes iniciados
+# por el negocio a clientes inactivos son los que más bloqueos generan.
+_REACTIVACION_MAX = int(os.getenv("REACTIVACION_MAX", "15"))
+
 
 def enviar_recordatorios_fijos(app):
     with app.app_context():
         from app.models.barberia import Barberia
-        from app.services.recordatorio_service import enviar_recordatorio_fijo
+        from app.services.recordatorio_service import enviar_recordatorio_fijo, pausa_anti_ban
 
         for barberia in Barberia.query.all():
             clientes = Cliente.query.filter_by(fijo=True, barberia_id=barberia.id).all()
             enviados = 0
             for c in clientes:
                 if c.telefono and c.horario_fijo:
+                    if enviados:
+                        pausa_anti_ban()
                     ok = enviar_recordatorio_fijo(c.telefono, c.nombre, c.horario_fijo, barberia)
                     if ok:
                         enviados += 1
@@ -129,7 +138,7 @@ def enviar_recordatorios_regulares(app):
     """
     with app.app_context():
         from app.models.barberia import Barberia
-        from app.services.recordatorio_service import enviar_recordatorio
+        from app.services.recordatorio_service import enviar_recordatorio, pausa_anti_ban
 
         manana = (datetime.utcnow() - timedelta(hours=5)).date() + timedelta(days=1)
 
@@ -154,6 +163,8 @@ def enviar_recordatorios_regulares(app):
                     continue
                 fecha_str = manana.strftime("%d/%m/%Y")
                 hora_str  = cita.hora.strftime("%H:%M") if cita.hora else "—"
+                if enviados:
+                    pausa_anti_ban()
                 ok = enviar_recordatorio(
                     cliente.telefono, cliente.nombre,
                     fecha_str, hora_str,
@@ -306,7 +317,7 @@ def enviar_reactivaciones(app):
     """
     with app.app_context():
         from app.models.barberia import Barberia
-        from app.services.recordatorio_service import _enviar_whatsapp
+        from app.services.recordatorio_service import _enviar_whatsapp, pausa_anti_ban
 
         hoy      = (datetime.utcnow() - timedelta(hours=5)).date()
         hace30   = hoy - timedelta(days=30)
@@ -350,6 +361,10 @@ def enviar_reactivaciones(app):
 
                 enviados = 0
                 for cliente_id in ids_dormiados:
+                    # Tope por corrida: los que no alcancen hoy siguen dormidos
+                    # y entrarán en la corrida de la próxima semana.
+                    if enviados >= _REACTIVACION_MAX:
+                        break
                     cliente = Cliente.query.get(cliente_id)
                     if not cliente or not cliente.telefono:
                         continue
@@ -371,14 +386,31 @@ def enviar_reactivaciones(app):
                             except Exception:
                                 pass
 
-                    msg = (
-                        f"💈 *¡Hola {cliente.nombre}!*\n\n"
-                        f"Hace un tiempo que no te vemos por aquí 👋\n\n"
-                        f"¿Quieres agendar tu próxima cita? Escríbenos *hola* "
-                        f"y te reservamos el turno en segundos 😊\n\n"
-                        f"_BarberIA · {barberia.nombre}_"
-                    )
+                    # Rotar entre variantes: el mismo texto idéntico enviado a
+                    # muchos números es la firma de spam que detecta WhatsApp.
+                    msg = random.choice([
+                        (
+                            f"💈 *¡Hola {cliente.nombre}!*\n\n"
+                            f"Hace un tiempo que no te vemos por aquí 👋\n\n"
+                            f"¿Quieres agendar tu próxima cita? Escríbenos *hola* "
+                            f"y te reservamos el turno en segundos 😊\n\n"
+                            f"_BarberIA · {barberia.nombre}_"
+                        ),
+                        (
+                            f"Hola {cliente.nombre} 👋\n\n"
+                            f"¡Ya toca retocar ese corte! ✂️ Si quieres agendar, "
+                            f"escríbenos *hola* y te damos el turno que mejor te sirva.\n\n"
+                            f"_BarberIA · {barberia.nombre}_"
+                        ),
+                        (
+                            f"💈 {cliente.nombre}, ¡te extrañamos en {barberia.nombre}!\n\n"
+                            f"Tenemos turnos disponibles esta semana. "
+                            f"Escríbenos *hola* y agendas en segundos 😊"
+                        ),
+                    ])
 
+                    if enviados:
+                        pausa_anti_ban(45, 90)
                     ok = _enviar_whatsapp(cliente.telefono, msg, barberia)
                     if ok:
                         enviados += 1
@@ -405,7 +437,7 @@ def enviar_encuestas(app):
     with app.app_context():
         from app.models.barberia import Barberia
         from app.models.encuesta import Encuesta
-        from app.services.recordatorio_service import _enviar_whatsapp
+        from app.services.recordatorio_service import _enviar_whatsapp, pausa_anti_ban
         from app.services.state_service import get_state, set_state
 
         ayer = (datetime.utcnow() - timedelta(hours=5)).date() - timedelta(days=1)
@@ -442,6 +474,8 @@ def enviar_encuestas(app):
                     f"_(Solo responde con el número)_"
                 )
 
+                if enviados:
+                    pausa_anti_ban()
                 ok = _enviar_whatsapp(cliente.telefono, msg, barberia)
                 if ok:
                     enviados += 1
@@ -460,14 +494,10 @@ def enviar_encuestas(app):
 def iniciar_scheduler(app):
     scheduler = BackgroundScheduler()
 
-    # Recordatorios diarios a las 08:00 Colombia (13:00 UTC)
-    scheduler.add_job(
-        enviar_recordatorios_fijos,
-        "cron",
-        hour=13,
-        minute=0,
-        args=[app]
-    )
+    # NOTA anti-ban: el recordatorio de clientes fijos es SEMANAL (solo lunes).
+    # Antes había además un job diario con la misma función: cada cliente fijo
+    # recibía el mismo texto todos los días (y doble los lunes) — patrón de
+    # spam que provoca los bloqueos de 24h de WhatsApp.
 
     # Crear citas fijos — cada día a las 06:00 Colombia (11:00 UTC)
     scheduler.add_job(
@@ -507,12 +537,14 @@ def iniciar_scheduler(app):
         args=[app]
     )
 
-    # Reactivación clientes dormidos — cada miércoles a las 10:00 Colombia (15:00 UTC)
+    # Reactivación clientes dormidos — cada miércoles a las 11:00 Colombia (16:00 UTC).
+    # A las 16:00 y no a las 15:00 para no solaparse con las encuestas diarias:
+    # dos campañas despachando a la vez duplica el volumen por minuto.
     scheduler.add_job(
         enviar_reactivaciones,
         "cron",
         day_of_week="wed",
-        hour=15,
+        hour=16,
         minute=0,
         args=[app]
     )

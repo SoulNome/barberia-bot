@@ -1,4 +1,6 @@
 import os
+import random
+import time
 import requests
 
 
@@ -39,15 +41,23 @@ def _enviar_whatsapp(numero, texto, barberia=None):
 
     url     = f"{api_url}/message/sendText/{instance}"
     headers = {"apikey": api_key, "Content-Type": "application/json"}
-    payload = {"number": numero, "text": texto}
+    # "delay" (ms): Evolution v2 muestra "escribiendo…" ese tiempo antes de
+    # entregar — los envíos instantáneos en ráfaga son señal de bot para WhatsApp.
+    payload = {"number": numero, "text": texto, "delay": random.randint(1500, 3000)}
 
     try:
-        r = requests.post(url, json=payload, headers=headers, timeout=10)
+        r = requests.post(url, json=payload, headers=headers, timeout=15)
         r.raise_for_status()
         return True
     except Exception as e:
         print(f"⚠ Error enviando mensaje a {numero}: {e}")
         return False
+
+
+def pausa_anti_ban(min_s=8, max_s=20):
+    """Pausa aleatoria entre mensajes de envíos masivos. WhatsApp bloquea
+    números que despachan decenas de mensajes en el mismo segundo."""
+    time.sleep(random.uniform(min_s, max_s))
 
 
 def construir_mensaje(nombre, fecha, hora):
@@ -103,6 +113,8 @@ def enviar_recordatorio_fijo(telefono, nombre, horario, barberia=None):
 def enviar_recordatorios(lista_citas, barberia=None):
     enviados = 0
     for cita in lista_citas:
+        if enviados:
+            pausa_anti_ban()
         ok = enviar_recordatorio(
             cita.get("telefono"),
             cita.get("nombre"),
