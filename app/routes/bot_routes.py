@@ -60,6 +60,10 @@ def resolver_numero(jid):
 
 
 def _enviar_respuesta(jid, texto, evo_url, evo_key, evo_inst):
+    from app.services.recordatorio_service import _whatsapp_desactivado
+    if _whatsapp_desactivado():
+        return
+
     numero  = resolver_numero(jid)
     url     = f"{evo_url}/message/sendText/{evo_inst}"
     headers = {"apikey": evo_key, "Content-Type": "application/json"}

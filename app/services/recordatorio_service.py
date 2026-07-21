@@ -21,11 +21,20 @@ _DEFAULT_EVO_INSTANCE = os.getenv("EVOLUTION_INSTANCE", "")
 _DEFAULT_HERMES_PHONE = os.getenv("HERMES_PHONE", "")
 
 
+def _whatsapp_desactivado():
+    """WHATSAPP_ENABLED=0 en Railway apaga todos los envíos sin tocar código
+    (cuenta baneada: cada intento contra Evolution solo genera errores/timeouts)."""
+    return os.getenv("WHATSAPP_ENABLED", "1").lower() in ("0", "false", "no")
+
+
 def _enviar_whatsapp(numero, texto, barberia=None):
     """
     Envía un mensaje via Evolution API.
     Si se pasa un objeto Barberia, usa sus credenciales; si no, usa las env vars globales.
     """
+    if _whatsapp_desactivado():
+        return False
+
     if barberia:
         api_url  = barberia.evolution_api_url  or _DEFAULT_EVO_URL
         api_key  = barberia.evolution_api_key  or _DEFAULT_EVO_KEY

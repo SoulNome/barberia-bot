@@ -13,6 +13,11 @@ def _run_startup_migrations(app):
     from sqlalchemy import text
 
     with app.app_context():
+        # Solo Postgres: usa information_schema/pg_indexes. En local (SQLite)
+        # db.create_all() ya crea el esquema completo.
+        if db.engine.dialect.name != "postgresql":
+            return
+
         with db.engine.connect() as conn:
 
             def col_exists(table, col):
@@ -176,6 +181,7 @@ def create_app():
     from app.services.scheduler_service import iniciar_scheduler
     from app.routes.panel_routes        import panel_bp
     from app.routes.admin_routes        import admin_bp
+    from app.routes.reservas_routes     import reservas_bp
 
     app.register_blueprint(agenda_bp,          url_prefix="/agenda")
     app.register_blueprint(disponibilidad_bp,  url_prefix="/agenda")
@@ -183,6 +189,7 @@ def create_app():
     app.register_blueprint(bot_bp)
     app.register_blueprint(panel_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(reservas_bp)
     iniciar_scheduler(app)
 
     return app
