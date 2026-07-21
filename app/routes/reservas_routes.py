@@ -3,7 +3,7 @@ import time
 from collections import deque
 from datetime import datetime, timedelta
 
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, redirect
 
 from app.models.barberia import Barberia
 from app.models.barbero import Barbero
@@ -81,6 +81,17 @@ def _dias_abiertos(barberia):
             "mes":    _MESES_ES[f.month - 1],
         })
     return dias
+
+
+@reservas_bp.route("/reservar")
+def pagina_reserva_default():
+    """URL corta para la barbería principal (cliente legacy, igual que /bot
+    sin slug). Redirige a /reservar/<slug>; la migración de startup garantiza
+    que la primera barbería siempre tenga slug."""
+    barberia = Barberia.query.order_by(Barberia.id).first()
+    if not barberia or not barberia.slug:
+        return "Barbería no encontrada", 404
+    return redirect(f"/reservar/{barberia.slug}")
 
 
 @reservas_bp.route("/reservar/<slug>")

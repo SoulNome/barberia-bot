@@ -22,9 +22,10 @@ _DEFAULT_HERMES_PHONE = os.getenv("HERMES_PHONE", "")
 
 
 def _whatsapp_desactivado():
-    """WHATSAPP_ENABLED=0 en Railway apaga todos los envíos sin tocar código
-    (cuenta baneada: cada intento contra Evolution solo genera errores/timeouts)."""
-    return os.getenv("WHATSAPP_ENABLED", "1").lower() in ("0", "false", "no")
+    """Envíos de WhatsApp apagados por defecto: la cuenta fue suspendida y las
+    reservas ahora entran por la web. Si algún día vuelve WhatsApp (p. ej. API
+    oficial), poner WHATSAPP_ENABLED=1 en Railway."""
+    return os.getenv("WHATSAPP_ENABLED", "0").lower() in ("0", "false", "no")
 
 
 def _enviar_whatsapp(numero, texto, barberia=None):

@@ -123,6 +123,21 @@ def _run_startup_migrations(app):
                         print(f"[MIGRATION] Aviso índice {idx}: {e}")
                     conn.commit()
 
+            # ── Slug de la barbería principal (Hermes, cliente legacy) ───────
+            # Necesario para la página pública de reservas: /reservar redirige
+            # a /reservar/<slug> de la primera barbería.
+            try:
+                result = conn.execute(text("""
+                    UPDATE barberias SET slug = 'hermes'
+                    WHERE id = (SELECT id FROM barberias ORDER BY id LIMIT 1)
+                    AND (slug IS NULL OR slug = '')
+                """))
+                if result.rowcount > 0:
+                    conn.commit()
+                    print("[MIGRATION] Slug 'hermes' asignado a la barbería principal")
+            except Exception as e:
+                print(f"[MIGRATION] Aviso slug hermes: {e}")
+
             # ── Columna bot_activo en barberias ──────────────────────────────
             if not col_exists("barberias", "bot_activo"):
                 conn.execute(text(
