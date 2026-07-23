@@ -1,5 +1,20 @@
 import json
+import re
 from app.extensions import db
+
+
+def precio_de_servicio(precios, servicio):
+    """
+    Precio de un servicio a partir del dict {nombre: precio}.
+    Entiende el sufijo de citas grupales "X (persona N)" que generan el bot
+    y la página de reservas — sin esto, los turnos extra del grupo suman $0.
+    """
+    if not servicio:
+        return 0
+    if servicio in precios:
+        return precios[servicio]
+    base = re.sub(r"\s*\(persona \d+\)$", "", servicio)
+    return precios.get(base, 0)
 
 
 # ──────────────────────────────────────────────────────────────────────────────

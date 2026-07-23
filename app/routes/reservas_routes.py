@@ -14,7 +14,10 @@ from app.services.agenda_service import crear_cita
 reservas_bp = Blueprint("reservas", __name__)
 
 # Ventana de reserva pública: hoy + N días
-DIAS_ADELANTE = 14
+DIAS_ADELANTE = 15
+
+# Turnos consecutivos máximos por reserva (misma lógica de grupos del bot)
+MAX_PERSONAS = 7
 
 # Rate limit en memoria: máx 5 intentos de reserva por IP por hora.
 # Válido porque gunicorn corre con 1 solo worker (ver Procfile).
@@ -59,6 +62,26 @@ def _normalizar_telefono(tel):
     if 10 <= len(digitos) <= 15:                            # internacional genérico
         return "+" + digitos
     return None
+
+
+def _horas_consecutivas(hora_inicio, cantidad):
+    """['10:00', '10:30', ...]: la hora elegida + los turnos siguientes,
+    en bloques de 30 min (igual que los grupos del bot de chat)."""
+    base = datetime.strptime(hora_inicio, "%H:%M")
+    return [(base + timedelta(minutes=30 * k)).strftime("%H:%M") for k in range(cantidad)]
+
+
+def _inicios_validos(slots, cantidad):
+    """Horas de inicio cuyos `cantidad` turnos consecutivos están todos libres.
+    Réplica del filtro de conversation_service para citas grupales."""
+    libres = {s["hora"] for s in slots if s["disponible"]}
+    inicios = []
+    for s in slots:
+        if not s["disponible"]:
+            continue
+        if all(h in libres for h in _horas_consecutivas(s["hora"], cantidad)):
+            inicios.append(s["hora"])
+    return inicios
 
 
 def _dias_abiertos(barberia):
@@ -117,8 +140,11 @@ def horarios_reserva(slug):
 
     barbero_id = request.args.get("barbero_id", type=int)
     fecha      = (request.args.get("fecha") or "").strip()
+    cantidad   = request.args.get("cantidad", default=1, type=int)
 
     if not barbero_id or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", fecha):
+        return jsonify({"slots": []})
+    if not (1 <= cantidad <= MAX_PERSONAS):
         return jsonify({"slots": []})
 
     # El barbero debe pertenecer a esta barbería (aislamiento multi-tenant)
@@ -137,7 +163,7 @@ def horarios_reserva(slug):
     slots = obtener_horarios_disponibles(barbero_id, fecha, barberia.id)
     if not isinstance(slots, list):
         return jsonify({"slots": []})
-    return jsonify({"slots": [s["hora"] for s in slots if s["disponible"]]})
+    return jsonify({"slots": _inicios_validos(slots, cantidad)})
 
 
 @reservas_bp.route("/reservar/<slug>/crear", methods=["POST"])
@@ -181,14 +207,66 @@ def crear_reserva(slug):
     if servicio not in {s["nombre"] for s in barberia.get_servicios()}:
         return jsonify({"ok": False, "mensaje": "Elige un servicio."})
 
-    # El slot debe existir dentro del horario de atención y estar libre
-    # (crear_cita valida colisiones, pero no que la hora sea de atención)
+    try:
+        cantidad = int(data.get("cantidad", 1))
+    except (TypeError, ValueError):
+        cantidad = 1
+    if not (1 <= cantidad <= MAX_PERSONAS):
+        return jsonify({"ok": False, "mensaje": f"Máximo {MAX_PERSONAS} personas por reserva."})
+
+    # Todos los turnos del grupo deben caer dentro del horario de atención y
+    # estar libres (crear_cita valida colisiones, pero no horario de atención)
     slots = obtener_horarios_disponibles(barbero_id, fecha, barberia.id)
-    if not isinstance(slots, list) or not any(s["hora"] == hora and s["disponible"] for s in slots):
+    if not isinstance(slots, list) or hora not in _inicios_validos(slots, cantidad):
         return jsonify({"ok": False, "mensaje": "Ese horario ya no está disponible. Elige otro."})
+
+    horas = _horas_consecutivas(hora, cantidad)
 
     ok, msg = crear_cita(
         nombre, telefono, barbero_id, fecha, hora, servicio,
         barberia_id=barberia.id,
     )
-    return jsonify({"ok": ok, "mensaje": msg})
+    if not ok:
+        return jsonify({"ok": False, "mensaje": msg})
+
+    # Turnos extra del grupo: mismo cliente, servicio "X (persona k)" — formato
+    # idéntico al del bot de chat, que el panel ya conoce.
+    creadas = [hora]
+    for k in range(2, cantidad + 1):
+        ok_k, _ = crear_cita(
+            nombre, telefono, barbero_id, fecha, horas[k - 1],
+            f"{servicio} (persona {k})",
+            skip_client_check=True, barberia_id=barberia.id,
+        )
+        if not ok_k:
+            _deshacer_reserva(telefono, barbero_id, fecha, creadas, barberia.id)
+            return jsonify({"ok": False, "mensaje": "Alguien tomó uno de los turnos justo ahora. Elige otra hora."})
+        creadas.append(horas[k - 1])
+
+    return jsonify({"ok": True, "mensaje": msg, "turnos": horas})
+
+
+def _deshacer_reserva(telefono, barbero_id, fecha, horas, barberia_id):
+    """Elimina las citas ya creadas de un grupo que no se pudo completar,
+    para no dejar reservas a medias."""
+    from datetime import time as time_t
+
+    from app.extensions import db
+    from app.models import Cita
+    from app.services.agenda_service import _buscar_cliente
+
+    try:
+        cliente = _buscar_cliente(telefono, barberia_id)
+        if not cliente:
+            return
+        horas_t = [time_t(*map(int, h.split(":"))) for h in horas]
+        Cita.query.filter(
+            Cita.cliente_id == cliente.id,
+            Cita.barbero_id == barbero_id,
+            Cita.fecha == datetime.strptime(fecha, "%Y-%m-%d").date(),
+            Cita.hora.in_(horas_t),
+        ).delete(synchronize_session=False)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"⚠ Error deshaciendo reserva grupal: {e}")

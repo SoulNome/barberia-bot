@@ -216,8 +216,9 @@ def enviar_reporte_semanal(app):
                     Cita.estado == "cancelada",
                 ).count()
 
+                from app.models.barberia import precio_de_servicio
                 total_citas    = len(citas)
-                ingresos       = sum(precios.get(c.servicio, 0) for c in citas)
+                ingresos       = sum(precio_de_servicio(precios, c.servicio) for c in citas)
                 ticket_prom    = int(ingresos / total_citas) if total_citas else 0
 
                 # Clientes nuevos esa semana

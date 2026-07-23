@@ -44,6 +44,7 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+.inc-hideable { cursor: pointer; user-select: none; }
 html { scroll-behavior: smooth; }
 
 body {
@@ -634,7 +635,7 @@ body {
     <div class="stat-card sc-green">
       <span class="stat-icon">💰</span>
       <div class="stat-label">Ingresos</div>
-      <div class="stat-val green" id="stat-ingresos">${{ "{:,}".format(ingresos_hoy).replace(",",".") }}</div>
+      <div class="stat-val green inc-hideable" id="stat-ingresos" onclick="toggleIncome()" title="Toca para mostrar u ocultar">$•••••</div>
       <div class="stat-color-bar"></div>
     </div>
     <div class="stat-card sc-indigo">
@@ -686,7 +687,7 @@ body {
     </div>
     <div class="strip-card">
       <div class="strip-label">Ingresos</div>
-      <div class="strip-val" id="ms-income" style="color:var(--green)">${{ "{:,}".format(ingresos_hoy).replace(",",".") }}</div>
+      <div class="strip-val inc-hideable" id="ms-income" style="color:var(--green)" onclick="toggleIncome()" title="Toca para mostrar u ocultar">$•••••</div>
       <div class="strip-sub" id="ms-occ">{{ ocupacion }}% ocupado</div>
     </div>
   </div>
@@ -765,10 +766,8 @@ body {
       </div>
 
       <div class="sb-card">
-        <div class="sb-title">Ingresos del día</div>
-        <div class="income-amt" id="sb-income">
-          ${{ "{:,}".format(ingresos_hoy).replace(",",".") }}
-        </div>
+        <div class="sb-title">Ingresos del día <span style="font-weight:400;font-size:11px;color:var(--label3)">· toca para ver</span></div>
+        <div class="income-amt inc-hideable" id="sb-income" onclick="toggleIncome()" title="Toca para mostrar u ocultar">$•••••</div>
         <div class="inc-bar-bg"><div class="inc-bar-fill" id="inc-bar" style="width:0%"></div></div>
         <div class="inc-goal" id="inc-goal-txt">meta: $200.000</div>
       </div>
@@ -990,17 +989,36 @@ function updateRing(pct) {
 updateRing({{ ocupacion }});
 
 // ── INCOME ──
-function updateIncomeBar(amount) {
-  const pct=Math.min((amount/GOAL)*100,100);
-  const bar=document.getElementById("inc-bar");
-  if(bar) bar.style.width=pct+"%";
-  const fmt="$"+amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g,".");
+// Oculto por defecto en la pestaña principal; se muestra tocando el valor.
+// La visibilidad se recuerda solo durante la sesión del navegador.
+let _incAmount=0;
+let _incVisible=sessionStorage.getItem("inc_visible")==="1";
+function renderIncome() {
+  const pct=Math.min((_incAmount/GOAL)*100,100);
+  const fmt="$"+_incAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g,".");
+  const oculto="$•••••";
   const sb=document.getElementById("sb-income");
-  if(sb) sb.innerHTML=fmt;
+  if(sb) sb.textContent=_incVisible?fmt:oculto;
   const ms=document.getElementById("ms-income");
-  if(ms) ms.textContent=fmt;
+  if(ms) ms.textContent=_incVisible?fmt:oculto;
+  const st=document.getElementById("stat-ingresos");
+  if(st) st.textContent=_incVisible?fmt:oculto;
+  // La barra y el % de meta también delatan el monto: se enmascaran juntos
+  const bar=document.getElementById("inc-bar");
+  if(bar) bar.style.width=(_incVisible?pct:0)+"%";
   const gt=document.getElementById("inc-goal-txt");
-  if(gt) gt.textContent=`meta: $${(GOAL/1000).toFixed(0)}0.000 · ${Math.round(pct)}%`;
+  if(gt) gt.textContent=_incVisible
+    ?`meta: $${(GOAL/1000).toFixed(0)}0.000 · ${Math.round(pct)}%`
+    :`meta: $${(GOAL/1000).toFixed(0)}0.000`;
+}
+function toggleIncome() {
+  _incVisible=!_incVisible;
+  sessionStorage.setItem("inc_visible",_incVisible?"1":"0");
+  renderIncome();
+}
+function updateIncomeBar(amount) {
+  _incAmount=amount;
+  renderIncome();
 }
 updateIncomeBar({{ ingresos_hoy }});
 

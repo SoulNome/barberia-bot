@@ -76,6 +76,8 @@ body {
 .chip .m  { font-size: 11px; color: var(--label3); }
 .chip.sel { border-color: var(--gold); background: var(--gold-bg); }
 .chip.sel .d, .chip.sel .m { color: var(--gold); }
+.chip-persona { min-width: 52px; padding: 8px 10px; }
+.hint { color: var(--label3); font-size: 13px; margin-top: 8px; }
 
 .slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 @media (max-width: 380px) { .slots { grid-template-columns: repeat(3, 1fr); } }
@@ -160,9 +162,22 @@ body {
       </div>
     </div>
 
+    <div class="paso">
+      <h2><span class="num">2</span>¿Para cuántas personas?</h2>
+      <div class="chips" id="personas">
+        {% for n in range(1, 8) %}
+        <div class="chip chip-persona{{ " sel" if n == 1 }}" data-n="{{ n }}">
+          <div class="n">{{ n }}</div>
+          <div class="m">{{ "persona" if n == 1 else "personas" }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <p class="hint" id="personasHint" style="display:none">Se reservan turnos seguidos de 30 min desde la hora que elijas.</p>
+    </div>
+
     {% if barberos|length > 1 %}
     <div class="paso">
-      <h2><span class="num">2</span>Barbero</h2>
+      <h2><span class="num">3</span>Barbero</h2>
       <div class="opciones" id="barberos">
         {% for b in barberos %}
         <div class="opcion" data-id="{{ b.id }}"><span>💈 {{ b.nombre }}</span></div>
@@ -172,7 +187,7 @@ body {
     {% endif %}
 
     <div class="paso">
-      <h2><span class="num">{{ 3 if barberos|length > 1 else 2 }}</span>Día</h2>
+      <h2><span class="num">{{ 4 if barberos|length > 1 else 3 }}</span>Día</h2>
       <div class="chips" id="dias">
         {% for d in dias %}
         <div class="chip" data-fecha="{{ d.fecha }}">
@@ -185,13 +200,13 @@ body {
     </div>
 
     <div class="paso">
-      <h2><span class="num">{{ 4 if barberos|length > 1 else 3 }}</span>Hora</h2>
+      <h2><span class="num">{{ 5 if barberos|length > 1 else 4 }}</span>Hora</h2>
       <div class="slots" id="slots"></div>
       <div class="slots-vacio" id="slotsMsg">Elige primero el día{% if barberos|length > 1 %} y el barbero{% endif %}.</div>
     </div>
 
     <div class="paso">
-      <h2><span class="num">{{ 5 if barberos|length > 1 else 4 }}</span>Tus datos</h2>
+      <h2><span class="num">{{ 6 if barberos|length > 1 else 5 }}</span>Tus datos</h2>
       <div class="campo">
         <label for="nombre">Nombre</label>
         <input id="nombre" type="text" maxlength="60" placeholder="Tu nombre" autocomplete="name">
@@ -222,7 +237,7 @@ body {
 const SLUG = {{ barberia.slug | tojson }};
 const UN_BARBERO = {{ (barberos[0].id if barberos|length == 1 else 0) | tojson }};
 
-const sel = { servicio: null, barbero: UN_BARBERO || null, fecha: null, hora: null };
+const sel = { servicio: null, barbero: UN_BARBERO || null, fecha: null, hora: null, personas: 1 };
 
 function marcar(contenedor, el) {
   contenedor.querySelectorAll('.sel').forEach(x => x.classList.remove('sel'));
@@ -240,6 +255,16 @@ document.getElementById('servicios').addEventListener('click', e => {
   const op = e.target.closest('.opcion'); if (!op) return;
   sel.servicio = op.dataset.nombre;
   marcar(document.getElementById('servicios'), op);
+  validar();
+});
+
+document.getElementById('personas').addEventListener('click', e => {
+  const ch = e.target.closest('.chip'); if (!ch) return;
+  sel.personas = parseInt(ch.dataset.n);
+  marcar(document.getElementById('personas'), ch);
+  document.getElementById('personasHint').style.display = sel.personas > 1 ? 'block' : 'none';
+  sel.hora = null;
+  cargarSlots();
   validar();
 });
 
@@ -270,10 +295,12 @@ async function cargarSlots() {
   msg.style.display = 'block';
   msg.textContent = 'Cargando horarios…';
   try {
-    const r = await fetch(`/reservar/${SLUG}/horarios?fecha=${sel.fecha}&barbero_id=${sel.barbero}`);
+    const r = await fetch(`/reservar/${SLUG}/horarios?fecha=${sel.fecha}&barbero_id=${sel.barbero}&cantidad=${sel.personas}`);
     const j = await r.json();
     if (!j.slots || !j.slots.length) {
-      msg.textContent = 'No quedan horarios libres ese día. Prueba otro.';
+      msg.textContent = sel.personas > 1
+        ? `No hay ${sel.personas} turnos seguidos libres ese día. Prueba otro día o menos personas.`
+        : 'No quedan horarios libres ese día. Prueba otro.';
       return;
     }
     msg.style.display = 'none';
@@ -314,16 +341,22 @@ document.getElementById('btnReservar').addEventListener('click', async () => {
         fecha:      sel.fecha,
         hora:       sel.hora,
         servicio:   sel.servicio,
+        cantidad:   sel.personas,
         _web:       document.getElementById('_web').value,
       }),
     });
     const j = await r.json();
     if (j.ok) {
       const [y, m, d] = sel.fecha.split('-');
+      const turnos = (j.turnos && j.turnos.length) ? j.turnos : [sel.hora];
+      const horaTxt = turnos.map(fmtHora).join(' · ');
+      const filaPersonas = sel.personas > 1
+        ? `<div class="fila"><span>Personas</span><span>${sel.personas}</span></div>` : '';
       document.getElementById('resumen').innerHTML = `
         <div class="fila"><span>Servicio</span><span>${sel.servicio}</span></div>
+        ${filaPersonas}
         <div class="fila"><span>Fecha</span><span>${d}/${m}/${y}</span></div>
-        <div class="fila"><span>Hora</span><span>${fmtHora(sel.hora)}</span></div>
+        <div class="fila"><span>${turnos.length > 1 ? 'Turnos' : 'Hora'}</span><span>${horaTxt}</span></div>
         <div class="fila"><span>Nombre</span><span>${document.getElementById('nombre').value.trim()}</span></div>`;
       document.getElementById('form').style.display = 'none';
       document.getElementById('exito').style.display = 'block';

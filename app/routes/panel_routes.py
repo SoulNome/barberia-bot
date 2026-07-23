@@ -3,7 +3,7 @@ import re
 import time as time_module
 from flask import Blueprint, request, render_template, Response, stream_with_context, jsonify, session, redirect, url_for
 from app.models import Cita, Cliente, Barbero
-from app.models.barberia import Barberia
+from app.models.barberia import Barberia, precio_de_servicio
 from app.extensions import db
 from datetime import date, datetime, time, timedelta
 import os
@@ -117,7 +117,7 @@ def _build_panel_data(barberia_id, fecha=None):
     clientes_dict = {c.id: c for c in Cliente.query.all()}
     barberos_dict = {b.id: b.nombre for b in Barbero.query.all()}
 
-    ingresos_hoy = sum(precios.get(c.servicio, 0) for c in citas)
+    ingresos_hoy = sum(precio_de_servicio(precios, c.servicio) for c in citas)
     conteo = {}
     for cita in citas:
         if cita.servicio:
@@ -799,7 +799,7 @@ def panel_metricas():
         if clave not in meses_dict:
             meses_dict[clave] = {"citas": 0, "ingresos": 0}
         meses_dict[clave]["citas"]    += 1
-        meses_dict[clave]["ingresos"] += precios.get(c.servicio, 0)
+        meses_dict[clave]["ingresos"] += precio_de_servicio(precios, c.servicio)
 
     meses_labels   = sorted(meses_dict.keys())
     meses_citas    = [meses_dict[m]["citas"]    for m in meses_labels]
