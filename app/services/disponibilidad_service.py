@@ -1,6 +1,5 @@
 from datetime import datetime, time, timedelta
 from app.models import Cita, Cliente
-import dateparser
 import re
 import unicodedata
 
@@ -124,6 +123,10 @@ def normalizar_fecha(fecha):
         por_nombre = _dia_nombre_a_fecha(f)
         if por_nombre:
             return por_nombre
+        # dateparser pesa decenas de MB de RAM y solo hace falta para texto
+        # libre del chat; la web siempre manda YYYY-MM-DD, así que se importa
+        # únicamente si los formatos anteriores no sirvieron.
+        import dateparser
         parsed = dateparser.parse(f, languages=["es"], settings={"PREFER_DATES_FROM": "future"})
         if parsed:
             return parsed

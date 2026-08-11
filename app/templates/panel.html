@@ -1023,7 +1023,11 @@ function updateIncomeBar(amount) {
 updateIncomeBar({{ ingresos_hoy }});
 
 // ── NEXT APPT ──
+// El servidor ya no reenvía datos idénticos, así que la cuenta regresiva
+// ("En 25 min") se recalcula localmente sobre la última agenda recibida.
+let _lastAgenda=[];
 function updateNextAppt(agenda) {
+  if(agenda) _lastAgenda=agenda; else agenda=_lastAgenda;
   const now=new Date(), nowMins=now.getHours()*60+now.getMinutes();
   const next=agenda.find(f=>{
     if(!f.cliente) return false;
@@ -1055,6 +1059,7 @@ function updateNextAppt(agenda) {
   if(msName) msName.textContent=diffTxt+" · "+next.cliente;
 }
 updateNextAppt({{ agenda | tojson }});
+setInterval(()=>updateNextAppt(null),60000);
 
 // ── RENDER TIMELINE ──
 function renderTimeline(agenda) {
@@ -1128,12 +1133,32 @@ function updateStats(data) {
 // ── SSE ──
 const ES_HOY   ={{ 'true' if es_hoy else 'false' }};
 const FECHA_ISO="{{ fecha_iso }}";
+// La conexión se corta mientras la pestaña está en segundo plano: un panel
+// olvidado abierto consultaba la base de datos todo el día sin que nadie mirara.
+// Al volver a primer plano reconecta y el servidor manda los datos frescos.
+let _sse=null, _sseTimer=null;
 function conectarSSE() {
+  if(_sse||document.hidden) return;
   const es=new EventSource(`/panel-stream?fecha=${FECHA_ISO}`);
+  _sse=es;
   es.addEventListener("update",e=>{const d=JSON.parse(e.data);updateStats(d);renderTimeline(d.agenda);});
-  es.onerror=()=>{es.close();setTimeout(conectarSSE,5000);};
+  es.onerror=()=>{
+    es.close();
+    if(_sse===es) _sse=null;
+    clearTimeout(_sseTimer);
+    if(!document.hidden) _sseTimer=setTimeout(conectarSSE,5000);
+  };
 }
-if(ES_HOY) conectarSSE();
+function desconectarSSE() {
+  clearTimeout(_sseTimer);
+  if(_sse){ _sse.close(); _sse=null; }
+}
+if(ES_HOY) {
+  conectarSSE();
+  document.addEventListener("visibilitychange",()=>{
+    if(document.hidden) desconectarSSE(); else conectarSSE();
+  });
+}
 else { const lu=document.getElementById("last-update"); if(lu) lu.textContent=`${lu.textContent} · estático`; }
 
 // ── CANCEL ──

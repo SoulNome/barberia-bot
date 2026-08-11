@@ -114,8 +114,23 @@ def _build_panel_data(barberia_id, fecha=None):
     clientes_count = Cliente.query.filter_by(barberia_id=barberia_id).count() if barberia_id else Cliente.query.count()
     barberos_count = Barbero.query.filter_by(barberia_id=barberia_id).count() if barberia_id else Barbero.query.count()
 
-    clientes_dict = {c.id: c for c in Cliente.query.all()}
-    barberos_dict = {b.id: b.nombre for b in Barbero.query.all()}
+    # Antes cargaba TODOS los clientes y barberos de TODAS las barberías en cada
+    # refresco. Ahora solo los que aparecen en la agenda del día.
+    q_canceladas = Cita.query.filter(Cita.fecha == hoy, Cita.estado == "cancelada")
+    if barberia_id:
+        q_canceladas = q_canceladas.filter(Cita.barberia_id == barberia_id)
+    citas_canceladas_hoy = q_canceladas.all()
+
+    ids_clientes = {c.cliente_id for c in citas} | {c.cliente_id for c in citas_canceladas_hoy}
+    clientes_dict = (
+        {c.id: c for c in Cliente.query.filter(Cliente.id.in_(ids_clientes)).all()}
+        if ids_clientes else {}
+    )
+
+    q_barberos_dict = Barbero.query
+    if barberia_id:
+        q_barberos_dict = q_barberos_dict.filter_by(barberia_id=barberia_id)
+    barberos_dict = {b.id: b.nombre for b in q_barberos_dict.all()}
 
     ingresos_hoy = sum(precio_de_servicio(precios, c.servicio) for c in citas)
     conteo = {}
@@ -146,11 +161,6 @@ def _build_panel_data(barberia_id, fecha=None):
                 fijo_slots[t] = cf.nombre
             except Exception:
                 pass
-
-    q_canceladas = Cita.query.filter(Cita.fecha == hoy, Cita.estado == "cancelada")
-    if barberia_id:
-        q_canceladas = q_canceladas.filter(Cita.barberia_id == barberia_id)
-    citas_canceladas_hoy = q_canceladas.all()
 
     for cc in citas_canceladas_hoy:
         cli_c = clientes_dict.get(cc.cliente_id)
@@ -243,11 +253,8 @@ def _build_panel_data(barberia_id, fecha=None):
 
     servicios_lista = []
     try:
-        if barberia_id:
-            from app.models.barberia import Barberia as _Barb
-            _b2 = _Barb.query.get(barberia_id)
-            if _b2:
-                servicios_lista = _b2.get_servicios()
+        if barberia_obj:
+            servicios_lista = barberia_obj.get_servicios()
     except Exception:
         pass
 
@@ -346,14 +353,33 @@ def panel_stream():
         fecha_sse = None
 
     def generar():
+        # Solo se envía el panel cuando algo cambió: el navegador ya tiene los
+        # datos y reenviarlos idénticos cada ciclo gastaba CPU y ancho de banda.
+        ultimo_hash = None
+        # Latido cada ~2 min aunque no haya cambios, para que proxies y el
+        # navegador no den la conexión por muerta.
+        ciclos_sin_enviar = 0
+
         while True:
             try:
                 with app.app_context():
                     payload = _build_panel_data(barberia_id, fecha_sse)
-                    yield f"event: update\ndata: {json.dumps(payload)}\n\n"
+                cuerpo = json.dumps(payload)
+                nuevo_hash = hash(cuerpo)
+                if nuevo_hash != ultimo_hash:
+                    ultimo_hash = nuevo_hash
+                    ciclos_sin_enviar = 0
+                    yield f"event: update\ndata: {cuerpo}\n\n"
+                else:
+                    ciclos_sin_enviar += 1
+                    if ciclos_sin_enviar >= 8:
+                        ciclos_sin_enviar = 0
+                        yield ": keep-alive\n\n"
             except Exception as e:
                 yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
-            for _ in range(10):
+            # 15s en vez de 5s: la agenda de una barbería no cambia tan rápido
+            # y esto reduce a un tercio las consultas del panel abierto.
+            for _ in range(30):
                 time_module.sleep(0.5)
 
     return Response(

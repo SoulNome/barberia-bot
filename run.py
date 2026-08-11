@@ -4,7 +4,8 @@ from app.models import Barberia, UserState
 app = create_app()
 
 with app.app_context():
-    db.create_all()
+    # create_app() ya ejecutó db.create_all(); repetirlo aquí solo añadía una
+    # ronda de introspección de tablas en cada arranque del worker.
 
     # Migración: agregar columnas nuevas si no existen
     from sqlalchemy import text

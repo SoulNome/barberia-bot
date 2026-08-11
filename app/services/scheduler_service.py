@@ -493,14 +493,12 @@ def enviar_encuestas(app):
 
 
 def iniciar_scheduler(app):
+    from app.services.recordatorio_service import _whatsapp_desactivado
+
     scheduler = BackgroundScheduler()
 
-    # NOTA anti-ban: el recordatorio de clientes fijos es SEMANAL (solo lunes).
-    # Antes había además un job diario con la misma función: cada cliente fijo
-    # recibía el mismo texto todos los días (y doble los lunes) — patrón de
-    # spam que provoca los bloqueos de 24h de WhatsApp.
-
-    # Crear citas fijos — cada día a las 06:00 Colombia (11:00 UTC)
+    # Crear citas de clientes fijos — único job que no depende de WhatsApp.
+    # Cada día a las 06:00 Colombia (11:00 UTC).
     scheduler.add_job(
         crear_citas_fijos,
         "cron",
@@ -508,6 +506,18 @@ def iniciar_scheduler(app):
         minute=0,
         args=[app]
     )
+
+    # Con WhatsApp apagado, los jobs de mensajería solo harían barridos de BD
+    # para no enviar nada: no se registran (ahorra CPU y consultas en Railway).
+    if _whatsapp_desactivado():
+        scheduler.start()
+        print("⏰ Scheduler iniciado (solo citas fijas · WhatsApp desactivado)")
+        return
+
+    # NOTA anti-ban: el recordatorio de clientes fijos es SEMANAL (solo lunes).
+    # Antes había además un job diario con la misma función: cada cliente fijo
+    # recibía el mismo texto todos los días (y doble los lunes) — patrón de
+    # spam que provoca los bloqueos de 24h de WhatsApp.
 
     # Recordatorio clientes fijos — cada lunes a las 08:00 Colombia (13:00 UTC)
     scheduler.add_job(

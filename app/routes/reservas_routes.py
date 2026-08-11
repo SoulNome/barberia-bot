@@ -3,13 +3,16 @@ import time
 from collections import deque
 from datetime import datetime, timedelta
 
-from flask import Blueprint, request, jsonify, render_template, redirect
+from flask import Blueprint, request, jsonify, render_template, redirect, current_app
+from itsdangerous import URLSafeSerializer
 
+from app.extensions import db
+from app.models import Cita
 from app.models.barberia import Barberia
 from app.models.barbero import Barbero
 from app.services.barbero_service import obtener_barberos
 from app.services.disponibilidad_service import obtener_horarios_disponibles, FESTIVOS
-from app.services.agenda_service import crear_cita
+from app.services.agenda_service import crear_cita, _buscar_cliente
 
 reservas_bp = Blueprint("reservas", __name__)
 
@@ -30,8 +33,52 @@ _MESES_ES = ["ene", "feb", "mar", "abr", "may", "jun",
              "jul", "ago", "sep", "oct", "nov", "dic"]
 
 
+def _colombia_ahora():
+    return datetime.utcnow() - timedelta(hours=5)
+
+
 def _colombia_hoy():
-    return (datetime.utcnow() - timedelta(hours=5)).date()
+    return _colombia_ahora().date()
+
+
+# ── Token de cancelación ──────────────────────────────────────────────────────
+# Firmado con SECRET_KEY: quien reserva recibe un token con los ids de SUS citas
+# y solo con él puede cancelarlas. Evita que alguien cancele turnos ajenos
+# probando ids o teléfonos.
+
+def _serializer():
+    return URLSafeSerializer(current_app.config["SECRET_KEY"], salt="reserva-cancelacion")
+
+
+def _token_de(cita_ids):
+    return _serializer().dumps(sorted(cita_ids))
+
+
+def _ids_de_token(token):
+    try:
+        ids = _serializer().loads(token)
+    except Exception:
+        return None
+    if not isinstance(ids, list) or not ids or not all(isinstance(i, int) for i in ids):
+        return None
+    return ids
+
+
+def _citas_de_token(token, barberia_id):
+    """Citas vivas del token que pertenecen a esta barbería, ordenadas por hora."""
+    ids = _ids_de_token(token)
+    if not ids:
+        return []
+    return (
+        Cita.query
+        .filter(
+            Cita.id.in_(ids),
+            Cita.barberia_id == barberia_id,
+            Cita.estado != "cancelada",
+        )
+        .order_by(Cita.fecha, Cita.hora)
+        .all()
+    )
 
 
 def _rate_ok(ip):
@@ -243,23 +290,103 @@ def crear_reserva(slug):
             return jsonify({"ok": False, "mensaje": "Alguien tomó uno de los turnos justo ahora. Elige otra hora."})
         creadas.append(horas[k - 1])
 
-    return jsonify({"ok": True, "mensaje": msg, "turnos": horas})
+    return jsonify({
+        "ok": True, "mensaje": msg, "turnos": horas,
+        "token": _token_reserva(telefono, barbero_id, fecha, horas, barberia.id),
+    })
+
+
+def _horas_a_time(horas):
+    from datetime import time as time_t
+    return [time_t(*map(int, h.split(":"))) for h in horas]
+
+
+def _token_reserva(telefono, barbero_id, fecha, horas, barberia_id):
+    """Token firmado con los ids de las citas recién creadas, para que el
+    cliente pueda cancelarlas después desde la misma página."""
+    try:
+        cliente = _buscar_cliente(telefono, barberia_id)
+        if not cliente:
+            return None
+        citas = Cita.query.filter(
+            Cita.cliente_id == cliente.id,
+            Cita.barbero_id == barbero_id,
+            Cita.fecha == datetime.strptime(fecha, "%Y-%m-%d").date(),
+            Cita.hora.in_(_horas_a_time(horas)),
+        ).all()
+        return _token_de([c.id for c in citas]) if citas else None
+    except Exception as e:
+        print(f"⚠ Error generando token de reserva: {e}")
+        return None
+
+
+@reservas_bp.route("/reservar/<slug>/mi-cita")
+def mi_cita(slug):
+    """Estado actual de la reserva guardada en el navegador del cliente.
+    Devuelve activa=False si ya pasó o si el barbero la canceló desde el panel."""
+    barberia = Barberia.query.filter_by(slug=slug).first()
+    if not barberia:
+        return jsonify({"activa": False})
+
+    citas = _citas_de_token(request.args.get("token", ""), barberia.id)
+    if not citas:
+        return jsonify({"activa": False})
+
+    primera = citas[0]
+    inicio  = datetime.combine(primera.fecha, primera.hora)
+    if inicio <= _colombia_ahora():
+        return jsonify({"activa": False})
+
+    return jsonify({
+        "activa":   True,
+        "fecha":    primera.fecha.isoformat(),
+        "turnos":   [c.hora.strftime("%H:%M") for c in citas],
+        "servicio": re.sub(r"\s*\(persona \d+\)$", "", primera.servicio or ""),
+        "personas": len(citas),
+    })
+
+
+@reservas_bp.route("/reservar/<slug>/cancelar", methods=["POST"])
+def cancelar_reserva(slug):
+    barberia = Barberia.query.filter_by(slug=slug).first()
+    if not barberia:
+        return jsonify({"ok": False, "mensaje": "Barbería no encontrada."}), 404
+
+    data  = request.get_json(silent=True) or {}
+    citas = _citas_de_token(data.get("token", ""), barberia.id)
+    if not citas:
+        return jsonify({"ok": False, "mensaje": "No encontramos esa cita. Puede que ya esté cancelada."})
+
+    primera = citas[0]
+    inicio  = datetime.combine(primera.fecha, primera.hora)
+    if inicio <= _colombia_ahora():
+        return jsonify({"ok": False, "mensaje": "Esa cita ya pasó. Si necesitas ayuda, llama a la barbería."})
+
+    try:
+        for c in citas:
+            # Los turnos fijos se marcan cancelados (el panel los reconoce así);
+            # el resto se borra para liberar el slot de inmediato.
+            if (c.servicio or "").startswith("📌"):
+                c.estado = "cancelada"
+            else:
+                db.session.delete(c)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"⚠ Error cancelando reserva web: {e}")
+        return jsonify({"ok": False, "mensaje": "No se pudo cancelar. Intenta de nuevo."})
+
+    return jsonify({"ok": True, "mensaje": "Tu cita fue cancelada."})
 
 
 def _deshacer_reserva(telefono, barbero_id, fecha, horas, barberia_id):
     """Elimina las citas ya creadas de un grupo que no se pudo completar,
     para no dejar reservas a medias."""
-    from datetime import time as time_t
-
-    from app.extensions import db
-    from app.models import Cita
-    from app.services.agenda_service import _buscar_cliente
-
     try:
         cliente = _buscar_cliente(telefono, barberia_id)
         if not cliente:
             return
-        horas_t = [time_t(*map(int, h.split(":"))) for h in horas]
+        horas_t = _horas_a_time(horas)
         Cita.query.filter(
             Cita.cliente_id == cliente.id,
             Cita.barbero_id == barbero_id,

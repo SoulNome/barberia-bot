@@ -7,8 +7,9 @@ from flask import Blueprint, request, jsonify
 from app.extensions import db
 from app.models.contact_map import ContactMap
 from app.models.barberia import Barberia
-from app.services.conversation_service import manejar_mensaje
 from app.services.barbero_service import obtener_barberos
+# conversation_service arrastra nlp_service → dateparser + rapidfuzz (decenas de
+# MB). Se importa dentro del webhook para no cargarlo con WhatsApp apagado.
 
 bot_bp = Blueprint("bot", __name__)
 
@@ -97,6 +98,11 @@ def procesar_contacts_upsert(data):
 
 def _procesar_webhook(data, barberia_id, evo_url, evo_key, evo_inst):
     """Lógica compartida de procesamiento de webhook independiente de la barbería."""
+    from app.services.recordatorio_service import _whatsapp_desactivado
+    if _whatsapp_desactivado():
+        # Sin WhatsApp no se puede responder: descartar antes de tocar la BD.
+        return jsonify({"status": "whatsapp_desactivado"}), 200
+
     event = data.get("event", "")
 
     if event == "contacts.upsert":
@@ -152,6 +158,8 @@ def _procesar_webhook(data, barberia_id, evo_url, evo_key, evo_inst):
             evo_url, evo_key, evo_inst
         )
         return jsonify({"status": "ok"}), 200
+
+    from app.services.conversation_service import manejar_mensaje
 
     numero_sesion = f"+{numero_jid.split('@')[0]}"
     barberos      = obtener_barberos(barberia_id)

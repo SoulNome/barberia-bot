@@ -136,6 +136,24 @@ body {
 #resumen .fila span:first-child { color: var(--label2); }
 #resumen .fila span:last-child  { font-weight: 600; }
 .nota { color: var(--label3); font-size: 13px; margin-top: 16px; }
+
+/* Tarjeta de la cita vigente */
+.mc-card {
+  background: var(--card); border: 1.5px solid var(--gold);
+  border-radius: var(--r-lg); padding: 16px; margin-bottom: 24px;
+}
+.mc-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+.mc-badge { color: var(--gold); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; }
+.mc-cancel {
+  background: var(--red-bg); color: var(--red); border: none;
+  border-radius: 10px; padding: 8px 13px;
+  font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
+}
+.mc-cancel:disabled { opacity: 0.5; cursor: default; }
+.mc-body { font-size: 15px; line-height: 1.6; }
+.mc-body .mc-line { display: flex; justify-content: space-between; }
+.mc-body .mc-line span:first-child { color: var(--label2); }
+.mc-body .mc-line span:last-child  { font-weight: 600; }
 </style>
 </head>
 <body>
@@ -146,6 +164,18 @@ body {
     <h1>{{ barberia.nombre }}</h1>
     <p>Reserva tu cita en menos de un minuto</p>
     {% if barberia.direccion %}<p>📍 {{ barberia.direccion }}</p>{% endif %}
+  </div>
+
+  <!-- Cita vigente del visitante (se guarda en su navegador al reservar) -->
+  <div id="miCita" style="display:none">
+    <div class="mc-card">
+      <div class="mc-head">
+        <span class="mc-badge">Tu cita</span>
+        <button class="mc-cancel" id="btnCancelar">Cancelar cita</button>
+      </div>
+      <div class="mc-body" id="mcBody"></div>
+      <div class="error" id="mcError"></div>
+    </div>
   </div>
 
   <div id="form">
@@ -238,6 +268,75 @@ const SLUG = {{ barberia.slug | tojson }};
 const UN_BARBERO = {{ (barberos[0].id if barberos|length == 1 else 0) | tojson }};
 
 const sel = { servicio: null, barbero: UN_BARBERO || null, fecha: null, hora: null, personas: 1 };
+
+// ---------- Cita vigente del visitante ----------
+// El token va firmado por el servidor y se guarda en este navegador: es lo
+// único que permite cancelar, así nadie puede cancelar turnos ajenos.
+const TOKEN_KEY = 'barberia_cita_' + SLUG;
+
+function guardarToken(t) { if (t) localStorage.setItem(TOKEN_KEY, t); }
+function olvidarToken()  { localStorage.removeItem(TOKEN_KEY); }
+
+const DIAS_LARGO  = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const MESES_LARGO = ['enero','febrero','marzo','abril','mayo','junio','julio',
+                     'agosto','septiembre','octubre','noviembre','diciembre'];
+
+function fechaBonita(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const f = new Date(y, m - 1, d);
+  return `${DIAS_LARGO[f.getDay()]} ${d} de ${MESES_LARGO[m - 1]}`;
+}
+
+async function cargarMiCita() {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const card  = document.getElementById('miCita');
+  if (!token) { card.style.display = 'none'; return; }
+  try {
+    const r = await fetch(`/reservar/${SLUG}/mi-cita?token=${encodeURIComponent(token)}`);
+    const j = await r.json();
+    if (!j.activa) { olvidarToken(); card.style.display = 'none'; return; }
+    document.getElementById('mcBody').innerHTML = `
+      <div class="mc-line"><span>Servicio</span><span>${j.servicio || '—'}</span></div>
+      ${j.personas > 1 ? `<div class="mc-line"><span>Personas</span><span>${j.personas}</span></div>` : ''}
+      <div class="mc-line"><span>Día</span><span>${fechaBonita(j.fecha)}</span></div>
+      <div class="mc-line"><span>${j.turnos.length > 1 ? 'Turnos' : 'Hora'}</span><span>${j.turnos.map(fmtHora).join(' · ')}</span></div>`;
+    card.style.display = 'block';
+  } catch (_) { card.style.display = 'none'; }
+}
+
+document.getElementById('btnCancelar').addEventListener('click', async () => {
+  if (!confirm('¿Seguro que quieres cancelar tu cita?')) return;
+  const btn = document.getElementById('btnCancelar');
+  const err = document.getElementById('mcError');
+  btn.disabled = true; btn.textContent = 'Cancelando…';
+  err.style.display = 'none';
+  try {
+    const r = await fetch(`/reservar/${SLUG}/cancelar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: localStorage.getItem(TOKEN_KEY) }),
+    });
+    const j = await r.json();
+    if (j.ok) {
+      olvidarToken();
+      document.getElementById('miCita').style.display = 'none';
+      // Volver al formulario para que pueda reservar de nuevo
+      document.getElementById('exito').style.display = 'none';
+      document.getElementById('form').style.display = '';
+      sel.hora = null;
+      cargarSlots();
+      validar();
+      window.scrollTo({ top: 0 });
+    } else {
+      err.textContent = j.mensaje || 'No se pudo cancelar.';
+      err.style.display = 'block';
+    }
+  } catch (_) {
+    err.textContent = 'Error de conexión. Intenta de nuevo.';
+    err.style.display = 'block';
+  }
+  btn.disabled = false; btn.textContent = 'Cancelar cita';
+});
 
 function marcar(contenedor, el) {
   contenedor.querySelectorAll('.sel').forEach(x => x.classList.remove('sel'));
@@ -358,6 +457,8 @@ document.getElementById('btnReservar').addEventListener('click', async () => {
         <div class="fila"><span>Fecha</span><span>${d}/${m}/${y}</span></div>
         <div class="fila"><span>${turnos.length > 1 ? 'Turnos' : 'Hora'}</span><span>${horaTxt}</span></div>
         <div class="fila"><span>Nombre</span><span>${document.getElementById('nombre').value.trim()}</span></div>`;
+      guardarToken(j.token);
+      cargarMiCita();
       document.getElementById('form').style.display = 'none';
       document.getElementById('exito').style.display = 'block';
       window.scrollTo({ top: 0 });
@@ -373,6 +474,8 @@ document.getElementById('btnReservar').addEventListener('click', async () => {
     btn.disabled = false; btn.textContent = 'Confirmar cita';
   }
 });
+
+cargarMiCita();
 </script>
 </body>
 </html>
